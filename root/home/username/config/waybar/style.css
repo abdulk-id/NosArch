@@ -1,0 +1,88 @@
+@define-color background #%BACKGROUND%;
+@define-color foreground #%FOREGROUND%;
+
+@import "/home/abdul-kareem/.local/share/current-theme/waybar.css";
+
+* {
+    color: @foreground;
+
+    border: none;
+    border-radius: 0;
+    min-height: 0px;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 14px;
+}
+
+window#waybar {
+    background-color: transparent;
+}
+
+tooltip {
+    background-color: @background;
+    padding: 0px;
+    border-radius: 8px;
+}
+
+.modules-left,
+.modules-center,
+.modules-right {
+    background: @background;
+    border-radius: 10px;
+    padding: 5px 6px;
+    margin: 5px;
+}
+
+/* Right modules */
+#custom-archicon {
+    padding: 0 6px;
+    font-size: 18px;
+}
+
+#workspaces button {
+    padding: 0 2px;
+}
+#workspaces button.empty {
+    opacity: 0.5;
+}
+
+#group-usage {
+    padding: 0 6px;
+}
+#cpu,
+#memory {
+    padding: 0 6px;
+}
+
+/* Center modules */
+#clock {
+    padding: 0 6px;
+}
+
+#privacy {
+    padding: 0 6px;
+}
+
+/* Right modules */
+#tray {
+    padding: 0 6px;
+    margin: 0 2px;
+}
+#custom-expand-icon {
+    padding: 0 6px;
+}
+.hidden {
+    opacity: 0;
+}
+
+#network,
+#bluetooth,
+#pulseaudio,
+#battery,
+#custom-notifications {
+    padding: 0 4px;
+    margin: 0 10px;
+}
+
+#bluetooth.no-controller {
+    opacity: 0.5;
+}

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo 'Running yay -Syu'
+
+if yay -Syu; then
+    echo -e '\nUpdates finished.'
+else
+    echo -e '\nUpdate failed.'
+fi
+
+# Launch using Hyprland dispatch with inline rules for floating and no-idle
+#RULES="float on; size 1280 720; center 1; idleinhibit always"

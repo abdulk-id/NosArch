@@ -1,0 +1,124 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+    // General
+    "when_closing_with_no_tabs": "platform_default",
+    "on_last_window_closed": "platform_default",
+    "use_system_path_prompts": true,
+    "use_system_prompts": true,
+    "redact_private_values": true,
+    "session": {
+        "trust_all_worktrees": false,
+        "restore_unsaved_buffers": true,
+    },
+    "restore_on_startup": "last_session",
+    // Privacy
+    "telemetry": {
+        "diagnostics": true,
+        "metrics": false,
+    },
+    // Appearance
+    "theme": {
+        "mode": "dark", // TODO: Make it default to dark style when "system" mode is selected
+        "light": "One Dark",
+        "dark": "%NAME%",
+    },
+    "icon_theme": {
+        "mode": "system",
+        "light": "Zed (Default)",
+        "dark": "Zed (Default)",
+    },
+    "buffer_font_size": 15.0,
+    "buffer_font_weight": 400.0,
+    "buffer_line_height": "comfortable",
+    "buffer_font_features": {
+        // Disable ligatures:
+        "calt": false,
+    },
+    "ui_font_size": 16.0,
+    "ui_font_weight": 400,
+    "agent_ui_font_size": 16.0,
+    "agent_buffer_font_size": 15.0,
+    "text_rendering_mode": "platform_default",
+    // Keymap
+    "base_keymap": "JetBrains",
+    // Editor
+    "which_key": {
+        "enabled": true,
+    },
+    "scrollbar": {
+        "show": "system",
+    },
+    "toolbar": {
+        "code_actions": true,
+    },
+    "vim": {
+        "toggle_relative_line_numbers": true,
+    },
+    "tab_size": 4,
+    "indent_guides": {
+        "coloring": "fixed",
+        "background_coloring": "disabled",
+    },
+    "format_on_save": "on",
+    "remove_trailing_whitespace_on_save": true,
+    "ensure_final_newline_on_save": true,
+    "inlay_hints": {
+        "enabled": true,
+        "show_background": true,
+    },
+    "colorize_brackets": true,
+    // Languages & Tools
+    "diagnostics": {
+        "include_warnings": true,
+        "inline": {
+            "enabled": true,
+        },
+    },
+    // Search & Files
+    "search_wrap": false,
+    "search": {
+        "center_on_match": true,
+    },
+    "seed_search_query_from_cursor": "selection",
+    // Window & Layout
+    "title_bar": {
+        "show_branch_icon": true,
+    },
+    "tabs": {
+        "file_icons": true,
+        "git_status": true,
+        "show_diagnostics": "all",
+    },
+    "tab_bar": {
+        "show_pinned_tabs_in_separate_row": true,
+    },
+    // Panels
+    "project_panel": {
+        "bold_folder_labels": false,
+        "entry_spacing": "comfortable",
+    },
+    "git_panel": {
+        "tree_view": true,
+    },
+    // Collaboration
+    "calls": {
+        "mute_on_join": true,
+    },
+    // AI
+    "disable_ai": false,
+    "agent": {
+        "favorite_models": [],
+        "model_parameters": [],
+        "play_sound_when_agent_done": true,
+        "single_file_review": true,
+        "show_turn_stats": true,
+    },
+    "show_edit_predictions": true,
+}

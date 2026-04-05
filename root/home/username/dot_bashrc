@@ -1,0 +1,47 @@
+#
+# ~/.bashrc
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+
+# History control
+shopt -s histappend
+HISTCONTROL=ignoreboth
+HISTSIZE=32768
+HISTFILESIZE="${HISTSIZE}"
+
+# Autocompletion
+if [[ ! -v BASH_COMPLETION_VERSINFO && -f /usr/share/bash-completion/bash_completion ]]; then
+  source /usr/share/bash-completion/bash_completion
+fi
+
+# Input prompt customization
+if [[ ! -v __git_printf_supports_v && -f /usr/share/git/completion/git-prompt.sh ]]; then
+  source /usr/share/git/completion/git-prompt.sh
+fi
+
+GREEN='\[\e[1;32m\]'
+BLUE='\[\e[1;34m\]'
+RED='\[\e[1;31m\]'
+RESET='\[\e[0m\]'
+
+__set_prompt1() {
+  local last_status=$?
+
+  local status_color="$GREEN"
+  (( last_status != 0 )) && status_color="$RED"
+
+  #PS1='[\u@\h \W]\$ '
+  PS1="${GREEN}\u@\h${RESET} : ${BLUE}\w\$(__git_ps1 ' (%s)')${RESET}\n${status_color}\$${RESET} "
+}
+
+PROMPT_COMMAND=__set_prompt1
+PS2="${GREEN}>${RESET} "
+
+
+# Exports
+export PATH="$HOME/.local/bin:$PATH"

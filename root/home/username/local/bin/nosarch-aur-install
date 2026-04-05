@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Show a fuzzy-finder TUI for picking new AUR packages to be installed.
+
+_ensure_command() {
+  if ! command -v "$1" &>/dev/null; then
+    echo "Error: $1 is required but not installed."
+    echo "Install it with: sudo pacman -S $1"
+    exit 1
+  fi
+}
+
+_ensure_command "gum"
+_ensure_command "fzf"
+_ensure_command "yay"
+
+fzf_args=(
+  --multi
+  --preview 'yay -Siia {1}'
+  --preview-label='alt-p: toggle description, alt-b/B: toggle PKGBUILD, alt-j/k: scroll, tab: multi-select'
+  --preview-label-pos='bottom'
+  --preview-window 'down:65%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
+  --bind 'alt-k:preview-up,alt-j:preview-down'
+  --bind 'alt-b:change-preview:yay -Gpa {1} | tail -n +5'
+  --bind 'alt-B:change-preview:yay -Siia {1}'
+  --color 'pointer:green,marker:green'
+)
+
+pkg_names=$(yay -Slqa | fzf "${fzf_args[@]}")
+
+if [[ -n "$pkg_names" ]]; then
+  mapfile -t pkg_array <<< "$pkg_names"
+
+  gum style --foreground 2 --bold "▸ Installing AUR packages..."
+
+  echo
+  if yay -S "${pkg_array[@]}"; then
+    if command -v updatedb &>/dev/null; then
+      sudo updatedb
+    fi
+
+    echo
+    gum style --foreground 2 "✓ AUR packages installed."
+  else
+    echo
+    gum style --foreground 8 "AUR Installation failed."
+  fi
+fi

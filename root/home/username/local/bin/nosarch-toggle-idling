@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Unique ID for the inhibition process
+PID_FILE="/tmp/hypridle_inhibit.pid"
+
+if [ -f "$PID_FILE" ]; then
+    # If PID file exists, kill the process and remove the file
+    PID=$(cat "$PID_FILE")
+    kill "$PID" && rm "$PID_FILE"
+    notify-send "Idle Inhibition" "Deactivated (Normal Sleep)" -i "system-lock-screen"
+else
+    # Start inhibition and save the PID
+    # --what=idle: prevents screen dimming/locking
+    # --why: helps systemd track the reason
+    systemd-inhibit --what=idle --who="Manual Toggle" --why="User requested" sleep infinity &
+
+    echo $! > "$PID_FILE"
+    notify-send "Idle Inhibition" "Activated (Staying Awake)" -i "display"
+fi

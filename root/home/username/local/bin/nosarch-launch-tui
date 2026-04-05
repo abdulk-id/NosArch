@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Capture the entire command passed (e.g., "hyprdynamicmonitors tui")
+FULL_CMD="$*"
+[[ -z "$FULL_CMD" ]] && echo "Usage: $0 <command>" && exit 1
+
+# Sanitize the command to create a valid window class (e.g., "TUI.hyprdynamicmonitors_tui")
+
+CLASS="TUI.$(echo "$FULL_CMD" | sed 's/ /_/g')"
+
+# Check if a window with this specific class is already running
+ADDR=$(hyprctl clients -j | jq -r ".[] | select(.class == \"$CLASS\") | .address" | head -n 1)
+
+if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
+    hyprctl dispatch focuswindow address:"$ADDR"
+else
+    # Command wrapper with error handling and pause
+    CMD_WRAPPER="bash -c \"if ! $FULL_CMD; then echo -e '\nProcess failed.'; fi; echo 'Press any key to exit...'; read -n 1 -s -r\""
+
+    # Hyprland windowrule
+    RULES="float on; size 1280 720; center 1"
+
+    hyprctl dispatch exec "[$RULES] $TERMINAL --class=$CLASS -e $CMD_WRAPPER"
+fi

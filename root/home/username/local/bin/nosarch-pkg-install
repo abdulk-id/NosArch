@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Show a fuzzy-finder TUI for picking new Arch and OPR packages to install.
+
+_ensure_command() {
+  if ! command -v "$1" &>/dev/null; then
+    echo "Error: $1 is required but not installed."
+    echo "Install it with: sudo pacman -S $1"
+    exit 1
+  fi
+}
+
+_ensure_command "gum"
+_ensure_command "fzf"
+
+fzf_args=(
+  --multi
+  --preview 'pacman -Sii {1}'
+  --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
+  --preview-label-pos='bottom'
+  --preview-window 'down:65%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
+  --bind 'alt-k:preview-up,alt-j:preview-down'
+  --color 'pointer:green,marker:green'
+)
+
+# --- Main Execution ---
+# List all packages from official repos (names only)
+pkg_names=$(pacman -Slq | fzf "${fzf_args[@]}")
+
+if [[ -n "$pkg_names" ]]; then
+  pkgs_to_install=$(echo "$pkg_names" | xargs)
+
+  gum style --foreground 2 --bold "▸ Installing packages..."
+
+  if sudo pacman -S --needed $pkgs_to_install; then
+
+    # Update locate database if available
+    if command -v updatedb &>/dev/null; then
+      sudo updatedb
+    fi
+
+    echo
+    gum style --foreground 2 "✓ Installation complete!"
+  else
+    echo
+    gum style --foreground 8 "Installation failed."
+  fi
+fi

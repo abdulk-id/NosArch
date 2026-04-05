@@ -1,0 +1,12 @@
+[[entries]]
+default = true
+name = "Startpage"
+url = "https://www.startpage.com/sp/search?query=%TERM%"
+
+[[entries]]
+name = "Google"
+url = "https://www.google.com/search?udm=14&q=%TERM%"
+
+[[entries]]
+name = "Arch Wiki"
+url = "https://wiki.archlinux.org/index.php?search=%TERM%"

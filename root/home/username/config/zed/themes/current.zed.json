@@ -1,0 +1,457 @@
+{
+    "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+    "name": "%NAME%",
+    "author": "NosArch",
+    "themes": [
+        {
+            "name": "%NAME%",
+            "appearance": "%THEME_STYLE%",
+            "style": {
+                "background": "#%BACKGROUND%",
+                "border": "#%COLOR8%40",
+                "border.variant": "#%COLOR8%60",
+                "border.focused": "#%COLOR4%",
+                "border.selected": "#%COLOR4%80",
+                "border.transparent": "#00000000",
+                "border.disabled": "#%COLOR8%30",
+
+                "elevated_surface.background": "#%BACKGROUND%",
+                "surface.background": "#%BACKGROUND%",
+
+                "element.background": "#%COLOR8%40",
+                "element.hover": "#%COLOR8%60",
+                "element.active": "#%COLOR4%30",
+                "element.selected": "#%COLOR4%20",
+                "element.disabled": "#%COLOR8%20",
+
+                "drop_target.background": "#%COLOR4%20",
+
+                "ghost_element.background": "#00000000",
+                "ghost_element.hover": "#%COLOR8%40",
+                "ghost_element.active": "#%COLOR4%30",
+                "ghost_element.selected": "#%COLOR4%20",
+                "ghost_element.disabled": "#%COLOR8%20",
+
+                "text": "#%FOREGROUND%",
+                "text.muted": "#%COLOR8%",
+                "text.placeholder": "#%COLOR8%",
+                "text.disabled": "#%COLOR8%80",
+                "text.accent": "#%COLOR4%",
+
+                "icon": "#%FOREGROUND%",
+                "icon.muted": "#%COLOR8%",
+                "icon.disabled": "#%COLOR8%60",
+                "icon.placeholder": "#%COLOR8%",
+                "icon.accent": "#%COLOR4%",
+
+                "status_bar.background": "#%BACKGROUND%",
+                "title_bar.background": "#%BACKGROUND%",
+                "title_bar.inactive_background": "#%BACKGROUND%",
+                "toolbar.background": "#%BACKGROUND%",
+                "tab_bar.background": "#%BACKGROUND%",
+                "tab.inactive_background": "#%BACKGROUND%",
+                "tab.active_background": "#%BACKGROUND%",
+
+                "search.match_background": "#%COLOR3%40",
+
+                "panel.background": "#%BACKGROUND%",
+                "panel.focused_border": "#%COLOR4%",
+
+                "pane.focused_border": "#%COLOR4%",
+
+                "scrollbar.thumb.background": "#%COLOR8%30",
+                "scrollbar.thumb.hover_background": "#%COLOR8%60",
+                "scrollbar.thumb.border": "#%COLOR8%20",
+                "scrollbar.track.background": "#00000000",
+                "scrollbar.track.border": "#00000000",
+
+                "editor.foreground": "#%FOREGROUND%",
+                "editor.background": "#%BACKGROUND%",
+                "editor.gutter.background": "#%BACKGROUND%",
+                "editor.subheader.background": "#%BACKGROUND%",
+                "editor.active_line.background": "#%BACKGROUND%60",
+                "editor.highlighted_line.background": "#%COLOR4%15",
+                "editor.line_number": "#%COLOR8%",
+                "editor.active_line_number": "#%FOREGROUND%",
+                "editor.invisible": "#%COLOR8%40",
+                "editor.wrap_guide": "#%COLOR8%30",
+                "editor.active_wrap_guide": "#%COLOR8%60",
+                "editor.document_highlight.read_background": "#%COLOR4%20",
+                "editor.document_highlight.write_background": "#%COLOR4%30",
+
+                "terminal.background": "#%BACKGROUND%",
+                "terminal.foreground": "#%FOREGROUND%",
+                "terminal.bright_foreground": "#%ZED_TERMINAL_BRIGHT_FG%",
+                "terminal.dim_foreground": "#%COLOR8%",
+                "terminal.ansi.black": "#%COLOR0%",
+                "terminal.ansi.bright_black": "#%COLOR8%",
+                "terminal.ansi.dim_black": "#%COLOR0%80",
+                "terminal.ansi.red": "#%COLOR1%",
+                "terminal.ansi.bright_red": "#%COLOR9%",
+                "terminal.ansi.dim_red": "#%COLOR1%80",
+                "terminal.ansi.green": "#%COLOR2%",
+                "terminal.ansi.bright_green": "#%COLOR10%",
+                "terminal.ansi.dim_green": "#%COLOR2%80",
+                "terminal.ansi.yellow": "#%COLOR3%",
+                "terminal.ansi.bright_yellow": "#%COLOR11%",
+                "terminal.ansi.dim_yellow": "#%COLOR3%80",
+                "terminal.ansi.blue": "#%COLOR4%",
+                "terminal.ansi.bright_blue": "#%COLOR12%",
+                "terminal.ansi.dim_blue": "#%COLOR4%80",
+                "terminal.ansi.magenta": "#%COLOR5%",
+                "terminal.ansi.bright_magenta": "#%COLOR13%",
+                "terminal.ansi.dim_magenta": "#%COLOR5%80",
+                "terminal.ansi.cyan": "#%COLOR6%",
+                "terminal.ansi.bright_cyan": "#%COLOR14%",
+                "terminal.ansi.dim_cyan": "#%COLOR6%80",
+                "terminal.ansi.white": "#%COLOR7%",
+                "terminal.ansi.bright_white": "#%COLOR15%",
+                "terminal.ansi.dim_white": "#%COLOR7%80",
+
+                "link_text.hover": "#%COLOR4%",
+
+                "conflict": "#%COLOR3%",
+                "conflict.background": "#%COLOR3%15",
+                "conflict.border": "#%COLOR3%",
+
+                "created": "#%COLOR2%",
+                "created.background": "#%COLOR2%15",
+                "created.border": "#%COLOR2%",
+
+                "deleted": "#%COLOR1%",
+                "deleted.background": "#%COLOR1%15",
+                "deleted.border": "#%COLOR1%",
+
+                "error": "#%COLOR1%",
+                "error.background": "#%COLOR1%15",
+                "error.border": "#%COLOR1%",
+
+                "hidden": "#%COLOR8%",
+                "hidden.background": "#%COLOR8%15",
+                "hidden.border": "#%COLOR8%",
+
+                "hint": "#%COLOR6%",
+                "hint.background": "#%COLOR6%15",
+                "hint.border": "#%COLOR6%",
+
+                "ignored": "#%COLOR8%",
+                "ignored.background": "#%COLOR8%15",
+                "ignored.border": "#%COLOR8%",
+
+                "info": "#%COLOR4%",
+                "info.background": "#%COLOR4%15",
+                "info.border": "#%COLOR4%",
+
+                "modified": "#%ZED_STYLE_MODIFIED%",
+                "modified.background": "#%ZED_STYLE_MODIFIED%15",
+                "modified.border": "#%ZED_STYLE_MODIFIED%",
+
+                "predictive": "#%COLOR8%",
+                "predictive.background": "#%COLOR8%15",
+                "predictive.border": "#%COLOR8%40",
+
+                "renamed": "#%COLOR6%",
+                "renamed.background": "#%COLOR6%15",
+                "renamed.border": "#%COLOR6%",
+
+                "success": "#%COLOR2%",
+                "success.background": "#%COLOR2%15",
+                "success.border": "#%COLOR2%",
+
+                "unreachable": "#%COLOR8%",
+                "unreachable.background": "#%COLOR8%15",
+                "unreachable.border": "#%COLOR8%",
+
+                "warning": "#%COLOR3%",
+                "warning.background": "#%COLOR3%15",
+                "warning.border": "#%COLOR3%",
+
+                "players": [
+                    {
+                        "cursor": "#%CURSOR%",
+                        "selection": "#%SELECTION_BG%60",
+                        "background": "#%COLOR4%"
+                    },
+                    {
+                        "cursor": "#%COLOR6%",
+                        "selection": "#%COLOR6%40",
+                        "background": "#%COLOR6%"
+                    },
+                    {
+                        "cursor": "#%COLOR5%",
+                        "selection": "#%COLOR5%40",
+                        "background": "#%COLOR5%"
+                    },
+                    {
+                        "cursor": "#%COLOR3%",
+                        "selection": "#%COLOR3%40",
+                        "background": "#%COLOR3%"
+                    },
+                    {
+                        "cursor": "#%COLOR2%",
+                        "selection": "#%COLOR2%40",
+                        "background": "#%COLOR2%"
+                    },
+                    {
+                        "cursor": "#%COLOR1%",
+                        "selection": "#%COLOR1%40",
+                        "background": "#%COLOR1%"
+                    },
+                    {
+                        "cursor": "#%COLOR4%",
+                        "selection": "#%COLOR4%40",
+                        "background": "#%COLOR4%"
+                    },
+                    {
+                        "cursor": "#%COLOR9%",
+                        "selection": "#%COLOR9%40",
+                        "background": "#%COLOR9%"
+                    }
+                ],
+
+                "syntax": {
+                    "attribute": {
+                        "color": "#%COLOR3%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "boolean": {
+                        "color": "#%ZED_STYLE_MODIFIED%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "comment": {
+                        "color": "#%COLOR8%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "comment.doc": {
+                        "color": "#%COLOR8%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "constant": {
+                        "color": "#%COLOR11%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "constructor": {
+                        "color": "#%COLOR3%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "embedded": {
+                        "color": "#%COLOR15%", // TODO: Color15 or Color7??
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "emphasis": {
+                        "color": "#%COLOR1%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "emphasis.strong": {
+                        "color": "#%COLOR1%",
+                        "font_style": null,
+                        "font_weight": 700
+                    },
+                    "enum": {
+                        "color": "#%COLOR3%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "function": {
+                        "color": "#%COLOR4%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "function.builtin": {
+                        "color": "#%COLOR6%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "function.definition": {
+                        "color": "#%COLOR4%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "function.method": {
+                        "color": "#%COLOR4%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "function.special.definition": {
+                        "color": "#%COLOR4%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "hint": {
+                        "color": "#%COLOR8%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "keyword": {
+                        "color": "#%COLOR13%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "label": {
+                        "color": "#%COLOR3%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "link_text": {
+                        "color": "#%COLOR4%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "link_uri": {
+                        "color": "#%COLOR6%",
+                        "font_style": "oblique",
+                        "font_weight": null
+                    },
+                    "number": {
+                        "color": "#%ZED_STYLE_MODIFIED%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "operator": {
+                        "color": "#%COLOR12%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "predictive": {
+                        "color": "#%COLOR8%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "preproc": {
+                        "color": "#%COLOR6%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "primary": {
+                        "color": "#%COLOR15%", // TODO: Color15 or Color7??
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "property": {
+                        "color": "#%COLOR6%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "punctuation": {
+                        "color": "#%COLOR8%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "punctuation.bracket": {
+                        "color": "#%COLOR8%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "punctuation.delimiter": {
+                        "color": "#%COLOR8%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "punctuation.list_marker": {
+                        "color": "#%COLOR6%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "punctuation.special": {
+                        "color": "#%COLOR12%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "string": {
+                        "color": "#%COLOR2%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "string.escape": {
+                        "color": "#%COLOR13%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "string.regex": {
+                        "color": "#%COLOR14%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "string.special": {
+                        "color": "#%COLOR2%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "string.special.symbol": {
+                        "color": "#%COLOR6%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "tag": {
+                        "color": "#%COLOR3%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "text.literal": {
+                        "color": "#%COLOR2%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "title": {
+                        "color": "#%COLOR4%",
+                        "font_style": null,
+                        "font_weight": 700
+                    },
+                    "type": {
+                        "color": "#%COLOR3%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "type.builtin": {
+                        "color": "#%COLOR15%", // TODO: Color15 or Color7??
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "type.interface": {
+                        "color": "#%COLOR3%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "type.super": {
+                        "color": "#%COLOR3%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "variable": {
+                        "color": "#%COLOR15%", // TODO: Color15 or Color7??
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "variable.member": {
+                        "color": "#%COLOR6%",
+                        "font_style": null,
+                        "font_weight": null
+                    },
+                    "variable.parameter": {
+                        "color": "#%COLOR6%",
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "variable.special": {
+                        "color": "#%COLOR15%", // TODO: Color15 or Color7??
+                        "font_style": "italic",
+                        "font_weight": null
+                    },
+                    "variant": {
+                        "color": "#%ZED_STYLE_MODIFIED%",
+                        "font_style": null,
+                        "font_weight": null
+                    }
+                }
+            }
+        }
+    ]
+}

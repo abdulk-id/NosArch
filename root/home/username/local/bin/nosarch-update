@@ -1,4 +1,35 @@
-#!/bin/bash
+#!/usr/bin/bash
+# Updates all packages using yay.
+
+_ensure_command() {
+  if ! command -v "$1" &>/dev/null; then
+    echo "Error: $1 is required but not installed."
+    echo "Install it with: sudo pacman -S $1"
+    exit 1
+  fi
+}
+
+# --- Self-relaunch in floating terminal if not already in TUI window ---
+CLASS="NosArch.Update"
+if [[ "${TUI_LAUNCHED}" != "1" ]]; then
+    _ensure_command "hyprctl"
+    _ensure_command "jq"
+
+    # Check if a window with this specific class is already running
+    ADDR=$(hyprctl clients -j | jq -r ".[] | select(.class == \"$CLASS\") | .address" | head -n 1)
+
+    if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
+        hyprctl dispatch focuswindow address:"$ADDR"
+    else
+        CMD_WRAPPER="bash -c \"if ! TUI_LAUNCHED=1 bash '$0'; then echo -e '\nProcess failed'; fi; echo 'Press any key to exit...'; read -n 1 -s -r\""
+        RULES="float on; size 1280 720; center 1"
+        hyprctl dispatch exec "[$RULES] xdg-terminal-exec --class=$CLASS -e $CMD_WRAPPER"
+    fi
+    exit 0
+fi
+
+# --- TUI (running inside the floating terminal) ---
+_ensure_command "yay"
 
 echo 'Running yay -Syu'
 
@@ -7,6 +38,3 @@ if yay -Syu; then
 else
     echo -e '\nUpdate failed.'
 fi
-
-# Launch using Hyprland dispatch with inline rules for floating and no-idle
-#RULES="float on; size 1280 720; center 1; idleinhibit always"

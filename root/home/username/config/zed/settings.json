@@ -25,15 +25,16 @@
     },
     // Appearance
     "theme": {
-        "mode": "dark", // TODO: Make it default to dark style when "system" mode is selected
-        "light": "One Dark",
-        "dark": "%NAME%",
+        "mode": "system",
+        "light": "Ayu Light",
+        "dark": "One Dark",
     },
     "icon_theme": {
         "mode": "system",
         "light": "Zed (Default)",
         "dark": "Zed (Default)",
     },
+    "buffer_font_family": "JetBrainsMono Nerd Font",
     "buffer_font_size": 15.0,
     "buffer_font_weight": 400.0,
     "buffer_line_height": "comfortable",
@@ -114,9 +115,21 @@
     // AI
     "disable_ai": false,
     "agent": {
-        "favorite_models": [],
+        "default_profile": "ask",
+        "default_model": {
+            "provider": "opencode",
+            "model": "minimax-m2.5-free",
+            "enable_thinking": false,
+        },
+        "favorite_models": [
+            {
+                "provider": "opencode",
+                "model": "minimax-m2.5-free",
+                "enable_thinking": false,
+            },
+        ],
         "model_parameters": [],
-        "play_sound_when_agent_done": true,
+        "play_sound_when_agent_done": "always",
         "single_file_review": true,
         "show_turn_stats": true,
     },

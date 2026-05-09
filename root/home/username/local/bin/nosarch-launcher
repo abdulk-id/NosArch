@@ -1,7 +1,9 @@
-#!/bin/bash
+#!/usr/bin/bash
 
-if [ -n "$1" ]; then
-    walker -m "$1"
-else
-    walker
-fi
+#if [ -n "$1" ]; then
+#    walker -m "$1"
+#else
+#    walker
+#fi
+
+vicinae toggle

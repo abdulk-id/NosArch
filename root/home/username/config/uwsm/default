@@ -1,9 +1,0 @@
-# For setting the default terminal
-# It reads from ~/.config/xdg-terminals.list
-export TERMINAL=xdg-terminal-exec
-
-# For setting the default editor
-export EDITOR=nano
-
-# For setting the default graphical editor
-export VISUAL="zed --wait"

@@ -1,0 +1,4 @@
+export PATH="$HOME/.local/bin:$PATH"
+
+source ~/.config/uwsm/fcitx
+source ~/.config/uwsm/wayland

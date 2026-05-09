@@ -1,6 +1,6 @@
 import decman
 from decman import Directory
-from decman.plugins import aur, pacman, systemd
+from decman.plugins import aur, flatpak, pacman, systemd
 
 from config import CONFIG
 from theme import THEME
@@ -41,7 +41,14 @@ class DesktopModule(decman.Module):
     def pkgs(self) -> set[str]:
         desktop_set: set[str] = {
             "brightnessctl",
+            "fcitx5",
+            "fcitx5-gtk",
+            "fcitx5-qt",
+            "flatpak",  # Linux app distribution
+            "flatseal",  # Flatpak permission manager
             "ghostty",
+            "gpu-screen-recorder",
+            # "gpu-screen-recorder-ui"  # Keeps giving error 404
             "hyprcursor",
             "hypridle",
             "hyprland",
@@ -51,9 +58,9 @@ class DesktopModule(decman.Module):
             "hyprpicker",
             "hyprpolkitagent",
             "hyprshot",
-            "icon-library",
             "qt5-wayland",
             "qt6-wayland",
+            "quickshell",
             "swaync",
             "swayosd",
             "ttf-jetbrains-mono-nerd",
@@ -62,11 +69,18 @@ class DesktopModule(decman.Module):
             "wayland",
             "wayland-protocols",
             "wl-clipboard",
+            "xdg-desktop-portal",
             "xdg-desktop-portal-gtk",
             "xdg-desktop-portal-hyprland",
         }
 
-        graphics_set: set[str] = {"mesa", "mesa-utils"}
+        config_set: set[str] = {
+            "bluetui",
+            "dconf-editor",
+            "icon-library",
+        }
+
+        graphics_set: set[str] = {"mesa", "mesa-utils", "vulkan-mesa-layers"}
         graphics_intel_set: set[str] = {
             "intel-gpu-tools",
             "intel-media-driver",
@@ -75,21 +89,36 @@ class DesktopModule(decman.Module):
         }
 
         media_set: set[str] = {
-            "cups",  # CUPS daemon
-            "cups-browsed",  # Helper daemon for browsing CUPS printers
-            "cups-filters",  # Filters for CUPS printing
-            "cups-pdf",  # PDF printing support for CUPS
             "pipewire",  # Pipewire audio/video server
             "pipewire-alsa",  # ALSA backend for Pipewire
             "pipewire-jack",  # JACK backend for Pipewire
             "pipewire-pulse",  # PulseAudio backend for Pipewire
             "playerctl",  # Player control utility
-            "system-config-printer",  # System configuration tool for printers
             "wireplumber",  # WirePlumber session manager
+            "wiremix",  # Audio Mixer TUI
+        }
+
+        printer_set: set[str] = {
+            "cups",  # CUPS daemon
+            "cups-browsed",  # Helper daemon for browsing CUPS printers
+            "cups-filters",  # Filters for CUPS printing
+            "cups-pdf",  # PDF printing support for CUPS
+            "system-config-printer",  # System configuration tool for printers
+        }
+
+        utilities_set: set[str] = {
+            "fzf",  # CLI Fuzzy finder
+            "gum",  # CLI tool for glamorous shell interactions
+            "jq",  # CLI JSON processor
         }
 
         merged_set: set[str] = desktop_set.union(
-            graphics_set, graphics_intel_set, media_set
+            config_set,
+            graphics_set,
+            graphics_intel_set,
+            media_set,
+            printer_set,
+            utilities_set,
         )
         return merged_set
 
@@ -97,31 +126,47 @@ class DesktopModule(decman.Module):
     def aur_pkgs(self) -> set[str]:
         return {
             "elephant",
+            "elephant-bookmarks",
+            "elephant-calc",
             "elephant-clipboard",
             "elephant-desktopapplications",
             "elephant-files",
             "elephant-menus",
             "elephant-providerlist",
+            "elephant-runner",
+            "elephant-snippets",
             "elephant-websearch",
+            "gpu-screen-recorder-gtk",
             "hyprdynamicmonitors-bin",
             "hyprland-preview-share-picker-git",
+            "hyprmod-git",  # Hyprland settings GUI
             "hyprqt6engine",
             "hyprshutdown",
+            "vicinae-bin",
             "walker-bin",
             "xdg-terminal-exec",
         }
 
+    @flatpak.packages
+    def flatpak_pkgs(self) -> set[str]:
+        return {
+            "it.mijorus.gearlever",  # AppImage Manager
+            "io.github.linx_systems.ClamUI",  # Clamav GUI
+        }
+
     @systemd.user_units
-    def desktop_services(self) -> dict[str, set[str]]:
+    def desktop_user_services(self) -> dict[str, set[str]]:
         return {
             f"{CONFIG['%USER%']}": {
-                "elephant.service",
+                # "elephant.service",
                 "hypridle.service",
                 "hyprpaper.service",
                 "hyprpolkitagent.service",
                 "pipewire.service",
                 "pipewire-pulse.service",
-                "walker.service",
+                "swaync.service",
+                "vicinae.service",
+                # "walker.service",
                 "waybar.service",
                 "wireplumber.service",
                 "xdg-user-dirs.service",

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Capture the entire command passed (e.g., "hyprdynamicmonitors tui")
 FULL_CMD="$*"

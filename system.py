@@ -10,8 +10,23 @@ class SystemModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="system")
 
+    def file_variables(self) -> dict[str, str]:
+        return CONFIG
+
     def files(self) -> dict[str, File]:
         system_config_files: dict[str, File] = {
+            "/etc/greetd/config.toml": File(
+                source_file="./root/etc/greetd/config.toml",
+                bin_file=False,
+                encoding="UTF-8",
+                owner="root",
+            ),
+            "/etc/NetworkManager/conf.d/wifi-powersave.conf": File(
+                source_file="./root/etc/NetworkManager/conf.d/wifi-powersave.conf",
+                bin_file=False,
+                encoding="UTF-8",
+                owner="root",
+            ),
             "/etc/systemd/logind.conf.d/10-ignore-power-button.conf": File(
                 source_file="./root/etc/systemd/logind.conf.d/10-ignore-power-button.conf",
                 bin_file=False,
@@ -26,12 +41,6 @@ class SystemModule(decman.Module):
             ),
             "/etc/systemd/zram-generator.conf": File(
                 source_file="./root/etc/systemd/zram-generator.conf",
-                bin_file=False,
-                encoding="UTF-8",
-                owner="root",
-            ),
-            "/etc/NetworkManager/conf.d/wifi-powersave.conf": File(
-                source_file="./root/etc/NetworkManager/conf.d/wifi-powersave.conf",
                 bin_file=False,
                 encoding="UTF-8",
                 owner="root",
@@ -71,6 +80,8 @@ class SystemModule(decman.Module):
             "efibootmgr",
             "exfatprogs",
             "f2fs-tools",
+            "greetd",
+            "greetd-tuigreet",
             "limine",
             "linux",
             "linux-headers",
@@ -84,6 +95,7 @@ class SystemModule(decman.Module):
             "snapper",
             "sudo",
             "systemd-resolvconf",
+            "thermald",
             "udftools",
             "udisks2",
             "unzip",
@@ -92,14 +104,13 @@ class SystemModule(decman.Module):
             "zram-generator",
         }
 
-        system_intel_set: set[str] = {"intel-ucode", "thermald"}
+        system_intel_set: set[str] = {"intel-ucode"}
 
         security_set: set[str] = {"apparmor", "clamav", "firewalld", "ufw"}
 
         connectivity_set: set[str] = {
             "bluez",
             "bluez-utils",
-            "bluetui",
             "bolt",
             "dnsmasq",
             "gvfs",
@@ -141,6 +152,9 @@ class SystemModule(decman.Module):
         return {
             "apparmor.service",
             "bluetooth.service",
+            # "clamav-daemon.service",
+            # "clamav-freshclam.service",
+            "greetd.service",
             "NetworkManager.service",
             "power-profiles-daemon.service",
             "udisks2.service",

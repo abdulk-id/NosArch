@@ -1,7 +1,7 @@
 @define-color background #%BACKGROUND%;
 @define-color foreground #%FOREGROUND%;
 
-@import "/home/abdul-kareem/.local/share/current-theme/waybar.css";
+@import "/home/%USER%/.local/share/current-theme/waybar.css";
 
 * {
     color: @foreground;
@@ -54,7 +54,9 @@ tooltip {
 }
 
 /* Center modules */
-#clock {
+#mpris,
+#clock,
+#privacy {
     padding: 0 6px;
 }
 
@@ -77,6 +79,7 @@ tooltip {
 #network,
 #bluetooth,
 #pulseaudio,
+#custom-airpods,
 #battery,
 #custom-notifications {
     padding: 0 4px;

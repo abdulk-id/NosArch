@@ -1,0 +1,317 @@
+# NosArch Configuration Doc
+
+List of contents:
+
+- [System lifecycle](#System%20Lifecycle)
+- [List of packages installed](#All%20Installed%20Packages)
+- [List of environment variables](#All%20Environment%20Variables)
+
+---
+
+## System Lifecycle
+
+(TODO)
+
+1. Boot
+2. Limine Bootloader
+3. Cryptroot (Disk encryption unlock)
+4. `greetd` (using `tuigreet`)
+    - `uwsm`
+        - `hyprland`
+        -
+
+---
+
+## All Installed Packages
+
+- System packages (added in `system.py`):
+    - Pacman packages:
+        - `system_set`:
+            - base
+            - base-devel
+            - btop
+            - btrfs-assistant
+            - btrfs-progs
+            - clang
+            - cryptsetup
+            - dosfstools
+            - efibootmgr
+            - exfatprogs
+            - f2fs-tools
+            - greetd
+            - greetd-tuigreet
+            - limine
+            - linux
+            - linux-headers
+            - linux-lts
+            - linux-lts-headers
+            - linux-firmware
+            - man-db
+            - nano
+            - memtest86+-efi
+            - power-profiles-daemon
+            - snapper
+            - sudo
+            - systemd-resolvconf
+            - thermald
+            - udftools
+            - udisks2
+            - unzip
+            - usbutils
+            - xfsprogs
+            - zram-generator
+        - `system_intel_set`:
+            - intel-ucode
+        - `security_set`:
+            - apparmor
+            - clamav
+            - firewalld
+            - ufw
+        - `connectivity_set`:
+            - bluez
+            - bluez-utils
+            - bolt
+            - dnsmasq
+            - gvfs
+            - gvfs-afc
+            - gvfs-dnssd
+            - gvfs-gphoto2
+            - gvfs-mtp
+            - gvfs-nfs
+            - gvfs-smb
+            - inetutils
+            - libimobiledevice
+            - networkmanager
+            - usbmuxd
+            - wireless-regdb
+    - AUR packages:
+        - `system_set`:
+            - limine-mkinitcpio-hook
+            - yay-bin
+        - `connectivity_set`:
+            - ufw-docker
+- Desktop packages (added in `desktop.py`):
+    - Pacman packages:
+        - `desktop_set`:
+            - brightnessctl
+            - fcitx5
+            - fcitx5-gtk
+            - fcitx5-qt
+            - flatpak
+            - flatseal
+            - ghostty
+            - gpu-screen-recorder
+            - gpu-screen-recorder-ui (currently commented out because it keeps giving error 404)
+            - hyprcursor
+            - hypridle
+            - hyprland
+            - hyprland-qt-support
+            - hyprlock
+            - hyprpaper
+            - hyprpicker
+            - hyprpolkitagent
+            - hyprshot
+            - qt5-wayland
+            - qt6-wayland
+            - quickshell
+            - swaync
+            - swayosd
+            - ttf-jetbrains-mono-nerd
+            - uwsm
+            - waybar
+            - wayland
+            - wayland-protocols
+            - wl-clipboard
+            - xdg-desktop-portal
+            - xdg-desktop-portal-gtk
+            - xdg-desktop-portal-hyprland
+        - `config_set`:
+            - bluetui
+            - dconf-editor
+            - icon-library
+        - `graphics_set`:
+            - mesa
+            - mesa-utils
+            - vulkan-mesa-layers
+        - `graphics_intel_set`:
+            - intel-gpu-tools
+            - intel-media-driver
+            - libva-intel-driver
+            - vulkan-intel
+        - `media_set`:
+            - pipewire
+            - pipewire-alsa
+            - pipewire-jack
+            - pipewire-pulse
+            - playerctl
+            - wireplumber
+            - wiremix
+        - `printer_set`:
+            - cups
+            - cups-browsed
+            - cups-filters
+            - cups-pdf
+            - system-config-printer
+        - `utilities_set`:
+            - fzf
+            - gum
+            - jq
+    - AUR packages:
+        - elephant
+        - elephant-bookmarks
+        - elephant-calc
+        - elephant-clipboard
+        - elephant-desktopapplications
+        - elephant-files
+        - elephant-menus
+        - elephant-providerlist
+        - elephant-runner
+        - elephant-snippets
+        - elephant-websearch
+        - gpu-screen-recorder-gtk
+        - hyprdynamicmonitors-bin
+        - hyprland-preview-share-picker-git
+        - hyprmod-git
+        - hyprqt6engine
+        - hyprshutdown
+        - vicinae-bin
+        - walker-bin
+        - xdg-terminal-exec
+    - Flatpak packages:
+        - `it.mijorus.gearlever`
+        - `io.github.linx_systems.ClamUI`
+- Personal setup packages (added in `setup.py`):
+    - Pacman packages:
+        - `apps_set`:
+            - firefox
+            - gnome-calculator
+            - gnome-clocks
+            - gnome-disk-utility
+            - libreoffice-fresh
+            - loupe
+            - nautilus
+            - nautilus-python
+            - obs-studio
+            - obsidian
+            - papers
+            - proton-vpn-cli
+            - proton-vpn-gtk-app
+            - speech-dispatcher
+            - sushi
+            - transmission-gtk
+        - `media_set`:
+            - celluloid
+        - `virtualization_set`:
+            - libvirt
+            - qemu-full
+            - vde2
+            - virt-manager
+            - virt-viewer
+            - virtualbox
+            - virtualbox-host-modules-arch
+            - virtualbox-host-modules-lts
+    - AUR packages:
+        - `apps_set`:
+            - localsend-bin
+            - spotify
+            - spotify-adblock
+            - zen-browser-bin
+            - zoom
+        - `media_set`:
+            - airpods-tui-git
+            - stacher7
+        - `virtualization_set`:
+            - bridge-utils
+- Dev setup packages (added in `dev.py`):
+    - Pacman packages:
+        - bash-completion
+        - cmake
+        - code
+        - docker
+        - docker-compose
+        - docker-buildx
+        - git
+        - lazydocker
+        - lazygit
+        - llvm
+        - mise
+        - meson
+        - nasm
+        - ninja
+        - opencode
+        - vim
+        - zed
+    - Flatpak packages:
+        - `me.iepure.devtoolbox`
+
+---
+
+## Systemd Services
+
+- "System" services (added in `system.py`):
+    - system-level services:
+        - `apparmor.service`
+        - `bluetooth.service`
+        - `clamav-daemon.service` (currently commented out because it causes unresolved startup issues).
+        - `clamav-freshclam.service` (currently commented out because it causes unresolved startup issues).
+        - `greetd.service`
+        - `NetworkManager.service`
+        - `power-profiles-daemon.service`
+        - `udisks2.service`
+        - `ufw.service`
+- Desktop services (added in `desktop.py`):
+    - user-level services:
+        - `elephant.service` (currently commented out because: in process of replacing walker with vicinae)
+        - `hypridle.service` (TODO: Move to hyprland's autostart)
+        - `hyprpaper.service` (TODO: Move to hyprland's autostart)
+        - `hyprpolkitagent.service` (TODO: Maybe move to hyprland's autostart? Is hyprpolkitagent just "frontend" for polkit?)
+        - `pipewire.service`
+        - `pipewire-pulse.service`
+        - `swaync.service` (TODO: Maybe move to hyprland's autostart?)
+        - `vicinae.service` (TODO: Maybe move to hyprland's autostart?)
+        - `walker.service` (currently commented out because: in process of replacing walker with vicinae)
+        - `wireplumber.service`
+        - `xdg-user-dirs.service`
+- Personal setup services (added in `setup.py`):
+    - system-level services:
+        - `libvirtd.service` (TODO: socket instead of service?)
+    - user-level services:
+        - `airpods-tui.service`
+
+## All Environment Variables
+
+- Environment.d (`~/.config/environment.d/...`):
+    - `defaults.conf`:
+        - For setting the default terminal: `TERMINAL=xdg-terminal-exec`
+        - For setting the default editor: `EDITOR=nano`
+        - For setting the default _graphical_ editor: `VISUAL="zed --wait"`
+        - For setting the file manager (not standard, only used by hyprland keybind): `FILE_MANAGER=nautilus`
+- Hyprland (`~/.config/hypr/...`):
+    - `looknfeel.conf`:
+        - Style `gum confirm` theme:
+            - Use "Cyan (ANSI Color 6)" for foreground: `env = GUM_CONFIRM_PROMPT_FOREGROUND,6`
+            - Use "Black (ANSI Color 0)" for selected option foreground: `env = GUM_CONFIRM_SELECTED_FOREGROUND,0`
+            - Use "Green (ANSI Color 2)" for selected option background: `env = GUM_CONFIRM_SELECTED_BACKGROUND,2`
+            - Use "Black (ANSI Color 0)" for other option foreground: `env = GUM_CONFIRM_UNSELECTED_FOREGROUND,0`
+            - Use "Dark grey (ANSI Color 8)" for other option background: `env = GUM_CONFIRM_UNSELECTED_BACKGROUND,8`
+- UWSM (`~/.config/uwsm/...`):
+    - `fcitx`:
+        - Use `fcitx` as the input method (generic variable): `export INPUT_METHOD=fcitx`
+        - Ensure QT apps use `fcitx` for input methods: `export QT_IM_MODULE=fcitx`
+        - Legacy x11 variable for using `fcitx` as the input method (useful for xwayland): `export XMODIFIERS=@im=fcitx`
+        - Enable IME support for SDL-based apps (games, emulators etc.): `export SDL_IM_MODULE=fcitx`
+    - `wayland`:
+        - Set cursor size: `export XCURSOR_SIZE=24`,
+        - Tell GTK apps to prioritize wayland over x11: `export GDK_BACKEND=wayland,x11,*`,
+        - Tell QT apps to prioritize wayland over x11: `export QT_QPA_PLATFORM=wayland;xcb`,
+        - QT theme integration for Hyprland: `export QT_QPA_PLATFORMTHEME=hyprqt6engine`,
+        - Force QT apps to use kvantum theme engine: `export QT_STYLE_OVERRIDE=kvantum`,
+        - Force wayland rendering for SDL-based apps (games, emulators etc.): `export SDL_VIDEODRIVER=wayland`,
+        - Enable wayland backend for Mozilla apps (like Firefox): `export MOZ_ENABLE_WAYLAND=1`,
+        - Force wayland for Electron/Chromium apps via the Ozone abstraction layer:
+            - `export ELECTRON_OZONE_PLATFORM_HINT=wayland`,
+            - `export OZONE_PLATFORM=wayland`,
+        - Identify the current desktop environment as Hyprland:
+            - `export XDG_CURRENT_DESKTOP=Hyprland`,
+            - `export XDG_SESSION_DESKTOP=Hyprland`,
+        - Force declare current session as wayland: `export XDG_SESSION_TYPE=wayland`,

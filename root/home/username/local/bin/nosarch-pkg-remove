@@ -1,13 +1,34 @@
-#!/bin/bash
+#!/usr/bin/bash
+# Show a fuzzy-finder TUI for picking installed packages to remove.
 
 _ensure_command() {
-  if ! command -v "$1" &>/dev/null; then
-    echo "Error: $1 is required but not installed."
-    echo "Install it with: sudo pacman -S $1"
-    exit 1
-  fi
+    if ! command -v "$1" &>/dev/null; then
+        echo "Error: $1 is required but not installed."
+        echo "Install it with: sudo pacman -S $1"
+        exit 1
+    fi
 }
 
+# --- Self-relaunch in floating terminal if not already in TUI window ---
+CLASS="NosArch.Remove-Package"
+if [[ "${TUI_LAUNCHED}" != "1" ]]; then
+    _ensure_command "hyprctl"
+    _ensure_command "jq"
+
+    # Check if a window with this specific class is already running
+    ADDR=$(hyprctl clients -j | jq -r ".[] | select(.class == \"$CLASS\") | .address" | head -n 1)
+
+    if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
+        hyprctl dispatch focuswindow address:"$ADDR"
+    else
+        CMD_WRAPPER="bash -c \"if ! TUI_LAUNCHED=1 bash '$0'; then echo -e '\nProcess failed'; fi; echo 'Press any key to exit...'; read -n 1 -s -r\""
+        RULES="float on; size 1280 720; center 1"
+        hyprctl dispatch exec "[$RULES] xdg-terminal-exec --class=$CLASS -e $CMD_WRAPPER"
+    fi
+    exit 0
+fi
+
+# --- TUI (running inside the floating terminal) ---
 _ensure_command "gum"
 _ensure_command "fzf"
 _ensure_command "yay"
@@ -27,15 +48,15 @@ fzf_args=(
 pkg_names=$(yay -Qqe | fzf "${fzf_args[@]}")
 
 if [[ -n "$pkg_names" ]]; then
-  pkgs_to_remove=$(echo "$pkg_names" | tr '\n' ' ')
+    pkgs_to_remove=$(echo "$pkg_names" | tr '\n' ' ')
 
-  gum style --foreground 1 --bold "▸ Removing packages:"
+    gum style --foreground 1 --bold "▸ Removing packages:"
 
-  if sudo pacman -Rns $pkgs_to_remove; then
-      echo
-      gum style --foreground 2 "✓ Packages removed!"
-  else
-      echo
-      gum style --foreground 8 "Removal failed."
-  fi
+    if sudo pacman -Rns $pkgs_to_remove; then
+        echo
+        gum style --foreground 2 "✓ Packages removed!"
+    else
+        echo
+        gum style --foreground 8 "Removal failed."
+    fi
 fi

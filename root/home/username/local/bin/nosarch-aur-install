@@ -1,5 +1,4 @@
-#!/bin/bash
-
+#!/usr/bin/bash
 # Show a fuzzy-finder TUI for picking new AUR packages to be installed.
 
 _ensure_command() {
@@ -10,6 +9,26 @@ _ensure_command() {
   fi
 }
 
+# --- Self-relaunch in floating terminal if not already in TUI window ---
+CLASS="NosArch.Install-AUR-Package"
+if [[ "${TUI_LAUNCHED}" != "1" ]]; then
+    _ensure_command "hyprctl"
+    _ensure_command "jq"
+
+    # Check if a window with this specific class is already running
+    ADDR=$(hyprctl clients -j | jq -r ".[] | select(.class == \"$CLASS\") | .address" | head -n 1)
+
+    if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
+        hyprctl dispatch focuswindow address:"$ADDR"
+    else
+        CMD_WRAPPER="bash -c \"if ! TUI_LAUNCHED=1 bash '$0'; then echo -e '\nProcess failed'; fi; echo 'Press any key to exit...'; read -n 1 -s -r\""
+        RULES="float on; size 1280 720; center 1"
+        hyprctl dispatch exec "[$RULES] xdg-terminal-exec --class=$CLASS -e $CMD_WRAPPER"
+    fi
+    exit 0
+fi
+
+# --- TUI (running inside the floating terminal) ---
 _ensure_command "gum"
 _ensure_command "fzf"
 _ensure_command "yay"
@@ -28,6 +47,7 @@ fzf_args=(
   --color 'pointer:green,marker:green'
 )
 
+# List all AUR packages (names only)
 pkg_names=$(yay -Slqa | fzf "${fzf_args[@]}")
 
 if [[ -n "$pkg_names" ]]; then

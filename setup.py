@@ -1,5 +1,7 @@
 import decman
-from decman.plugins import aur, flatpak, pacman, systemd
+from decman.plugins import aur, pacman, systemd
+
+from config import CONFIG
 
 
 # My usage setup module
@@ -10,10 +12,9 @@ class SetupModule(decman.Module):
     @pacman.packages
     def pkgs(self) -> set[str]:
         apps_set: set[str] = {
-            "bitwarden",  # Password manager
             "firefox",  # Web browser
-            "flatpak",  # Linux app distribution
             "gnome-calculator",  # Calculator
+            "gnome-clocks",  # Clock
             "gnome-disk-utility",  # Disk utility
             "libreoffice-fresh",  # Office suite
             "loupe",  # Image viewer
@@ -26,11 +27,11 @@ class SetupModule(decman.Module):
             "proton-vpn-gtk-app",  # ProtonVPN GTK app (community-maintained)
             "speech-dispatcher",  # Text-to-speech daemon (optional for Firefox-based browsers)
             "sushi",  # Quick previewer for Nautilus
+            "transmission-gtk",  # BitTorrent client
         }
 
         media_set: set[str] = {
             "celluloid",  # Video player (frontend for mpv)
-            "wiremix",  # Audio Mixer TUI
         }
 
         virtualization_set: set[str] = {
@@ -50,13 +51,16 @@ class SetupModule(decman.Module):
     @aur.packages
     def aur_pkgs(self) -> set[str]:
         apps_set: set[str] = {
-            "aether",  # Theming app for Omarchy
             "localsend-bin",  # Cross-platform file sharing app
+            "spotify",
+            "spotify-adblock",
             "zen-browser-bin",  # Web browser
+            "zoom",  # Online meetings
         }
 
         media_set: set[str] = {
-            "stacher7"  # yt-dlp frontend
+            "airpods-tui-git",  # AirPods TUI
+            "stacher7",  # yt-dlp frontend
         }
 
         virtualization_set: set[str] = {
@@ -66,12 +70,10 @@ class SetupModule(decman.Module):
         merged_set: set[str] = apps_set.union(media_set, virtualization_set)
         return merged_set
 
-    @flatpak.packages
-    def flatpak_pkgs(self) -> set[str]:
-        return {
-            "it.mijorus.gearlever",  # AppImage Manager
-        }
-
     @systemd.units
     def systemd_services(self) -> set[str]:
         return {"libvirtd.service"}
+
+    @systemd.user_units
+    def desktop_services(self) -> dict[str, set[str]]:
+        return {f"{CONFIG['%USER%']}": {"airpods-tui.service"}}

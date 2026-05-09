@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 
 # Lock the screen
 pidof hyprlock || hyprlock &

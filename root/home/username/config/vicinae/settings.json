@@ -1,0 +1,246 @@
+// This configuration is merged with the default vicinae configuration file, which you can obtain by running the `vicinae config default` command.
+// Every item defined in this file takes precedence over the values defined in the default config or any other imported file.
+//
+// You can make manual edits to this file, however you should keep in mind that this file may be written to by vicinae when a configuration change is made through the GUI.
+// When that happens, any custom comments or formatting will be lost.
+//
+// If you want to maintain a configuration file with your own comments and formatting, you should create a separate file and add it to the 'imports' array.
+//
+// Learn more about configuration at https://docs.vicinae.com/config
+
+{
+    "$schema": "https://vicinae.com/schemas/config.json",
+    "close_on_focus_loss": false,
+    "consider_preedit": false,
+    "pop_to_root_on_close": true,
+    "pop_on_backspace": true,
+    "activate_on_single_click": false,
+    "favicon_service": "twenty",
+    "keybinding": "default",
+    "search_files_in_root": false,
+    "font": {
+        "rendering": "native",
+        "normal": {
+            "family": "Inter Variable"
+        }
+    },
+    "theme": {
+        "dark": {
+            "name": "vicinae-dark",
+            "icon_theme": "Adwaita"
+        }
+    },
+    "telemetry": {
+        "system_info": false
+    },
+    "launcher_window": {
+        "opacity": 0.95,
+        "client_side_decorations": {
+            "enabled": true
+        }
+    },
+    "keybinds": {
+        "toggle-action-panel": "control+RETURN"
+    },
+    "favorites": ["applications:zen", "applications:dev.zed.Zed", "system:run"],
+    "fallbacks": [
+        "files:search",
+        "shortcuts:f9700258-5b9e-41f2-b36d-e488d8e3ff46",
+        "shortcuts:e9986be3-a5d4-400a-af12-404752b70970"
+    ],
+    "providers": {
+        "applications": {
+            "enabled": true,
+            "preferences": {
+                "defaultAction": "focus",
+                "paths": [
+                    "/home/%USER%/.local/share/applications",
+                    "/home/%USER%/.local/share/flatpak/exports/share/applications",
+                    "/var/lib/flatpak/exports/share/applications",
+                    "/usr/local/share/applications",
+                    "/usr/share/applications"
+                ]
+            },
+            "entrypoints": {
+                "vicinae": {
+                    "enabled": false
+                }
+            }
+        },
+        "browser-extension": {
+            "enabled": false
+        },
+        "calculator": {
+            "entrypoints": {
+                "refresh-rates": {
+                    "enabled": false
+                }
+            }
+        },
+        "clipboard": {
+            "preferences": {
+                "encryption": false,
+                "eraseOnStartup": false,
+                "ignorePasswords": true,
+                "monitoring": true
+            },
+            "entrypoints": {
+                "clear": {
+                    "enabled": false
+                },
+                "clear-history": {
+                    "enabled": false
+                }
+            }
+        },
+        "core": {
+            "entrypoints": {
+                "about": {
+                    "enabled": false
+                },
+                "documentation": {
+                    "enabled": false
+                },
+                "keybind-settings": {
+                    "enabled": false
+                },
+                "list-extensions": {
+                    "enabled": false
+                },
+                "manage-fallback": {
+                    "enabled": false
+                },
+                "oauth-token-store": {
+                    "enabled": false
+                },
+                "open-config-file": {
+                    "enabled": false
+                },
+                "open-default-config": {
+                    "enabled": false
+                },
+                "prune-memory": {
+                    "enabled": false
+                },
+                "refresh-apps": {
+                    "enabled": false
+                },
+                "reload-scripts": {
+                    "enabled": false
+                },
+                "report-bug": {
+                    "enabled": false
+                },
+                "search-builtin-icons": {
+                    "enabled": true
+                },
+                "search-emojis": {
+                    "enabled": false
+                },
+                "sponsor": {
+                    "enabled": false
+                }
+            }
+        },
+        "developer": {
+            "enabled": false
+        },
+        "files": {
+            "preferences": {
+                "autoIndexing": true,
+                "excludedPaths": "/home/%USER%/Codespace",
+                "paths": "/home/%USER%",
+                "watcherPaths": ""
+            },
+            "entrypoints": {
+                "rebuild-index": {
+                    "enabled": false
+                }
+            }
+        },
+        "font": {
+            "enabled": false
+        },
+        "manage-shortcuts": {
+            "entrypoints": {
+                "manage": {
+                    "enabled": false
+                }
+            }
+        },
+        "power": {
+            "enabled": true,
+            "entrypoints": {
+                "hibernate": {
+                    "enabled": false,
+                    "preferences": {
+                        "confirm": true,
+                        "customProgram": ""
+                    }
+                },
+                "lock": {
+                    "preferences": {
+                        "confirm": false,
+                        "customProgram": ""
+                    }
+                },
+                "logout": {
+                    "enabled": true
+                },
+                "power-off": {
+                    "preferences": {
+                        "confirm": true,
+                        "customProgram": "nosarch-session-shutdown"
+                    }
+                },
+                "reboot": {
+                    "preferences": {
+                        "confirm": true,
+                        "customProgram": "nosarch-session-restart"
+                    }
+                },
+                "sleep": {
+                    "enabled": false
+                },
+                "soft-reboot": {
+                    "enabled": false
+                },
+                "suspend": {
+                    "preferences": {
+                        "confirm": true,
+                        "customProgram": ""
+                    }
+                }
+            }
+        },
+        "raycast-compat": {
+            "enabled": false
+        },
+        "scripts": {
+            "preferences": {
+                "customDirs": ["/home/%USER%/.local/bin"]
+            }
+        },
+        "shortcuts": {
+            "enabled": true
+        },
+        "system": {
+            "entrypoints": {
+                "browse-apps": {
+                    "enabled": false
+                },
+                "run": {
+                    "preferences": {
+                        "default-action": "run"
+                    }
+                }
+            }
+        },
+        "theme": {
+            "enabled": false
+        },
+        "wm": {
+            "enabled": false
+        }
+    }
+}

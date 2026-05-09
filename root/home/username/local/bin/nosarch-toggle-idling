@@ -1,19 +1,15 @@
-#!/bin/bash
+#!/usr/bin/bash
 
-# Unique ID for the inhibition process
-PID_FILE="/tmp/hypridle_inhibit.pid"
+UNIT="nosarch-idle-inhibit.service"
 
-if [ -f "$PID_FILE" ]; then
-    # If PID file exists, kill the process and remove the file
-    PID=$(cat "$PID_FILE")
-    kill "$PID" && rm "$PID_FILE"
-    notify-send "Idle Inhibition" "Deactivated (Normal Sleep)" -i "system-lock-screen"
+if systemctl --user is-active --quiet "$UNIT"; then
+    systemctl --user stop "$UNIT"
+    notify-send -a "NosArch Power" -u low "󱫖  Toggle Idling Off" "Now locking computer when idle"
 else
-    # Start inhibition and save the PID
-    # --what=idle: prevents screen dimming/locking
-    # --why: helps systemd track the reason
-    systemd-inhibit --what=idle --who="Manual Toggle" --why="User requested" sleep infinity &
+    systemd-run --user \
+        --unit=nosarch-idle-inhibit \
+        --description="NosArch Idle Inhibition (Manual Toggle)" \
+        /usr/bin/systemd-inhibit --what=idle --who="Manual Toggle" --why="User requested" sleep infinity
 
-    echo $! > "$PID_FILE"
-    notify-send "Idle Inhibition" "Activated (Staying Awake)" -i "display"
+    notify-send -a "NosArch Power" -u low "󱫖  Toggle Idling On" "Stop locking computer when idle"
 fi

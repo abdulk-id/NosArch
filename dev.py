@@ -1,6 +1,6 @@
 import decman
 from decman import File
-from decman.plugins import aur, flatpak, pacman
+from decman.plugins import flatpak, pacman
 
 from config import CONFIG
 
@@ -10,11 +10,21 @@ class DevModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="dev")
 
+    def file_variables(self) -> dict[str, str]:
+        return CONFIG
+
     def files(self) -> dict[str, File]:
         return {
             f"/home/{CONFIG['%USER%']}/.gitconfig": File(
                 source_file="./root/home/username/dot_gitconfig",
                 bin_file=False,
+                encoding="UTF-8",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.ideavimrc": File(
+                source_file="./root/home/username/dot_ideavimrc",
+                bin_file=False,
+                encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
         }
@@ -23,25 +33,23 @@ class DevModule(decman.Module):
     def pkgs(self) -> set[str]:
         return {
             "bash-completion",
-            "docker",
+            "cmake",  # Cross-platform and open-source make system
+            "code",  # OSS version of VSCode
+            "docker",  # Docker CLI
             "docker-compose",
             "docker-buildx",
-            "fzf",
-            "git",
-            "gum",
-            "jq",
-            "lazydocker",
-            "lazygit",
-            "llvm",
+            "git",  # Git version control
+            "lazydocker",  # Docker TUI
+            "lazygit",  # Git TUI
+            "llvm",  # "Compiler infrastructure"
             "mise",
-            "opencode",
+            "meson",  # Build system
+            "nasm",  # Assembler
+            "ninja",  # Small speed-focused build system
+            "opencode",  # OpenCode AI Agent
             "vim",
-            "zed",
+            "zed",  # Zed Code Editor
         }
-
-    @aur.packages
-    def aur_pkgs(self) -> set[str]:
-        return {"visual-studio-code-bin"}
 
     @flatpak.packages
     def flatpak_pkgs(self) -> set[str]:

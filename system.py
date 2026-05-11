@@ -1,5 +1,5 @@
 import decman
-from decman import File
+from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
 
 from config import CONFIG
@@ -13,41 +13,18 @@ class SystemModule(decman.Module):
     def file_variables(self) -> dict[str, str]:
         return CONFIG
 
-    def files(self) -> dict[str, File]:
-        system_config_files: dict[str, File] = {
-            "/etc/greetd/config.toml": File(
-                source_file="./root/etc/greetd/config.toml",
-                bin_file=False,
+    def directories(self) -> dict[str, Directory]:
+        return {
+            "/etc/": Directory(
+                source_directory="./root/etc/",
+                bin_files=False,
                 encoding="UTF-8",
                 owner="root",
-            ),
-            "/etc/NetworkManager/conf.d/wifi-powersave.conf": File(
-                source_file="./root/etc/NetworkManager/conf.d/wifi-powersave.conf",
-                bin_file=False,
-                encoding="UTF-8",
-                owner="root",
-            ),
-            "/etc/systemd/logind.conf.d/10-ignore-power-button.conf": File(
-                source_file="./root/etc/systemd/logind.conf.d/10-ignore-power-button.conf",
-                bin_file=False,
-                encoding="UTF-8",
-                owner="root",
-            ),
-            "/etc/systemd/system.conf.d/10-faster-shutdown.conf": File(
-                source_file="./root/etc/systemd/system.conf.d/10-faster-shutdown.conf",
-                bin_file=False,
-                encoding="UTF-8",
-                owner="root",
-            ),
-            "/etc/systemd/zram-generator.conf": File(
-                source_file="./root/etc/systemd/zram-generator.conf",
-                bin_file=False,
-                encoding="UTF-8",
-                owner="root",
-            ),
+            )
         }
 
-        user_config_files: dict[str, File] = {
+    def files(self) -> dict[str, File]:
+        return {
             f"/home/{CONFIG['%USER%']}/.bash_profile": File(
                 source_file="./root/home/username/dot_bashprofile",
                 bin_file=False,
@@ -61,9 +38,6 @@ class SystemModule(decman.Module):
                 owner=f"{CONFIG['%USER%']}",
             ),
         }
-
-        merged_dict: dict[str, File] = system_config_files | user_config_files
-        return merged_dict
 
     # Packages ===
     @pacman.packages

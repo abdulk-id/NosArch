@@ -1,0 +1,6 @@
+[Unit]
+Description=NosArch Eyesight Reminder
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/nosarch-wellbeing eyesight remind

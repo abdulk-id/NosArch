@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+## === Utility logic ===
+_ensure_command() {
+    if ! command -v "$1" &>/dev/null; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+## === Actions logic ===
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-session <command> [option]
+
+Commands:
+    power           Power management commands  [shutdown|restart]
+    idle-lock       Turn idle lock on/off  [toggle|enable|disable|status]
+    lock            Lock the session
+    logout          Log out of the session
+    help            Show this help message
+
+Power options:
+    shutdown        Shutdown the system
+    restart         Restart the system
+
+Idle-Lock options:
+    toggle          Toggle Idle-Lock on/off
+    enable          Enable Idle-Lock
+    disable         Disable idle-lock
+    status          Check idle-lock state (outputs "true" if enabled, "false" otherwise)
+EOF
+}
+
+IDLE_LOCK_UNIT="nosarch-idle-inhibit.service"
+
+enable_idle_lock() {
+    ## TODO: Second line: use IDLE_LOCK_UNIT in the --unit argument as well
+    systemd-run --user \
+        --unit=nosarch-idle-inhibit \
+        --description="NosArch Idle Inhibition (Manual Toggle)" \
+        /usr/bin/systemd-inhibit --what=idle --who="Manual Toggle" --why="User requested" sleep infinity
+
+    notify-send -a "NosArch Power" -u low "󱫖  Enabled Idle-Lock" "Stop locking computer when idle"
+}
+disable_idle_lock() {
+    systemctl --user stop "$IDLE_LOCK_UNIT"
+    notify-send -a "NosArch Power" -u low "󱫖  Disabled Idle-Lock" "Now locking computer when idle"
+}
+toggle_idle_lock() {
+    if systemctl --user is-active --quiet "$IDLE_LOCK_UNIT"; then
+        disable_idle_lock
+    else
+        enable_idle_lock
+    fi
+}
+
+# Helper function to get idle-lock state. Outputs "true" if enabled, "false" otherwise
+idle_lock_status() {
+    if systemctl --user is-active --quiet "$IDLE_LOCK_UNIT"; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+session_lock() {
+    # Close Bitwarden
+    #pkill -i bitwarden
+    # TODO: If Bitwarden is not installed, what then?
+
+    # Set keyboard layout to default (first layout)
+    hyprctl switchxkblayout all 0 > /dev/null 2>&1
+
+    # Stop the eyesight reminder timer
+    nosarch-wellbeing eyesight stop
+
+    # Lock the screen and wait for unlock
+    if ! pidof hyprlock > /dev/null; then
+        hyprlock &
+        wait $!
+    else
+        wait $(pidof hyprlock)
+    fi
+
+    # Post-unlock
+    session_after_unlock
+}
+
+session_after_unlock() {
+    # Start the eyesight reminder timer
+    nosarch-wellbeing eyesight start
+}
+
+session_logout() {
+    if zenity --question \
+        --title="Logout" \
+        --text="Are you sure you want to quit all applications and log out now?" \
+        --icon="system-log-out-symbolic" \
+        --ok-label="Logout" \
+        --cancel-label="Cancel" \
+        --default-cancel
+    then
+        hyprctl dispatch exec "hyprshutdown --top-label 'Logging out...' --post-cmd 'uwsm stop'"
+    fi
+}
+
+system_shutdown() {
+    _ensure_command "hyprshutdown"
+
+    if zenity --question \
+        --title="Shutdown" \
+        --text="Are you sure you want to shutdown your computer now?" \
+        --icon="system-shutdown-symbolic" \
+        --ok-label="Shutdown" \
+        --cancel-label="Cancel" \
+        --default-cancel
+    then
+        hyprctl dispatch exec "hyprshutdown --top-label 'Shutting down...' --post-cmd 'systemctl poweroff --no-wall'"
+    fi
+}
+
+system_restart() {
+    _ensure_command "hyprshutdown"
+
+    if zenity --question \
+        --title="Restart" \
+        --text="Are you sure you want to restart your computer now?" \
+        --icon="system-reboot-symbolic" \
+        --ok-label="Restart" \
+        --cancel-label="Cancel" \
+        --default-cancel
+    then
+        hyprctl dispatch exec "hyprshutdown --top-label 'Restarting...' --post-cmd 'systemctl reboot --no-wall'"
+    fi
+}
+
+## === Main logic ===
+
+# No command passed
+if [[ $# -eq 0 ]]; then
+    show_help
+    exit 0
+fi
+
+case "$1" in
+    power)
+        case "$2" in
+            shutdown)
+                system_shutdown
+                ;;
+            restart)
+                system_restart
+                ;;
+            *)
+                echo "Unknown power option: $2"
+                show_help
+                exit 1
+                ;;
+        esac
+        ;;
+    idle-lock)
+        case "$2" in
+            toggle)
+                toggle_idle_lock
+                ;;
+            enable)
+                enable_idle_lock
+                ;;
+            disable)
+                disable_idle_lock
+                ;;
+            status)
+                idle_lock_status
+                ;;
+            *)
+                echo "Unknown idle-lock option: $2"
+                show_help
+                exit 1
+                ;;
+        esac
+        ;;
+    lock)
+        session_lock
+        ;;
+    logout)
+        session_logout
+        ;;
+    help|-h|--help)
+        show_help
+        ;;
+    *)
+        echo "Unknown command: $1"
+        show_help
+        exit 1
+        ;;
+esac

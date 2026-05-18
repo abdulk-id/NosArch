@@ -1,7 +1,5 @@
-@define-color background #%BACKGROUND%;
-@define-color foreground #%FOREGROUND%;
-
-@import "/home/%USER%/.local/share/current-theme/waybar.css";
+@define-color background #%BACKGROUND_SECONDARY%;
+@define-color foreground #%FOREGROUND_PRIMARY%;
 
 * {
     color: @foreground;
@@ -36,6 +34,7 @@ tooltip {
 #custom-archicon {
     padding: 0 6px;
     font-size: 18px;
+    color: #1793d1;
 }
 
 #workspaces button {
@@ -58,6 +57,9 @@ tooltip {
 #clock,
 #privacy {
     padding: 0 6px;
+}
+#mpris {
+    font-size: 18px;
 }
 
 #privacy {

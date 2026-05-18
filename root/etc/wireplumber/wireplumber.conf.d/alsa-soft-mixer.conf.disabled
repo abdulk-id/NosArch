@@ -18,3 +18,5 @@ monitor.alsa.rules = [
         }
     }
 ]
+
+# Disabled because it messed with audio levels (all audio was extremely low)

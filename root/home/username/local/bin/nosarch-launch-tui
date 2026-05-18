@@ -1,24 +1,59 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
-# Capture the entire command passed (e.g., "hyprdynamicmonitors tui")
-FULL_CMD="$*"
-[[ -z "$FULL_CMD" ]] && echo "Usage: $0 <command>" && exit 1
+set -euo pipefail
 
-# Sanitize the command to create a valid window class (e.g., "TUI.hyprdynamicmonitors_tui")
+# Usage:
+#   launch-tui <command> [args...]
 
-CLASS="TUI.$(echo "$FULL_CMD" | sed 's/ /_/g')"
+[[ $# -eq 0 ]] && {
+    echo "Usage: $0 <command> [args...]"
+    exit 1
+}
 
-# Check if a window with this specific class is already running
-ADDR=$(hyprctl clients -j | jq -r ".[] | select(.class == \"$CLASS\") | .address" | head -n 1)
+# --- Dependencies ---
+for cmd in hyprctl jq; do
+    command -v "$cmd" &>/dev/null || {
+        echo "Error: $cmd is required."
+        exit 1
+    }
+done
+
+: "${TERMINAL:=xdg-terminal-exec}"
+
+# --- Command info ---
+CMD=( "$@" )
+
+FULL_CMD="${CMD[*]}"
+CLASS="TUI.${FULL_CMD// /_}"
+
+# --- Check for existing window ---
+ADDR=$(
+    hyprctl clients -j |
+    jq -r \
+        ".[] | select(.class == \"$CLASS\") | .address" |
+    head -n 1
+)
 
 if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
-    hyprctl dispatch focuswindow address:"$ADDR"
-else
-    # Command wrapper with error handling and pause
-    CMD_WRAPPER="bash -c \"if ! $FULL_CMD; then echo -e '\nProcess failed.'; fi; echo 'Press any key to exit...'; read -n 1 -s -r\""
-
-    # Hyprland windowrule
-    RULES="float on; size 1280 720; center 1"
-
-    hyprctl dispatch exec "[$RULES] $TERMINAL --class=$CLASS -e $CMD_WRAPPER"
+    hyprctl dispatch focuswindow "address:$ADDR"
+    exit 0
 fi
+
+# --- Window rules ---
+RULES="float on; size 1280 720; center 1"
+
+# --- Build safely-escaped command string ---
+printf -v CMD_STRING '%q ' "${CMD[@]}"
+
+# --- Launch terminal ---
+hyprctl dispatch exec \
+    "[$RULES] $TERMINAL --class=$CLASS -e bash -c '
+        if ! $CMD_STRING; then
+            echo
+            echo \"Process failed.\"
+        fi
+
+        echo
+        read -n 1 -s -r -p \"Press any key to exit...\"
+        echo
+    '"

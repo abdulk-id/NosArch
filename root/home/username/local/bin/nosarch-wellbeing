@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+## === Actions logic ===
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-wellbeing <command> [option]
+
+Commands:
+    eyesight        Control Eyesight Reminders [remind | toggle | enable | disable | status | start | stop]
+
+Eyesight options
+    remind          Send an eyesight reminder
+    toggle          Toggle eyesight reminders on/off
+    enable          Enable eyesight reminders
+    disable         Disable eyesight reminders
+    status          Get the current eyesight reminders status
+    start           Start the eyesight reminder timer (Used mainly for restarting the timer)
+    stop            Stop the eyesight reminder timer (without disabling reminders) (Used mainly for restarting the timer)
+EOF
+}
+
+send_eyesight_reminder() {
+    notify-send --urgency=normal --expire-time=20000 \
+      --icon="view-reveal-symbolic" \
+      --app-name="NosArch Wellbeing" \
+      "Eyesight Reminder" \
+      "Look away from the screen for 20 seconds"
+
+    # TODO: Maybe a transient notification would be better
+}
+
+enable_eyesight_reminders() {
+    systemctl --user start nosarch-eyesight-reminder.timer
+
+    notify-send --urgency=normal --expire-time=20000 \
+      --icon="view-reveal-symbolic" \
+      --app-name="NosArch Wellbeing" \
+      "Enabled Eyesight Reminders" \
+      "You will be reminded to look away from the screen every 30 minutes"
+}
+
+disable_eyesight_reminders() {
+    systemctl --user stop nosarch-eyesight-reminder.timer
+
+    notify-send --urgency=normal --expire-time=20000 \
+      --icon="view-reveal-symbolic" \
+      --app-name="NosArch Wellbeing" \
+      "Disabled Eyesight Reminders" \
+      "You won't be reminded to look away from the screen"
+}
+
+toggle_eyesight_reminders() {
+    if systemctl --user is-enabled nosarch-eyesight-reminder.timer &>/dev/null; then
+        disable_eyesight_reminders
+    else
+        enable_eyesight_reminders
+    fi
+}
+
+eyesight_reminders_status() {
+    if systemctl --user is-enabled nosarch-eyesight-reminder.timer &>/dev/null; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+# Stop the timer without disabling reminders
+stop_eyesight_timer() {
+    if systemctl --user is-enabled nosarch-eyesight-reminder.timer &>/dev/null; then
+        systemctl --user stop nosarch-eyesight-reminder.timer
+    fi
+}
+# Start the timer
+start_eyesight_timer() {
+    if systemctl --user is-enabled nosarch-eyesight-reminder.timer &>/dev/null; then
+        systemctl --user start nosarch-eyesight-reminder.timer
+    fi
+}
+
+
+## === Main logic ===
+
+# No command passed
+if [[ $# -eq 0 ]]; then
+    show_help
+    exit 0
+fi
+
+case "$1" in
+    eyesight)
+        case "$2" in
+            remind)
+                send_eyesight_reminder
+                ;;
+            toggle)
+                toggle_eyesight_reminders
+                ;;
+            enable)
+                enable_eyesight_reminders
+                ;;
+            disable)
+                disable_eyesight_reminders
+                ;;
+            status)
+                eyesight_reminders_status
+                ;;
+            start)
+                start_eyesight_timer
+                ;;
+            stop)
+                stop_eyesight_timer
+                ;;
+            *)
+                show_help
+                exit 1
+                ;;
+        esac
+        ;;
+    *)
+        show_help
+        exit 1
+        ;;
+esac

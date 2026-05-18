@@ -1,5 +1,5 @@
 import decman
-from decman.plugins import aur, pacman, systemd
+from decman.plugins import aur, flatpak, pacman, systemd
 
 from config import CONFIG
 
@@ -70,10 +70,19 @@ class SetupModule(decman.Module):
         merged_set: set[str] = apps_set.union(media_set, virtualization_set)
         return merged_set
 
+    @flatpak.user_packages
+    def flatpak_user_pkgs(self) -> dict[str, set[str]]:
+        return {f"{CONFIG['%USER%']}": {"io.github.alainm23.planify"}}
+
     @systemd.units
     def systemd_services(self) -> set[str]:
         return {"libvirtd.service"}
 
     @systemd.user_units
-    def desktop_services(self) -> dict[str, set[str]]:
-        return {f"{CONFIG['%USER%']}": {"airpods-tui.service"}}
+    def systemd_user_services(self) -> dict[str, set[str]]:
+        return {
+            f"{CONFIG['%USER%']}": {
+                "airpods-tui.service",
+                "nosarch-eyesight-reminder.timer",
+            }
+        }

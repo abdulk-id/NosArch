@@ -42,7 +42,13 @@
     "keybinds": {
         "toggle-action-panel": "control+RETURN"
     },
-    "favorites": ["applications:zen", "applications:dev.zed.Zed", "system:run"],
+    "favorites": [
+        "applications:zen",
+        "applications:dev.zed.Zed",
+        "applications:io.github.alainm23.planify",
+        "applications:nosarch.package-manager",
+        "system:run"
+    ],
     "fallbacks": [
         "files:search",
         "shortcuts:f9700258-5b9e-41f2-b36d-e488d8e3ff46",
@@ -101,6 +107,9 @@
                 "documentation": {
                     "enabled": false
                 },
+                "inspect-local-storage": {
+                    "enabled": false
+                },
                 "keybind-settings": {
                     "enabled": false
                 },
@@ -132,7 +141,7 @@
                     "enabled": false
                 },
                 "search-builtin-icons": {
-                    "enabled": true
+                    "enabled": false
                 },
                 "search-emojis": {
                     "enabled": false
@@ -143,7 +152,12 @@
             }
         },
         "developer": {
-            "enabled": false
+            "enabled": false,
+            "entrypoints": {
+                "create": {
+                    "enabled": true
+                }
+            }
         },
         "files": {
             "preferences": {
@@ -179,24 +193,31 @@
                     }
                 },
                 "lock": {
+                    "enabled": true,
                     "preferences": {
                         "confirm": false,
-                        "customProgram": ""
+                        "customProgram": "nosarch-session lock"
                     }
                 },
                 "logout": {
-                    "enabled": true
+                    "enabled": true,
+                    "preferences": {
+                        "confirm": false,
+                        "customProgram": "nosarch-session logout"
+                    }
                 },
                 "power-off": {
+                    "enabled": true,
                     "preferences": {
-                        "confirm": true,
-                        "customProgram": "nosarch-session-shutdown"
+                        "confirm": false,
+                        "customProgram": "nosarch-session power shutdown"
                     }
                 },
                 "reboot": {
+                    "enabled": true,
                     "preferences": {
-                        "confirm": true,
-                        "customProgram": "nosarch-session-restart"
+                        "confirm": false,
+                        "customProgram": "nosarch-session power restart"
                     }
                 },
                 "sleep": {

@@ -1,18 +1,18 @@
-@define-color center-bg                 #%BACKGROUND2%;
-@define-color notification-bg           #%BACKGROUND2%;
-@define-color center-notification-bg    #%BACKGROUND%;
-@define-color background                #%BACKGROUND%;
-@define-color background-alt            #ff0000; /* #0e0e14; */
+@define-color center-bg                 #%BACKGROUND_SECONDARY%;
+@define-color notification-bg           #%BACKGROUND_SECONDARY%;
+@define-color center-notification-bg    #%BACKGROUND_PRIMARY%;
+@define-color background                #%BACKGROUND_PRIMARY%;
+@define-color background-alt            #%BACKGROUND_SECONDARY%;
 @define-color accent-color              #%ACCENT%;
-@define-color text                      #%FOREGROUND%;
-@define-color text-alt                  #%FOREGROUND2%;
+@define-color text                      #%FOREGROUND_PRIMARY%;
+@define-color text-alt                  #%FOREGROUND_SECONDARY%;
 @define-color selected                  alpha(@text-alt, .4);
 @define-color hover                     alpha(@selected, .4);
 @define-color urgent                    @text-alt;
 
 * {
     all: unset;
-    font-family: "JetbrainsMono Nerd Font";
+    font-family: "%NORMAL_FONT%";
     font-weight: 700;
 
     /* Global style variables */

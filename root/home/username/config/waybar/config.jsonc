@@ -4,6 +4,7 @@
     "position": "top",
     "spacing": 10,
     "height": 35,
+    "fixed-center": true,
     "modules-left": [
         "custom/archicon",
         "hyprland/workspaces",
@@ -75,7 +76,7 @@
         // "ignored-players": ["firefox"]
     },
     "clock": {
-        "format": "{:%I:%M %p | %a %d %B}",
+        "format": "{:%I:%M %p | %a %B %d}",
         //"format-alt": "{:L%d %B W%V %Y}",
         "tooltip-format": "<span>{calendar}</span>",
         "calendar": {
@@ -216,7 +217,7 @@
         "tooltip-format-discharging": "{power:>1.0f}W↓ {capacity}%",
         "tooltip-format-charging": "{power:>1.0f}W↑ {capacity}%",
         "interval": 5,
-        "on-click": "walker -m menus:power-profiles",
+        "on-click": "vicinae vicinae://launch/@botkooper/store.vicinae.power-profile/power-profile",
         "states": {
             "good": 80,
             "warning": 20,

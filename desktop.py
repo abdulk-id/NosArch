@@ -35,6 +35,12 @@ class DesktopModule(decman.Module):
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
+            f"/home/{CONFIG['%USER%']}/Templates/": Directory(
+                source_directory="./root/home/username/Templates/",
+                bin_files=False,
+                encoding="UTF-8",
+                owner=f"{CONFIG['%USER%']}",
+            ),
         }
 
     @pacman.packages
@@ -89,6 +95,7 @@ class DesktopModule(decman.Module):
         }
 
         media_set: set[str] = {
+            "alsa-utils",  # ALSA utilities
             "pipewire",  # Pipewire audio/video server
             "pipewire-alsa",  # ALSA backend for Pipewire
             "pipewire-jack",  # JACK backend for Pipewire
@@ -110,6 +117,9 @@ class DesktopModule(decman.Module):
             "fzf",  # CLI Fuzzy finder
             "gum",  # CLI tool for glamorous shell interactions
             "jq",  # CLI JSON processor
+            "tesseract",  # OCR tool
+            "tesseract-data-eng",  # OCR data for English
+            "zenity",  # GUI dialog box from shell commands
         }
 
         merged_set: set[str] = desktop_set.union(
@@ -124,7 +134,9 @@ class DesktopModule(decman.Module):
 
     @aur.packages
     def aur_pkgs(self) -> set[str]:
-        return {
+        # Packages that are no longer used by NosArch.
+        # Config files of these packages are still present in the repo.
+        unused_aur_pkgs: set[str] = {
             "elephant",
             "elephant-bookmarks",
             "elephant-calc",
@@ -136,14 +148,17 @@ class DesktopModule(decman.Module):
             "elephant-runner",
             "elephant-snippets",
             "elephant-websearch",
+            "walker-bin",
+        }
+
+        return {
             "gpu-screen-recorder-gtk",
-            "hyprdynamicmonitors-bin",
+            "hyprmoncfg",
             "hyprland-preview-share-picker-git",
             "hyprmod-git",  # Hyprland settings GUI
             "hyprqt6engine",
             "hyprshutdown",
             "vicinae-bin",
-            "walker-bin",
             "xdg-terminal-exec",
         }
 
@@ -156,17 +171,20 @@ class DesktopModule(decman.Module):
 
     @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:
+        # Units of packages no longer used by NosArch.
+        # Config files of these packages are still present in the repo.
+        unused_user_units: set[str] = {"elephant.service", "walker.service"}
+
         return {
             f"{CONFIG['%USER%']}": {
-                # "elephant.service",
                 "hypridle.service",
+                "hyprmoncfgd.service",
                 "hyprpaper.service",
                 "hyprpolkitagent.service",
                 "pipewire.service",
                 "pipewire-pulse.service",
                 "swaync.service",
                 "vicinae.service",
-                # "walker.service",
                 "waybar.service",
                 "wireplumber.service",
                 "xdg-user-dirs.service",

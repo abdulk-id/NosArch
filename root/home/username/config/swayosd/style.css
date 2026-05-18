@@ -1,32 +1,34 @@
-@define-color background-color #%BACKGROUND%;
-@define-color border-color #%COLOR8%;
-@define-color label #%FOREGROUND%;
-@define-color image #%FOREGROUND%;
-@define-color progress #%COLOR3%;
+@define-color background-color #%BACKGROUND_SECONDARY%;
+@define-color border-color #%ACCENT%;
+@define-color label #%FOREGROUND_PRIMARY%;
+@define-color image #%FOREGROUND_PRIMARY%;
+@define-color progress-bar-color #%BACKGROUND_PRIMARY%;
+@define-color progress #%ACCENT%;
 
 window {
-  border-radius: 12px;
-  opacity: 1;
-  border: 2px solid @border-color;
+    border-radius: 10px;
+    opacity: 1;
+    border: 1px solid @border-color;
 
-  background-color: @background-color;
+    background-color: @background-color;
 }
 
 label {
-  font-family: "JetBrainsMono Nerd Font";
-  font-size: 11pt;
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 12pt;
 
-  color: @label;
+    color: @label;
 }
 
 image {
-  color: @image;
+    color: @image;
 }
 
 progressbar {
-  border-radius: 8px;
+    background-color: @progress-bar-color;
+    border-radius: 8px;
 }
 
 progress {
-  background-color: @progress;
+    background-color: @progress;
 }

@@ -51,6 +51,8 @@ class DevModule(decman.Module):
             "zed",  # Zed Code Editor
         }
 
-    @flatpak.packages
-    def flatpak_pkgs(self) -> set[str]:
-        return {"me.iepure.devtoolbox"}
+    @flatpak.user_packages
+    def flatpak_user_pkgs(self) -> dict[str, set[str]]:
+        return {
+            f"{CONFIG['%USER%']}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}
+        }

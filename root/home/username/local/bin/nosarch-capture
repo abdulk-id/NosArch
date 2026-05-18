@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+## === Utility logic ===
+_ensure_command() {
+    if ! command -v "$1" &>/dev/null; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+## === Actions logic ===
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-capture <command> [option]
+
+Command:
+    screenshot          Take a screenshot  [region|window|monitor]
+    extract-text        Extract text from screen and copy to clipboard
+    colorpick           Open Color Picker
+    help                Show this help message
+
+Screenshot options:
+    region              Screenshot a region
+    window              Screenshot a window
+    monitor             Screenshot a monitor
+EOF
+}
+
+extract_text() {
+    _ensure_command tesseract
+
+    # Copied from Omarchy, put NosArch on the success notification
+
+    # Keep hyprpicker alive until after grim captures so the screenshot sees the
+    # frozen overlay rather than live content shifting during teardown.
+    cleanup_freeze() {
+      [[ -n $PID ]] && kill $PID 2>/dev/null
+    }
+    trap cleanup_freeze EXIT
+
+    hyprpicker -r -z >/dev/null 2>&1 &
+    PID=$!
+    sleep .1
+
+    SELECTION=$(slurp 2>/dev/null)
+    [[ -z $SELECTION ]] && exit 0
+
+    TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem 1 --psm 6 -l "eng" --dpi 300 -c preserve_interword_spaces=1 2>/dev/null) || exit 1
+    [[ -z $TEXT ]] && exit 1
+
+    printf "%s" "$TEXT" | wl-copy
+
+    notify-send --urgency=normal --app-name="Nosarch Capture" --app-icon="applets-screenshooter-symbolic" "Text Extraction" "Copied text from selection to clipboard"
+}
+
+## === Main logic ===
+
+# No command passed
+if [[ $# -eq 0 ]]; then
+    show_help
+    exit 0
+fi
+
+case "$1" in
+    screenshot)
+        _ensure_command hyprshot
+        case "$2" in
+            region)
+                hyprshot --freeze --mode region --output-folder ~/Pictures/Screenshots
+                ;;
+            window)
+                hyprshot --freeze --mode window --output-folder ~/Pictures/Screenshots
+                ;;
+            monitor)
+                hyprshot --freeze --mode output --output-folder ~/Pictures/Screenshots
+                ;;
+            *)
+                echo "Unknown screenshot option: $2"
+                show_help
+                exit 1
+                ;;
+        esac
+        ;;
+    extract-text)
+        extract_text
+        ;;
+    colorpick)
+        pkill hyprpicker || hyprpicker -a
+        ;;
+    help|-h|--help)
+        show_help
+        ;;
+    *)
+        echo "Unknown command: $1"
+        show_help
+        exit 1
+        ;;
+esac

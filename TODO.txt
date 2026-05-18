@@ -7,3 +7,7 @@
 
 
 - [ ] Complete system Style guidelines
+
+
+- [ ] Separate flathub remotes for system and user
+    - Add user remote command: `flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo`

@@ -39,21 +39,30 @@ if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
     exit 0
 fi
 
-# --- Window rules ---
-RULES="float on; size 1280 720; center 1"
-
-# --- Build safely-escaped command string ---
+# --- Build safely escaped command ---
 printf -v CMD_STRING '%q ' "${CMD[@]}"
 
-# --- Launch terminal ---
-hyprctl dispatch exec \
-    "[$RULES] $TERMINAL --class=$CLASS -e bash -c '
-        if ! $CMD_STRING; then
-            echo
-            echo \"Process failed.\"
-        fi
+# --- Build inner shell script ---
+read -r -d '' INNER_SCRIPT <<EOF || true
+if ! $CMD_STRING; then
+    echo
+    echo "Process failed."
+fi
 
-        echo
-        read -n 1 -s -r -p \"Press any key to exit...\"
-        echo
-    '"
+echo
+read -n 1 -s -r -p "Press any key to exit..."
+echo
+EOF
+
+# --- Escape single quotes for shell ---
+ESCAPED_SCRIPT=${INNER_SCRIPT//\'/\'\\\'\'}
+
+# --- Final command ---
+FINAL_CMD="$TERMINAL --class=$CLASS -e sh -lc '$ESCAPED_SCRIPT'"
+
+# --- Launch through Lua ---
+hyprctl eval "hl.exec_cmd([==[$FINAL_CMD]==], {
+    float = true,
+    size = {1280, 720},
+    center = true
+})"

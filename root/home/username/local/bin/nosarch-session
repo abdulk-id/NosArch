@@ -104,7 +104,8 @@ session_logout() {
         --cancel-label="Cancel" \
         --default-cancel
     then
-        hyprctl dispatch exec "hyprshutdown --top-label 'Logging out...' --post-cmd 'uwsm stop'"
+        CMD="hyprshutdown --top-label 'Logging out...' --post-cmd 'uwsm stop'"
+        hyprctl eval "hl.exec_cmd([==[$CMD]==])"
     fi
 }
 
@@ -119,7 +120,8 @@ system_shutdown() {
         --cancel-label="Cancel" \
         --default-cancel
     then
-        hyprctl dispatch exec "hyprshutdown --top-label 'Shutting down...' --post-cmd 'systemctl poweroff --no-wall'"
+        CMD="hyprshutdown --top-label 'Shutting down...' --post-cmd 'systemctl poweroff --no-wall'"
+        hyprctl eval "hl.exec_cmd([==[$CMD]==])"
     fi
 }
 
@@ -134,7 +136,8 @@ system_restart() {
         --cancel-label="Cancel" \
         --default-cancel
     then
-        hyprctl dispatch exec "hyprshutdown --top-label 'Restarting...' --post-cmd 'systemctl reboot --no-wall'"
+        CMD="hyprshutdown --top-label 'Restarting...' --post-cmd 'systemctl reboot --no-wall'"
+        hyprctl eval "hl.exec_cmd([==[$CMD]==])"
     fi
 }
 

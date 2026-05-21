@@ -148,7 +148,7 @@
             "network",
             "bluetooth",
             "pulseaudio",
-            "custom/airpods",
+            //"custom/airpods",
             "battery",
             "custom/notifications",
         ],
@@ -198,12 +198,12 @@
             "default": ["", "", ""],
         },
     },
-    "custom/airpods": {
-        "exec": "airpods-tui --waybar-watch",
-        "return-type": "json",
-        "format": "󱡏",
-        "on-click": "nosarch-launch-tui airpods-tui",
-    },
+    //"custom/airpods": {
+    //    "exec": "airpods-tui --waybar-watch",
+    //    "return-type": "json",
+    //    "format": "󱡏",
+    //    "on-click": "nosarch-launch-tui airpods-tui",
+    //},
     "battery": {
         "format": "{icon} {capacity}%",
         "format-charging": "{icon} {capacity}%",

@@ -59,7 +59,6 @@ class SetupModule(decman.Module):
         }
 
         media_set: set[str] = {
-            "airpods-tui-git",  # AirPods TUI
             "stacher7",  # yt-dlp frontend
         }
 
@@ -82,7 +81,6 @@ class SetupModule(decman.Module):
     def systemd_user_services(self) -> dict[str, set[str]]:
         return {
             f"{CONFIG['%USER%']}": {
-                "airpods-tui.service",
                 "nosarch-eyesight-reminder.timer",
             }
         }

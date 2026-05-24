@@ -53,8 +53,6 @@ class DesktopModule(decman.Module):
             "flatpak",  # Linux app distribution
             "flatseal",  # Flatpak permission manager
             "ghostty",
-            "gpu-screen-recorder",
-            # "gpu-screen-recorder-ui"  # Keeps giving error 404
             "hyprcursor",
             "hypridle",
             "hyprland",
@@ -64,6 +62,8 @@ class DesktopModule(decman.Module):
             "hyprpicker",
             "hyprpolkitagent",
             "hyprshot",
+            "hyprshutdown",
+            "hyprsunset",
             "qt5-wayland",
             "qt6-wayland",
             "quickshell",
@@ -152,12 +152,9 @@ class DesktopModule(decman.Module):
         }
 
         return {
-            "gpu-screen-recorder-gtk",
             "hyprmoncfg",
             "hyprland-preview-share-picker-git",
-            "hyprmod-git",  # Hyprland settings GUI
             "hyprqt6engine",
-            "hyprshutdown",
             "vicinae-bin",
             "xdg-terminal-exec",
         }
@@ -171,21 +168,11 @@ class DesktopModule(decman.Module):
 
     @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:
-        # Units of packages no longer used by NosArch.
-        # Config files of these packages are still present in the repo.
-        unused_user_units: set[str] = {"elephant.service", "walker.service"}
-
         return {
             f"{CONFIG['%USER%']}": {
-                "hypridle.service",
                 "hyprmoncfgd.service",
-                "hyprpaper.service",
-                "hyprpolkitagent.service",
                 "pipewire.service",
                 "pipewire-pulse.service",
-                "swaync.service",
-                "vicinae.service",
-                "waybar.service",
                 "wireplumber.service",
                 "xdg-user-dirs.service",
             }

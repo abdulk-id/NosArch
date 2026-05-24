@@ -214,8 +214,9 @@
             "default": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
             "charging": ["󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅"],
         },
-        "tooltip-format-discharging": "{power:>1.0f}W↓ {capacity}%",
-        "tooltip-format-charging": "{power:>1.0f}W↑ {capacity}%",
+        "tooltip-format-discharging": "Battery {capacity}%  ·  {timeTo}  ·  ↓ {power:>1.0f}W",
+        "tooltip-format-charging": "Battery {capacity}%  ·  {timeTo}  ·  ↑ {power:>1.0f}W",
+        "tooltip-format-full": "Battery Full  ·  ↑ {power:>1.0f}W",
         "interval": 5,
         "on-click": "vicinae vicinae://launch/@botkooper/store.vicinae.power-profile/power-profile",
         "states": {

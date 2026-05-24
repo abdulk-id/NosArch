@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -euo pipefail
 
@@ -68,9 +68,10 @@ idle_lock_status() {
 }
 
 session_lock() {
-    # Close Bitwarden
-    #pkill -i bitwarden
-    # TODO: If Bitwarden is not installed, what then?
+    # Close Bitwarden if installed
+    if command -v bitwarden &>/dev/null; then
+        pkill -i bitwarden
+    fi
 
     # Set keyboard layout to default (first layout)
     hyprctl switchxkblayout all 0 > /dev/null 2>&1
@@ -78,16 +79,13 @@ session_lock() {
     # Stop the eyesight reminder timer
     nosarch-wellbeing eyesight stop
 
-    # Lock the screen and wait for unlock
+    # Lock the screen, trigger after_unlock after screen unlocks
     if ! pidof hyprlock > /dev/null; then
-        hyprlock &
-        wait $!
-    else
-        wait $(pidof hyprlock)
+        (
+            hyprlock
+            session_after_unlock
+        ) &
     fi
-
-    # Post-unlock
-    session_after_unlock
 }
 
 session_after_unlock() {
@@ -143,61 +141,59 @@ system_restart() {
 
 ## === Main logic ===
 
-# No command passed
-if [[ $# -eq 0 ]]; then
-    show_help
-    exit 0
-fi
+main() {
+    case "${1:-}" in
+        power)
+            case "${2:-}" in
+                shutdown)
+                    system_shutdown
+                    ;;
+                restart)
+                    system_restart
+                    ;;
+                *)
+                    echo "Unknown power option: $2"
+                    show_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+        idle-lock)
+            case "${2:-}" in
+                toggle)
+                    toggle_idle_lock
+                    ;;
+                enable)
+                    enable_idle_lock
+                    ;;
+                disable)
+                    disable_idle_lock
+                    ;;
+                status)
+                    idle_lock_status
+                    ;;
+                *)
+                    echo "Unknown idle-lock option: $2"
+                    show_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+        lock)
+            session_lock
+            ;;
+        logout)
+            session_logout
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+}
 
-case "$1" in
-    power)
-        case "$2" in
-            shutdown)
-                system_shutdown
-                ;;
-            restart)
-                system_restart
-                ;;
-            *)
-                echo "Unknown power option: $2"
-                show_help
-                exit 1
-                ;;
-        esac
-        ;;
-    idle-lock)
-        case "$2" in
-            toggle)
-                toggle_idle_lock
-                ;;
-            enable)
-                enable_idle_lock
-                ;;
-            disable)
-                disable_idle_lock
-                ;;
-            status)
-                idle_lock_status
-                ;;
-            *)
-                echo "Unknown idle-lock option: $2"
-                show_help
-                exit 1
-                ;;
-        esac
-        ;;
-    lock)
-        session_lock
-        ;;
-    logout)
-        session_logout
-        ;;
-    help|-h|--help)
-        show_help
-        ;;
-    *)
-        echo "Unknown command: $1"
-        show_help
-        exit 1
-        ;;
-esac
+main "$@"

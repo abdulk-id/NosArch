@@ -1,5 +1,6 @@
 @define-color background #%BACKGROUND_SECONDARY%;
 @define-color foreground #%FOREGROUND_PRIMARY%;
+@define-color accent #%ACCENT%;
 
 * {
     color: @foreground;
@@ -18,6 +19,7 @@ window#waybar {
 tooltip {
     background-color: @background;
     padding: 0px;
+    border: solid 1px @accent;
     border-radius: 8px;
 }
 

@@ -2,7 +2,7 @@
 -- Refer to https://wiki.hypr.land/Configuring/Basics/Variables/
 
 -- local active_border_color = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 }
-local active_border_color = "rgb(6799E4)"
+local active_border_color = "rgb(%ACCENT%)"
 local inactive_border_color = "rgba(595959aa)"
 
 hl.config({

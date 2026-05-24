@@ -25,8 +25,7 @@ class SetupModule(decman.Module):
             "papers",  # Document viewer
             "proton-vpn-cli",  # Official ProtonVPN CLI
             "proton-vpn-gtk-app",  # ProtonVPN GTK app (community-maintained)
-            "speech-dispatcher",  # Text-to-speech daemon (optional for Firefox-based browsers)
-            "sushi",  # Quick previewer for Nautilus
+            "seahorse",  # Password and Keys GUI
             "transmission-gtk",  # BitTorrent client
         }
 
@@ -40,9 +39,6 @@ class SetupModule(decman.Module):
             "vde2",  # Virtual Distributed Ethernet for emulators like QEMU
             "virt-manager",  # Virtual machine manager
             "virt-viewer",  # Virtual machine viewer
-            "virtualbox",  # VirtualBox virtualization platform
-            "virtualbox-host-modules-arch",  # Host modules for VirtualBox
-            "virtualbox-host-modules-lts",  # Host modules for VirtualBox (For linux-lts kernel)
         }
 
         merged_set: set[str] = apps_set.union(media_set, virtualization_set)

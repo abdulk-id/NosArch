@@ -11,9 +11,13 @@
 
 
 hl.on("hyprland.start", function()
-    -- hl.exec_cmd("walker --gapplication-service")
-    -- hl.exec_cmd("vicinae server")        (started as a systemd service)
-    -- hl.exec_cmd("uwsm-app -- swaync")    (started as a systemd service)
+    hl.exec_cmd("systemctl --user start hyprpolkitagent")
+    hl.exec_cmd("uwsm-app -- hypridle")
+    hl.exec_cmd("uwsm-app -- swaync")
+    hl.exec_cmd("uwsm-app -- waybar")
+    hl.exec_cmd("uwsm-app -- hyprpaper")
+    hl.exec_cmd("uwsm-app -- hyprsunset")
+    hl.exec_cmd("uwsm-app -- vicinae server")
     hl.exec_cmd("uwsm-app -- swayosd-server")
 
     -- Set systemd vars

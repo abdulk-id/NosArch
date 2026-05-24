@@ -1,6 +1,5 @@
 require("looknfeel")
 require("autostart")
-require("env")
 require("input")
 require("binds.hyprbinds")
 require("binds.mediabinds")
@@ -13,5 +12,9 @@ hl.config({
     ecosystem = {
         no_update_news = false,
         no_donation_nag = false,
-    }
+    },
+
+    xwayland = {
+        force_zero_scaling = true,
+    },
 })

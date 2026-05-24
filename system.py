@@ -80,7 +80,7 @@ class SystemModule(decman.Module):
 
         system_intel_set: set[str] = {"intel-ucode"}
 
-        security_set: set[str] = {"apparmor", "clamav", "firewalld", "ufw"}
+        security_set: set[str] = {"apparmor", "clamav", "firewalld", "lynis", "ufw"}
 
         connectivity_set: set[str] = {
             "bluez",

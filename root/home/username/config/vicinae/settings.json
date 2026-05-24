@@ -21,7 +21,8 @@
     "font": {
         "rendering": "native",
         "normal": {
-            "family": "Inter Variable"
+            "family": "Adwaita Sans",
+            "size": 10.5
         }
     },
     "theme": {
@@ -43,11 +44,10 @@
         "toggle-action-panel": "control+RETURN"
     },
     "favorites": [
+        "@abdulk-id/custom-menus:open-menu",
         "applications:zen",
         "applications:dev.zed.Zed",
-        "applications:io.github.alainm23.planify",
-        "applications:nosarch.package-manager",
-        "system:run"
+        "applications:io.github.alainm23.planify"
     ],
     "fallbacks": [
         "files:search",
@@ -55,6 +55,13 @@
         "shortcuts:e9986be3-a5d4-400a-af12-404752b70970"
     ],
     "providers": {
+        "@abdulk-id/custom-menus": {
+            "entrypoints": {
+                "open-menu": {
+                    "alias": "NosArch"
+                }
+            }
+        },
         "applications": {
             "enabled": true,
             "preferences": {
@@ -148,16 +155,14 @@
                 },
                 "sponsor": {
                     "enabled": false
+                },
+                "store": {
+                    "enabled": true
                 }
             }
         },
         "developer": {
-            "enabled": false,
-            "entrypoints": {
-                "create": {
-                    "enabled": true
-                }
-            }
+            "enabled": false
         },
         "files": {
             "preferences": {
@@ -186,11 +191,7 @@
             "enabled": true,
             "entrypoints": {
                 "hibernate": {
-                    "enabled": false,
-                    "preferences": {
-                        "confirm": true,
-                        "customProgram": ""
-                    }
+                    "enabled": false
                 },
                 "lock": {
                     "enabled": true,
@@ -207,6 +208,7 @@
                     }
                 },
                 "power-off": {
+                    "alias": "Shutdown System",
                     "enabled": true,
                     "preferences": {
                         "confirm": false,
@@ -214,6 +216,7 @@
                     }
                 },
                 "reboot": {
+                    "alias": "Restart System",
                     "enabled": true,
                     "preferences": {
                         "confirm": false,
@@ -227,6 +230,7 @@
                     "enabled": false
                 },
                 "suspend": {
+                    "alias": "Sleep",
                     "preferences": {
                         "confirm": true,
                         "customProgram": ""
@@ -238,12 +242,13 @@
             "enabled": false
         },
         "scripts": {
-            "preferences": {
-                "customDirs": ["/home/%USER%/.local/bin"]
-            }
+            "enabled": false
         },
         "shortcuts": {
             "enabled": true
+        },
+        "snippets": {
+            "enabled": false
         },
         "system": {
             "entrypoints": {
@@ -254,6 +259,30 @@
                     "preferences": {
                         "default-action": "run"
                     }
+                },
+                "toggle-mute": {
+                    "enabled": false
+                },
+                "volume-0": {
+                    "enabled": false
+                },
+                "volume-100": {
+                    "enabled": false
+                },
+                "volume-25": {
+                    "enabled": false
+                },
+                "volume-50": {
+                    "enabled": false
+                },
+                "volume-75": {
+                    "enabled": false
+                },
+                "volume-down": {
+                    "enabled": false
+                },
+                "volume-up": {
+                    "enabled": false
                 }
             }
         },

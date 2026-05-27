@@ -98,6 +98,7 @@ class SystemModule(decman.Module):
             "libimobiledevice",
             "networkmanager",
             "usbmuxd",
+            "wget",
             "wireless-regdb",
         }
 

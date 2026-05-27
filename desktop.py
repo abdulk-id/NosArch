@@ -64,6 +64,7 @@ class DesktopModule(decman.Module):
             "hyprshot",
             "hyprshutdown",
             "hyprsunset",
+            "imagemagick",
             "qt5-wayland",
             "qt6-wayland",
             "quickshell",

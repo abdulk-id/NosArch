@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+source "$HOME/.local/bin/nosarch-sudo-keepalive"
+
 _ensure_command() {
     if ! command -v "$1" &>/dev/null; then
         echo "Error: $1 is required but not found."
@@ -50,6 +52,14 @@ install_arch_packages() {
     pkg_names=$(pacman -Slq | fzf "${fzf_args[@]}")
 
     if [[ "$pkg_names" != "" ]]; then
+        gum style --foreground 2 --bold "▸ Authenticating..."
+        if ! start_sudo_keepalive; then
+            echo
+            gum style --foreground 9 "x Authentication failed."
+            return 1
+        fi
+        trap stop_sudo_keepalive EXIT
+
         mapfile -t pkg_array <<< "$pkg_names"
 
         gum style --foreground 2 --bold "▸ Installing packages..."
@@ -66,6 +76,9 @@ install_arch_packages() {
             echo
             gum style --foreground 9 "x Installation failed."
         fi
+
+        stop_sudo_keepalive
+        trap - EXIT
     fi
 }
 
@@ -89,6 +102,14 @@ install_aur_packages() {
     pkg_names=$(yay -Slqa | fzf "${fzf_args[@]}")
 
     if [[ "$pkg_names" != "" ]]; then
+        gum style --foreground 2 --bold "▸ Authenticating..."
+        if ! start_sudo_keepalive; then
+            echo
+            gum style --foreground 9 "x Authentication failed."
+            return 1
+        fi
+        trap stop_sudo_keepalive EXIT
+
         mapfile -t pkg_array <<< "$pkg_names"
 
         gum style --foreground 2 --bold "▸ Installing AUR packages..."
@@ -105,7 +126,11 @@ install_aur_packages() {
             echo
             gum style --foreground 9 "x Installation failed."
         fi
+
+        stop_sudo_keepalive
+        trap - EXIT
     fi
+
 }
 
 install_flatpak_packages() {
@@ -152,12 +177,21 @@ install_flatpak_packages() {
         if $success; then
             gum style --foreground 2 "✓ Installation complete!"
         else
-            gum style --foreground 9 "x Some installations failed."
+            gum style --foreground 9 "x Installation failed."
         fi
     fi
 }
 
 update_packages() {
+    gum style --foreground 2 --bold "▸ Authenticating..."
+    if ! start_sudo_keepalive; then
+        echo
+        gum style --foreground 9 "x Authentication failed."
+        return 1
+    fi
+    trap stop_sudo_keepalive EXIT
+
+    echo
     gum style --foreground 2 --bold "▸ Updating Arch and AUR packages..."
 
     echo
@@ -185,6 +219,9 @@ update_packages() {
             gum style --foreground 9 "x Flatpak package update failed."
         fi
     fi
+
+    stop_sudo_keepalive
+    trap - EXIT
 }
 
 remove_packages() {
@@ -205,6 +242,14 @@ remove_packages() {
     pkg_names=$(yay -Qqe | fzf "${fzf_args[@]}")
 
     if [[ "$pkg_names" != "" ]]; then
+        gum style --foreground 2 --bold "▸ Authenticating..."
+        if ! start_sudo_keepalive; then
+            echo
+            gum style --foreground 9 "x Authentication failed."
+            return 1
+        fi
+        trap stop_sudo_keepalive EXIT
+
         mapfile -t pkg_array <<< "$pkg_names"
 
         gum style --foreground 2 --bold "▸ Removing packages..."
@@ -217,6 +262,9 @@ remove_packages() {
             echo
             gum style --foreground 9 "x Removal failed."
         fi
+
+        stop_sudo_keepalive
+        trap - EXIT
     fi
 }
 

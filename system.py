@@ -20,7 +20,14 @@ class SystemModule(decman.Module):
                 bin_files=False,
                 encoding="UTF-8",
                 owner="root",
-            )
+            ),
+            "/usr/local/bin/": Directory(
+                source_directory="./root/usr/local/bin/",
+                bin_files=False,
+                encoding="UTF-8",
+                owner="root",
+                permissions=0o754,  # Make executable
+            ),
         }
 
     def files(self) -> dict[str, File]:

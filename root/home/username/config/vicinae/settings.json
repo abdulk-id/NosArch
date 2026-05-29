@@ -212,7 +212,7 @@
                     "enabled": true,
                     "preferences": {
                         "confirm": false,
-                        "customProgram": "nosarch-session power shutdown"
+                        "customProgram": "nosarch-session shutdown"
                     }
                 },
                 "reboot": {
@@ -220,7 +220,7 @@
                     "enabled": true,
                     "preferences": {
                         "confirm": false,
-                        "customProgram": "nosarch-session power restart"
+                        "customProgram": "nosarch-session restart"
                     }
                 },
                 "sleep": {

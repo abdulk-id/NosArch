@@ -17,15 +17,12 @@ Usage:
     nosarch-session <command> [option]
 
 Commands:
-    power           Power management commands  [shutdown|restart]
-    idle-lock       Turn idle lock on/off  [toggle|enable|disable|status]
+    idle-lock       Turn idle lock on/off  [toggle | enable | disable | status]
     lock            Lock the session
     logout          Log out of the session
-    help            Show this help message
-
-Power options:
-    shutdown        Shutdown the system
     restart         Restart the system
+    shutdown        Shutdown the system
+    help            Show this help message
 
 Idle-Lock options:
     toggle          Toggle Idle-Lock on/off
@@ -140,24 +137,13 @@ system_restart() {
 }
 
 ## === Main logic ===
-
 main() {
+    if [[ $# -eq 0 ]]; then
+        show_help
+        return
+    fi
+
     case "${1:-}" in
-        power)
-            case "${2:-}" in
-                shutdown)
-                    system_shutdown
-                    ;;
-                restart)
-                    system_restart
-                    ;;
-                *)
-                    echo "Unknown power option: $2"
-                    show_help
-                    exit 1
-                    ;;
-            esac
-            ;;
         idle-lock)
             case "${2:-}" in
                 toggle)
@@ -184,6 +170,12 @@ main() {
             ;;
         logout)
             session_logout
+            ;;
+        restart)
+            system_restart
+            ;;
+        shutdown)
+            system_shutdown
             ;;
         help|-h|--help)
             show_help

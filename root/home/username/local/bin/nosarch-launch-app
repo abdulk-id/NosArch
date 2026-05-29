@@ -55,6 +55,11 @@ launch_browser_private() {
 
 ## === Main logic ===
 main() {
+    if [[ $# -eq 0 ]]; then
+        show_help
+        return
+    fi
+
     case "${1:-}" in
         browser)
             launch_browser

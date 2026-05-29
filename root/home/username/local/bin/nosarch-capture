@@ -17,7 +17,7 @@ Usage:
     nosarch-capture <command> [option]
 
 Command:
-    screenshot          Take a screenshot  [region|window|monitor]
+    screenshot          Take a screenshot  [region | window | monitor]
     extract-text        Extract text from screen and copy to clipboard
     colorpick           Open Color Picker
     help                Show this help message

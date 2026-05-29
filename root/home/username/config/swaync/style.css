@@ -38,6 +38,7 @@
 }
 .notification-background {
     background: @notification-bg;
+    border: solid 2px @accent-color;
     border-radius: var(--border-radius);
     margin: 5px;
 }
@@ -145,6 +146,7 @@
 
 .control-center .notification-background {
     background: @center-notification-bg;
+    border: 0px;
     box-shadow: var(--shadow);
 }
 

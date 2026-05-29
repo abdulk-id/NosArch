@@ -30,5 +30,5 @@ hl.bind("SUPER + N", hl.dsp.exec_cmd("swaync-client -t"))
 -- === Power Binds ===
 -- hl.bind("SUPER + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch exit"), { description = "Exit Hyprland" })
 
--- TODO: hl.bind("XF86PowerOff", hl.dsp.exec_cmd("nosarch-launcher menus:session"), { description = "Power options" })
+hl.bind("XF86PowerOff", hl.dsp.exec_cmd("vicinae vicinae://launch/power"), { description = "Power options" })
 hl.bind("SUPER + CTRL + L", hl.dsp.exec_cmd("nosarch-session lock"), { description = "Lock screen" })

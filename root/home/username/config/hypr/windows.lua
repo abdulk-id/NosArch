@@ -71,7 +71,7 @@ hl.window_rule({
         class = "(xdg-desktop-portal-gtk|sublime_text|DesktopEditors|org.gnome.Nautilus)",
         -- title = "^(Open.*Files?|Open [F|f]older.*|Save.*Files?|Save.*As|Save|All Files|.*wants to [open|save].*|[C|c]hoose.*)"
         title =
-        "^(Open.*Files?|Open [Ff]older.*|Save.*Files?|Save.*As|Save|All Files|.*wants to (open|save).*|[Cc]hoose.*|Enter name of file to save to.*)"
+        "^(Open.*Files?|Open [Ff]older.*|Save.*Files?|Save.*As|Save|All Files|.*wants to (open|save).*|[Cc]hoose.*|Enter name of file to save to.*|Select [Ff]older.*)"
     },
     -- Static effects
     float = true,
@@ -161,7 +161,7 @@ hl.window_rule({
     },
     -- Static effects
     float = true,
-    move = { "(monitor_w - window_w - 25)", "(monitor_h - window_h - 25)" }, -- Move to bottom-right corner of screen
+    move = { "(monitor_w - window_w - 25)", "(monitor_h - window_h - 50)" }, -- Move to bottom-right corner of screen
     size = { "384", "216" },
     pin = true,
     content = "video",

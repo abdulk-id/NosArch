@@ -3,7 +3,7 @@ from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
 
 from config import CONFIG
-from theme import THEME
+from theme import get_current_theme
 
 
 # Desktop session module
@@ -12,7 +12,7 @@ class DesktopModule(decman.Module):
         super().__init__(name="desktop")
 
     def file_variables(self) -> dict[str, str]:
-        return CONFIG | THEME
+        return CONFIG | get_current_theme()
 
     def directories(self) -> dict[str, Directory]:
         return {

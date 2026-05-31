@@ -1,5 +1,6 @@
 THEME: dict[str, str] = {
-    "%NAME%": "NosArch Default Dark",
+    "%NAME%": "NosArch Blue Dark",
+    "%FILENAME%": "nosarch_blue_dark",
     "%ICON_THEME%": "Yaru-blue",
     # Theme Style (dark or light)
     "%THEME_STYLE%": "dark",

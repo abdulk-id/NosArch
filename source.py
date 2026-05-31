@@ -4,6 +4,7 @@ from desktop import DesktopModule
 from dev import DevModule
 from setup import SetupModule
 from system import SystemModule
+from theme import ThemingModule
 
 # Decman configuration
 decman.config.arch = "x86_64"
@@ -21,4 +22,10 @@ decman.aur.packages |= {"decman"}
 decman.aur.ignored_packages |= {"yay"}
 # ---
 
-decman.modules += {SystemModule(), DesktopModule(), SetupModule(), DevModule()}
+decman.modules += {
+    SystemModule(),
+    DesktopModule(),
+    SetupModule(),
+    DevModule(),
+    ThemingModule(),
+}

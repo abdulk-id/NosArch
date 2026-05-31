@@ -53,19 +53,22 @@ install_arch_packages() {
 
     if [[ "$pkg_names" != "" ]]; then
         gum style --foreground 2 --bold "▸ Authenticating..."
+        echo
+
         if ! start_sudo_keepalive; then
             echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
         trap stop_sudo_keepalive EXIT
+        echo
 
         mapfile -t pkg_array <<< "$pkg_names"
 
         gum style --foreground 2 --bold "▸ Installing packages..."
-
         echo
-        if sudo pacman -S --needed "${pkg_array[@]}"; then
+
+        if sudo pacman -S --needed --noconfirm "${pkg_array[@]}"; then
             if command -v updatedb &>/dev/null; then
                 sudo updatedb
             fi
@@ -103,19 +106,22 @@ install_aur_packages() {
 
     if [[ "$pkg_names" != "" ]]; then
         gum style --foreground 2 --bold "▸ Authenticating..."
+        echo
+
         if ! start_sudo_keepalive; then
             echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
         trap stop_sudo_keepalive EXIT
+        echo
 
         mapfile -t pkg_array <<< "$pkg_names"
 
         gum style --foreground 2 --bold "▸ Installing AUR packages..."
-
         echo
-        if yay -S "${pkg_array[@]}"; then
+
+        if yay -S --noconfirm "${pkg_array[@]}"; then
             if command -v updatedb &>/dev/null; then
                 sudo updatedb
             fi
@@ -166,17 +172,11 @@ install_flatpak_packages() {
         gum style --foreground 2 --bold "▸ Installing Flatpak packages..."
         echo
 
-        success=true
-        for pkg in "${pkg_array[@]}"; do
-            if ! flatpak install "$pkg"; then
-                success=false
-            fi
-        done
-
-        echo
-        if $success; then
+        if flatpak install "${pkg_array[@]}"; then
+            echo
             gum style --foreground 2 "✓ Installation complete!"
         else
+            echo
             gum style --foreground 9 "x Installation failed."
         fi
     fi
@@ -184,17 +184,19 @@ install_flatpak_packages() {
 
 update_packages() {
     gum style --foreground 2 --bold "▸ Authenticating..."
+    echo
+
     if ! start_sudo_keepalive; then
         echo
         gum style --foreground 9 "x Authentication failed."
         return 1
     fi
     trap stop_sudo_keepalive EXIT
-
     echo
+
     gum style --foreground 2 --bold "▸ Updating Arch and AUR packages..."
-
     echo
+
     if yay -Syu; then
         if command -v updatedb &>/dev/null; then
             sudo updatedb
@@ -210,6 +212,7 @@ update_packages() {
     if command -v flatpak &>/dev/null; then
         echo
         gum style --foreground 2 --bold "▸ Updating Flatpak packages..."
+        echo
 
         if flatpak update --assumeyes; then
             echo
@@ -243,19 +246,22 @@ remove_packages() {
 
     if [[ "$pkg_names" != "" ]]; then
         gum style --foreground 2 --bold "▸ Authenticating..."
+        echo
+
         if ! start_sudo_keepalive; then
             echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
         trap stop_sudo_keepalive EXIT
+        echo
 
         mapfile -t pkg_array <<< "$pkg_names"
 
         gum style --foreground 2 --bold "▸ Removing packages..."
-
         echo
-        if yay -Rns "${pkg_array[@]}"; then
+
+        if yay -Rns --noconfirm "${pkg_array[@]}"; then
             echo
             gum style --foreground 2 "✓ Packages removed!"
         else
@@ -272,7 +278,7 @@ remove_unused_packages() {
     gum style --foreground 2 --bold "▸ Removing unused (orphan) packages..."
     echo
 
-    if pacman -Qdtq | sudo pacman -Rns -; then
+    if pacman -Qdtq | sudo pacman -Rns --noconfirm -; then
         echo
         gum style --foreground 2 "✓ Unused packages removed!"
     else

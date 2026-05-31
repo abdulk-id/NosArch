@@ -84,7 +84,6 @@ class DesktopModule(decman.Module):
         config_set: set[str] = {
             "bluetui",
             "dconf-editor",
-            "icon-library",
         }
 
         graphics_set: set[str] = {"mesa", "mesa-utils", "vulkan-mesa-layers"}
@@ -132,6 +131,9 @@ class DesktopModule(decman.Module):
             utilities_set,
         )
         return merged_set
+
+    # Ignored because needed for testing, not for user setups
+    decman.pacman.ignored_packages |= {"icon-library"}
 
     @aur.packages
     def aur_pkgs(self) -> set[str]:

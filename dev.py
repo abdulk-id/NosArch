@@ -1,6 +1,6 @@
 import decman
 from decman import File
-from decman.plugins import flatpak, pacman
+from decman.plugins import aur, flatpak, pacman
 
 from config import CONFIG
 
@@ -35,7 +35,6 @@ class DevModule(decman.Module):
             "ast-grep",
             "bash-completion",
             "cmake",  # Cross-platform and open-source make system
-            "code",  # OSS version of VSCode
             "docker",  # Docker CLI
             "docker-compose",
             "docker-buildx",
@@ -55,6 +54,10 @@ class DevModule(decman.Module):
             "vim",
             "zed",  # Zed Code Editor
         }
+
+    @aur.packages
+    def aur_pkgs(self) -> set[str]:
+        return {"t3code-bin"}
 
     @flatpak.user_packages
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:

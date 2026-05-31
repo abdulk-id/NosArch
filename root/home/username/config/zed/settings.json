@@ -42,17 +42,24 @@
         // Disable ligatures:
         "calt": false,
     },
-    "ui_font_size": 16.0,
+    "ui_font_family": ".ZedSans",
+    "ui_font_size": 17.0,
     "ui_font_weight": 400,
     "agent_ui_font_size": 16.0,
     "agent_buffer_font_size": 15.0,
     "text_rendering_mode": "platform_default",
+    "show_wrap_guides": true,
     // Keymap
     "base_keymap": "JetBrains",
     // Editor
+    "autosave": "off",
     "which_key": {
         "enabled": true,
+        "delay_ms": 1000,
     },
+    "scroll_beyond_last_line": "one_page",
+    "auto_signature_help": true,
+    "show_signature_help_after_edits": true,
     "scrollbar": {
         "show": "system",
     },
@@ -63,13 +70,24 @@
         "toggle_relative_line_numbers": true,
     },
     "tab_size": 4,
+    "hard_tabs": false,
+    "auto_indent": "syntax_aware",
+    "soft_wrap": "bounded",
+    "preferred_line_length": 120,
     "indent_guides": {
-        "coloring": "fixed",
+        "coloring": "indent_aware",
         "background_coloring": "disabled",
     },
     "format_on_save": "on",
     "remove_trailing_whitespace_on_save": true,
     "ensure_final_newline_on_save": true,
+    "use_autoclose": true,
+    "use_auto_surround": true,
+    "always_treat_brackets_as_autoclosed": false,
+    "show_completions_on_input": true,
+    "show_completion_documentation": true,
+    "completion_menu_scrollbar": "system",
+    "completion_menu_item_kind": "symbol",
     "inlay_hints": {
         "enabled": true,
         "show_background": true,
@@ -88,9 +106,10 @@
         "center_on_match": true,
     },
     "seed_search_query_from_cursor": "selection",
+    "close_on_file_delete": false,
     // Window & Layout
     "title_bar": {
-        "show_branch_icon": true,
+        "show_branch_status_icon": true,
     },
     "tabs": {
         "file_icons": true,
@@ -102,11 +121,23 @@
     },
     // Panels
     "project_panel": {
+        "dock": "left",
         "bold_folder_labels": false,
         "entry_spacing": "comfortable",
+        "starts_open": true,
+        "scrollbar": {
+            "show": "system",
+        },
+        "diagnostic_badges": true,
     },
     "git_panel": {
         "tree_view": true,
+        "fallback_branch_name": "master",
+        "sort_by_path": true,
+    },
+    // Terminal
+    "terminal": {
+        "bell": "system",
     },
     // Collaboration
     "calls": {
@@ -134,4 +165,7 @@
         "show_turn_stats": true,
     },
     "show_edit_predictions": true,
+    "edit_predictions": {
+        "mode": "subtle",
+    },
 }

@@ -6,7 +6,7 @@ hl.monitor({
     mode = "1920x1080@60.00",
     position = "0x0",
     scale = 1,
-    bitdepth = 10,
+    bitdepth = 16,
     sdr_min_luminance = 0.2,
     sdr_max_luminance = 80,
 })

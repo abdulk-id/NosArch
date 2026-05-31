@@ -22,3 +22,9 @@ Components:
 2. Clone this repository: `git clone https://github.com/abdulk-id/NosArch ~/NosArch`
 3. Run decman: `sudo decman --source ~/NosArch/source.py`
     - Dry-run decman to see what changes will be made without applying them: `sudo decman --source ~/NosArch/source.py --dry-run`
+
+---
+
+## Notes
+
+- Currently for single-user setups only. Multi-user setups later.

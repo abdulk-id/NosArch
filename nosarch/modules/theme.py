@@ -1,10 +1,9 @@
 import os
 
 import decman
-from decman import Directory, Symlink
-
 from config import CONFIG
-from customization.themes.nosarch_blue_dark.nosarch_blue_dark import THEME
+from decman import Directory, Symlink
+from themes.nosarch_blue_dark.nosarch_blue_dark import THEME
 
 
 def get_current_theme() -> dict[str, str]:
@@ -19,7 +18,7 @@ class ThemingModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{CONFIG['%USER%']}/.local/share/nosarch/current-theme/wallpapers": Directory(
-                source_directory=f"./customization/themes/{THEME['%FILENAME%']}/wallpapers",
+                source_directory=f"./themes/{THEME['%FILENAME%']}/wallpapers",
                 bin_files=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
@@ -42,9 +41,7 @@ class ThemingModule(decman.Module):
     def choose_first_wallpaper(self) -> str:
         wallpapers: list[str] = [
             entry.name
-            for entry in os.scandir(
-                f"./customization/themes/{THEME['%FILENAME%']}/wallpapers/"
-            )
+            for entry in os.scandir(f"./themes/{THEME['%FILENAME%']}/wallpapers/")
             if entry.is_file()
         ]
 

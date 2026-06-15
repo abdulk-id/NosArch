@@ -1,12 +1,11 @@
 import decman.config
-from decman.extras.users import User, UserManager
-
 from config import CONFIG
-from desktop import DesktopModule
-from dev import DevModule
-from setup import SetupModule
-from system import SystemModule
-from theme import ThemingModule
+from decman.extras.users import User, UserManager
+from modules.desktop import DesktopModule
+from modules.dev import DevModule
+from modules.setup import SetupModule
+from modules.system import SystemModule
+from modules.theme import ThemingModule
 
 # Decman configuration
 decman.config.arch = "x86_64"
@@ -15,7 +14,7 @@ decman.config.quiet_output = False  # Disable info messages
 decman.execution_order = [
     "files",
     "pacman",
-    "aur",
+    # "aur",
     "flatpak",
     "systemd",
 ]
@@ -46,7 +45,7 @@ decman.aur.ignored_packages |= {"yay"}
 decman.modules += {
     SystemModule(),
     DesktopModule(),
+    ThemingModule(),
     SetupModule(),
     DevModule(),
-    ThemingModule(),
 }

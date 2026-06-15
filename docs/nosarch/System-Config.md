@@ -1,4 +1,4 @@
-# NosArch Configuration Doc
+# NosArch Configuration Doc (Incomplete)
 
 List of contents:
 

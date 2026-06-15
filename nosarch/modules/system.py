@@ -1,8 +1,7 @@
 import decman
+from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
-
-from config import CONFIG
 
 
 # Base system module
@@ -16,13 +15,13 @@ class SystemModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             "/etc/": Directory(
-                source_directory="./root/etc/",
+                source_directory="../dotfiles/root/etc/",
                 bin_files=False,
                 encoding="UTF-8",
                 owner="root",
             ),
             "/usr/local/bin/": Directory(
-                source_directory="./root/usr/local/bin/",
+                source_directory="../dotfiles/root/usr/local/bin/",
                 bin_files=False,
                 encoding="UTF-8",
                 owner="root",
@@ -33,13 +32,13 @@ class SystemModule(decman.Module):
     def files(self) -> dict[str, File]:
         return {
             f"/home/{CONFIG['%USER%']}/.bash_profile": File(
-                source_file="./root/home/username/dot_bashprofile",
+                source_file="../dotfiles/root/home/username/dot_bashprofile",
                 bin_file=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.bashrc": File(
-                source_file="./root/home/username/dot_bashrc",
+                source_file="../dotfiles/root/home/username/dot_bashrc",
                 bin_file=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",

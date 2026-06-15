@@ -1,9 +1,8 @@
 import decman
+from config import CONFIG
 from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
-
-from config import CONFIG
-from theme import get_current_theme
+from modules.theme import get_current_theme
 
 
 # Desktop session module
@@ -17,26 +16,26 @@ class DesktopModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{CONFIG['%USER%']}/.config/": Directory(
-                source_directory="./root/home/username/config/",
+                source_directory="../dotfiles/root/home/username/config/",
                 bin_files=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.local/bin/": Directory(
-                source_directory="./root/home/username/local/bin/",
+                source_directory="../dotfiles/root/home/username/local/bin/",
                 bin_files=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
                 permissions=0o754,  # Make executable
             ),
             f"/home/{CONFIG['%USER%']}/.local/share/": Directory(
-                source_directory="./root/home/username/local/share/",
+                source_directory="../dotfiles/root/home/username/local/share/",
                 bin_files=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/Templates/": Directory(
-                source_directory="./root/home/username/Templates/",
+                source_directory="../dotfiles/root/home/username/Templates/",
                 bin_files=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",

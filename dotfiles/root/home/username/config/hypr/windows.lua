@@ -69,9 +69,9 @@ hl.window_rule({
     name = "file-picker-windows-rules",
     match = {
         class = "(xdg-desktop-portal-gtk|sublime_text|DesktopEditors|org.gnome.Nautilus)",
-        -- title = "^(Open.*Files?|Open [F|f]older.*|Save.*Files?|Save.*As|Save|All Files|.*wants to [open|save].*|[C|c]hoose.*)"
+        -- title = "^(Open.*Files?|Open [Ff]older.*|Save.*Files?|Save.*As|Save|All Files|.*wants to (open|save).*|[Cc]hoose.*|Enter name of file to save to.*|Select [Ff]older.*)"
         title =
-        "^(Open.*Files?|Open [Ff]older.*|Save.*Files?|Save.*As|Save|All Files|.*wants to (open|save).*|[Cc]hoose.*|Enter name of file to save to.*|Select [Ff]older.*)"
+        "^(Open.*|Save.*Files?|Save.*As|Save|All Files|.*wants to (open|save).*|[Cc]hoose.*|Enter name of file to save to.*|Select [Ff]older.*)"
     },
     -- Static effects
     float = true,

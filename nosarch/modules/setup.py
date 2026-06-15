@@ -1,7 +1,6 @@
 import decman
-from decman.plugins import aur, flatpak, pacman, systemd
-
 from config import CONFIG
+from decman.plugins import aur, flatpak, pacman, systemd
 
 
 # My usage setup module

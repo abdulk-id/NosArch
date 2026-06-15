@@ -1,8 +1,7 @@
 import decman
+from config import CONFIG
 from decman import File
 from decman.plugins import aur, flatpak, pacman
-
-from config import CONFIG
 
 
 # My dev setup module
@@ -16,13 +15,13 @@ class DevModule(decman.Module):
     def files(self) -> dict[str, File]:
         return {
             f"/home/{CONFIG['%USER%']}/.gitconfig": File(
-                source_file="./root/home/username/dot_gitconfig",
+                source_file="../dotfiles/root/home/username/dot_gitconfig",
                 bin_file=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.ideavimrc": File(
-                source_file="./root/home/username/dot_ideavimrc",
+                source_file="../dotfiles/root/home/username/dot_ideavimrc",
                 bin_file=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",

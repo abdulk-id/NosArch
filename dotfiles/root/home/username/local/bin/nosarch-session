@@ -86,8 +86,11 @@ session_lock() {
 }
 
 session_after_unlock() {
-    # Start the eyesight reminder timer
-    nosarch-wellbeing eyesight start
+    # Start the eyesight reminder timer if enabled
+
+    if [ "$(nosarch-wellbeing eyesight status)" = "true" ]; then
+        nosarch-wellbeing eyesight start
+    fi
 }
 
 session_logout() {

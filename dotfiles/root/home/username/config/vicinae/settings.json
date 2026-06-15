@@ -45,6 +45,7 @@
     },
     "favorites": [
         "@abdulk-id/custom-menus:open-menu",
+        "applications:webcord",
         "applications:zen",
         "applications:dev.zed.Zed",
         "applications:io.github.alainm23.planify"

@@ -4,10 +4,10 @@ from decman import File
 from decman.plugins import aur, flatpak, pacman
 
 
-# My dev setup module
+# Dev Setup module
 class DevModule(decman.Module):
     def __init__(self) -> None:
-        super().__init__(name="dev")
+        super().__init__(name="dev_profile")
 
     def file_variables(self) -> dict[str, str]:
         return CONFIG

@@ -1,9 +1,9 @@
 import decman
 from config import CONFIG
-from decman.plugins import aur, flatpak, pacman, systemd
+from decman.plugins import aur, pacman, systemd
 
 
-# My usage setup module
+# Minimal Setup module
 class SetupModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="setup")
@@ -11,66 +11,28 @@ class SetupModule(decman.Module):
     @pacman.packages
     def pkgs(self) -> set[str]:
         apps_set: set[str] = {
-            "firefox",  # Web browser
-            "gnome-calculator",  # Calculator
-            "gnome-clocks",  # Clock
-            "gnome-disk-utility",  # Disk utility
-            "libreoffice-fresh",  # Office suite
+            "celluloid",  # Video player (frontend for mpv)
+            "firefox",
+            "gnome-calculator",
+            "gnome-clocks",
+            "gnome-disk-utility",
             "loupe",  # Image viewer
             "nautilus",  # File manager
-            "nautilus-python",  # Python bindings for Nautilus extension API
-            "obs-studio",  # Recording software
-            "obsidian",  # Note-taking
+            "nautilus-python",  # Python bindings for Nautilus extension API; Needed for Custom Actions in Nautilus
             "papers",  # Document viewer
-            "proton-vpn-cli",  # Official ProtonVPN CLI
-            "proton-vpn-gtk-app",  # ProtonVPN GTK app (community-maintained)
             "seahorse",  # Password and Keys GUI
-            "transmission-gtk",  # BitTorrent client
         }
 
-        media_set: set[str] = {
-            "celluloid",  # Video player (frontend for mpv)
-        }
-
-        virtualization_set: set[str] = {
-            "libvirt",  # API for controlling virtualization engines
-            "qemu-full",  # Full QEMU package
-            "vde2",  # Virtual Distributed Ethernet for emulators like QEMU
-            "virt-manager",  # Virtual machine manager
-            "virt-viewer",  # Virtual machine viewer
-        }
-
-        merged_set: set[str] = apps_set.union(media_set, virtualization_set)
-        return merged_set
+        return apps_set
 
     @aur.packages
     def aur_pkgs(self) -> set[str]:
         apps_set: set[str] = {
             "localsend-bin",  # Cross-platform file sharing app
-            "spotify",
-            "spotify-adblock",
-            "zen-browser-bin",  # Web browser
-            "zoom",  # Online meetings
+            "zen-browser-bin",
         }
 
-        media_set: set[str] = {
-            "stacher7",  # yt-dlp frontend
-        }
-
-        virtualization_set: set[str] = {
-            "bridge-utils"  # Utils for configuring Linux ethernet bridge
-        }
-
-        merged_set: set[str] = apps_set.union(media_set, virtualization_set)
-        return merged_set
-
-    @flatpak.user_packages
-    def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {f"{CONFIG['%USER%']}": {"io.github.alainm23.planify"}}
-
-    @systemd.units
-    def systemd_services(self) -> set[str]:
-        return {"libvirtd.service"}
+        return apps_set
 
     @systemd.user_units
     def systemd_user_services(self) -> dict[str, set[str]]:

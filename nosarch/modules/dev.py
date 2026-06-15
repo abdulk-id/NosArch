@@ -31,27 +31,26 @@ class DevModule(decman.Module):
     @pacman.packages
     def pkgs(self) -> set[str]:
         return {
-            "ast-grep",
+            "ast-grep",  # Needed for Neovim
             "bash-completion",
-            "cmake",  # Cross-platform and open-source make system
-            "docker",  # Docker CLI
+            "cmake",
+            "docker",
             "docker-compose",
             "docker-buildx",
-            "fd",
-            "git",  # Git version control
-            "lazydocker",  # Docker TUI
-            "lazygit",  # Git TUI
-            "llvm",  # "Compiler infrastructure"
-            "luarocks",
-            "mise",
-            "meson",  # Build system
-            "nasm",  # Assembler
+            "fd",  # Faster `find`; Needed for Neovim
+            "git",
+            "lazydocker",
+            "lazygit",
+            "llvm",
+            "luarocks",  # Needed for Neovim
+            "mise",  # Language tooling manager
+            "meson",
+            "nasm",
             "neovim",
-            "ninja",  # Small speed-focused build system
-            "opencode",  # OpenCode AI Agent
-            "tectonic",
-            "vim",
-            "zed",  # Zed Code Editor
+            "ninja",
+            "opencode",
+            "tectonic",  # Needed for Neovim
+            "zed",
         }
 
     @aur.packages

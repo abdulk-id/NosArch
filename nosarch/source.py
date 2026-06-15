@@ -4,17 +4,18 @@ from decman.extras.users import User, UserManager
 from modules.desktop import DesktopModule
 from modules.dev import DevModule
 from modules.setup import SetupModule
+from modules.setup_full import FullSetupModule
 from modules.system import SystemModule
 from modules.theme import ThemingModule
 
 # Decman configuration
 decman.config.arch = "x86_64"
-decman.config.debug_output = False  # Enable debug output
+decman.config.debug_output = False
 decman.config.quiet_output = False  # Disable info messages
 decman.execution_order = [
     "files",
     "pacman",
-    # "aur",
+    # "aur",  Disabled due to recent npm supply chain attacks
     "flatpak",
     "systemd",
 ]
@@ -49,3 +50,8 @@ decman.modules += {
     SetupModule(),
     DevModule(),
 }
+
+if CONFIG["%FULL_SETUP%"] == "true":
+    decman.modules += {
+        FullSetupModule(),
+    }

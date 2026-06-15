@@ -5,7 +5,7 @@ from decman.plugins import aur, flatpak, pacman, systemd
 from modules.theme import get_current_theme
 
 
-# Desktop session module
+# Desktop module
 class DesktopModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="desktop")
@@ -49,7 +49,7 @@ class DesktopModule(decman.Module):
             "fcitx5",
             "fcitx5-gtk",
             "fcitx5-qt",
-            "flatpak",  # Linux app distribution
+            "flatpak",
             "flatseal",  # Flatpak permission manager
             "ghostty",
             "hyprcursor",
@@ -82,7 +82,6 @@ class DesktopModule(decman.Module):
 
         config_set: set[str] = {
             "bluetui",
-            "dconf-editor",
         }
 
         graphics_set: set[str] = {"mesa", "mesa-utils", "vulkan-mesa-layers"}
@@ -132,7 +131,7 @@ class DesktopModule(decman.Module):
         return merged_set
 
     # Ignored because needed for testing, not for user setups
-    decman.pacman.ignored_packages |= {"icon-library"}
+    decman.pacman.ignored_packages |= {"icon-library", "dconf-editor"}
 
     @aur.packages
     def aur_pkgs(self) -> set[str]:

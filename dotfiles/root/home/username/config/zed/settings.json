@@ -8,6 +8,7 @@
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
     // General
+    "cli_default_open_behavior": "existing_window",
     "when_closing_with_no_tabs": "platform_default",
     "on_last_window_closed": "platform_default",
     "use_system_path_prompts": true,
@@ -72,7 +73,6 @@
     "tab_size": 4,
     "hard_tabs": false,
     "auto_indent": "syntax_aware",
-    "soft_wrap": "bounded",
     "preferred_line_length": 120,
     "indent_guides": {
         "coloring": "indent_aware",

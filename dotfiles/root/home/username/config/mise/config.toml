@@ -1,4 +1,6 @@
 [tools]
+java = "temurin"
+maven = "latest"
 rust = { version = "stable", components = "rustfmt,clippy,rust-src" }
 
 [settings]

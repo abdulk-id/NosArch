@@ -1,6 +1,6 @@
 import decman
 from config import CONFIG
-from decman import File
+from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman
 
 
@@ -11,6 +11,16 @@ class DevModule(decman.Module):
 
     def file_variables(self) -> dict[str, str]:
         return CONFIG
+
+    def directories(self) -> dict[str, Directory]:
+        return {
+            f"/home/{CONFIG['%USER%']}/Codespace/": Directory(
+                source_directory="../dotfiles/root/home/username/Codespace/",
+                bin_files=False,
+                encoding="UTF-8",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+        }
 
     def files(self) -> dict[str, File]:
         return {
@@ -50,6 +60,7 @@ class DevModule(decman.Module):
             "ninja",
             "opencode",
             "tectonic",  # Needed for Neovim
+            "uv",  # Package manager for Python (not sure why installed)
             "zed",
         }
 

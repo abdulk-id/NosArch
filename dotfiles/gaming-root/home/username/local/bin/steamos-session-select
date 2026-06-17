@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Shutdown Steam (To be called when running Steam in Gamescope embedded mode)
+# Naturally, returns to login manager
+
+steam -shutdown

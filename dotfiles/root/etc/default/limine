@@ -1,6 +1,3 @@
-### Note: Editing this configuration file is not necessary. Instead, copy it to `/etc/default/limine` and configure it as needed.
-### Settings in `/etc/default/limine` will override here.
-
 ### OS Entry Targeting
 ### If TARGET_OS_NAME is not set, or if the default distro name is not found in $ESP_PATH/limine.conf,
 ### the tool will create a new OS entry using the default distro name (PRETTY_NAME or NAME from /etc/os-release) and machine-ID.
@@ -17,14 +14,13 @@
 ### Note:
 ### If you are using systemd with UEFI, the path is detected automatically via 'bootctl --print-esp-path'.
 ### If detection fails, set this path manually.
-#ESP_PATH="/boot"
+ESP_PATH="/boot"
 
 
 ### Skip UEFI Check and Registration
 ### Skip UEFI check and bootloader registration on certain non-compliant UEFI boards (e.g., some MSI boards) (yes|no)
 ### If skipped, Limine will be used as the fallback bootloader on the standard UEFI path for all UEFI systems.
-### Note:
-### When set to yes, run 'limine-install' and manually set the BIOS boot order to make the standard UEFI path the default boot.
+### Note: When set to yes, run 'limine-install' and manually set the BIOS boot order to make the standard UEFI path the default boot.
 #SKIP_UEFI=no
 
 
@@ -45,23 +41,18 @@
 ###    Note: /etc/default/limine overrides any drop-in configs, so `+=` is recommended there.
 ###
 ### Tips:
-### - If unsure which parameters to use, copy them from `/proc/cmdline` into KERNEL_CMDLINE[default],
-###   but make sure your system is not a live ISO, temporary environment, or snapshot.
 ### - Multiple `initrd=` parameters are automatically converted into Limine module paths for non-UKI entries.
 ### - No quotes are needed at the start or end of command lines, since quotes inside are not escaped.
 ### - Do not add `#` as a comment at the end of command lines.
 ###
 ### Examples:
-#KERNEL_CMDLINE[default]+=rw root=UUID=...
-#KERNEL_CMDLINE[default]+=quiet splash acpi_osi="..."
-#KERNEL_CMDLINE[default]+=initrd=/amd-ucode.img
 #KERNEL_CMDLINE[fallback]=
 #KERNEL_CMDLINE[linux-zen]=
+KERNEL_CMDLINE[default]+=rd.luks.name=%LUKS_UUID%=cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@ rw resume=/dev/mapper/cryptroot resume_offset=1056000 apparmor=1 security=apparmor zswap.enabled=0 quiet
 
 
 ### Formatting Boot Entry
-### Define the number of spaces to indent each line of the boot entry in '$ESP_PATH/limine.conf'.
-### If not set, the default is 2.
+### Define the number of spaces to indent each line of the boot entry in '$ESP_PATH/limine.conf'. The default is 2.
 #SPACE_NUMBER=2
 
 
@@ -98,7 +89,7 @@ ENABLE_SORT=no
 ### If you need to sign it, it is recommended to disable ENABLE_LIMINE_FALLBACK, run 'limine-install --fallback' once,
 ### and then sign the fallback manually.
 ###
-#ENABLE_LIMINE_FALLBACK=""
+ENABLE_LIMINE_FALLBACK="yes"
 
 
 ### Find Bootloaders
@@ -119,8 +110,7 @@ FIND_BOOTLOADERS=yes
 ### Enroll Limine Config
 ### Automatically embeds a checksum of the Limine config into the Limine binary to protect it against unauthorized modifications.
 ###
-### WARNING:
-### Enabling this will PREVENT booting if you modify limine.conf without re-enrolling it afterward.
+### WARNING: Enabling this will PREVENT booting if you modify limine.conf without re-enrolling it afterward.
 ###
 ### If you are unsure but want to try it, run 'limine-install --fallback' first.
 ### This allows you to boot into the Limine fallback if a boot panic occurs due to a config checksum mismatch.
@@ -132,8 +122,6 @@ FIND_BOOTLOADERS=yes
 ###   - /etc/boot/hooks/pre.d/ with a symlink 10-limine-reset-enroll -> /usr/bin/limine-reset-enroll
 ###   - /etc/boot/hooks/post.d/ with a symlink 90-limine-enroll-config -> /usr/bin/limine-enroll-config
 ### * If multiple systems share the same limine.conf, ensure each system handles enrollment automatically.
-###
-### To enable, copy this option to /etc/default/limine and set it to (yes|no)
 #ENABLE_ENROLL_LIMINE_CONFIG=no
 
 
@@ -150,7 +138,7 @@ FIND_BOOTLOADERS=yes
 ### Additional notes:
 ### - Duplicate 'initramfs' and 'vmlinuz' files are removed when 'limine-mkinitcpio' or 'limine-update' is run to generate a UKI.
 ### - UKI ignores booting into a snapshot when Secure Boot is enabled. To resolve this, any embedded kernel cmdline is removed from the UKI, which will then read the external kernel cmdline.
-ENABLE_UKI=no
+ENABLE_UKI=yes
 
 
 ### Custom UKI Name
@@ -168,7 +156,7 @@ ENABLE_UKI=no
 ### WARNING:
 ### If you change the name, old UKI files with the previous prefix (name or ID) remain unused on the ESP;
 ### remove them manually to free up ESP space if not needed: $ESP_PATH/EFI/Linux/{machine-id or old name}_{kernel_version}.efi
-#CUSTOM_UKI_NAME="arch"
+CUSTOM_UKI_NAME="arch"
 
 
 ### mkinitcpio UKI Build Options

@@ -1,6 +1,9 @@
 [Unit]
 Description=NosArch Eyesight Reminder
 
+# Stop eyesight timer from running in Gamescope embedded mode (for Steam Big Picture)
+ConditionEnvironment=!XDG_CURRENT_DESKTOP=gamescope
+
 [Service]
 Type=oneshot
 ExecStart=%h/.local/bin/nosarch-wellbeing eyesight remind

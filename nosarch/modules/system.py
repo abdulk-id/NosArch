@@ -2,6 +2,7 @@ import decman
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
+from utils.luks_uuid import get_luks_uuid
 
 
 # Base system module
@@ -10,7 +11,11 @@ class SystemModule(decman.Module):
         super().__init__(name="system")
 
     def file_variables(self) -> dict[str, str]:
-        return CONFIG
+        system_variables: dict[str, str] = {
+            "%LUKS_UUID%": get_luks_uuid(),
+        }
+
+        return CONFIG | system_variables
 
     def directories(self) -> dict[str, Directory]:
         return {

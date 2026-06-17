@@ -291,6 +291,16 @@ hl.window_rule({
     -- Static effects
     size = { "460", "800" },
 })
+hl.window_rule({
+    name = "steam-big-picture-rules",
+    match = {
+        class = "steam",
+        title = "Steam Big Picture Mode",
+    },
+    -- Static effects
+    fullscreen = true,
+    content = "game"
+})
 
 -- Webcam overlay for screen recording
 hl.window_rule({

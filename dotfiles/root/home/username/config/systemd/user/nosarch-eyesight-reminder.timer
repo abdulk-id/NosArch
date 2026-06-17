@@ -1,6 +1,9 @@
 [Unit]
 Description=NosArch Eyesight Reminder timer
 
+# Stop eyesight timer from running in Gamescope embedded mode (for Steam Big Picture)
+ConditionEnvironment=!XDG_CURRENT_DESKTOP=gamescope
+
 [Timer]
 OnStartupSec=30min
 OnActiveSec=30min

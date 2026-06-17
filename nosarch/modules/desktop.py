@@ -3,6 +3,7 @@ from config import CONFIG
 from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
 from modules.theme import get_current_theme
+from utils.gpu_lib32_drivers import get_lib32_gpu_drivers
 
 
 # Desktop module
@@ -84,7 +85,13 @@ class DesktopModule(decman.Module):
             "bluetui",
         }
 
-        graphics_set: set[str] = {"mesa", "mesa-utils", "vulkan-mesa-layers"}
+        graphics_set: set[str] = {
+            "mesa",
+            "mesa-utils",
+            "vulkan-mesa-layers",
+        }
+        graphics_set |= get_lib32_gpu_drivers()
+
         graphics_intel_set: set[str] = {
             "intel-gpu-tools",
             "intel-media-driver",

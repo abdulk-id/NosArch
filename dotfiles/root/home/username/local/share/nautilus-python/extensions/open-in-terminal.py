@@ -15,4 +15,4 @@ class TerminalMenuProvider(GObject.GObject, Nautilus.MenuProvider):
 
     def activate(self, menu, folder):
         path = folder.get_location().get_path()
-        subprocess.Popen(["xdg-terminal-exec", "--working-directory", path])
+        subprocess.Popen(["xdg-terminal-exec", f"--dir={path}"])

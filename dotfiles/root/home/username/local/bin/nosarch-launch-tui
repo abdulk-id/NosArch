@@ -25,17 +25,24 @@ CMD=( "$@" )
 
 FULL_CMD="${CMD[*]}"
 CLASS="TUI.${FULL_CMD// /_}"
+TITLE="TUI.$(basename "${CMD[0]}")"
 
-# --- Check for existing window ---
+# --- Refocus existing window if present ---
 ADDR=$(
     hyprctl clients -j |
     jq -r \
-        ".[] | select(.class == \"$CLASS\") | .address" |
-    head -n 1
+        ".[] | select(.title == \"$TITLE\") | .address" |
+    head -n1
 )
 
 if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
-    hyprctl dispatch focuswindow "address:$ADDR"
+    hyprctl eval "
+    hl.dispatch(
+        hl.dsp.focus({
+            window = 'address:${ADDR}'
+        })
+    )
+    "
     exit 0
 fi
 
@@ -44,6 +51,8 @@ printf -v CMD_STRING '%q ' "${CMD[@]}"
 
 # --- Build inner shell script ---
 read -r -d '' INNER_SCRIPT <<EOF || true
+printf '\e]0;%s\a' '$TITLE'
+
 if ! $CMD_STRING; then
     echo
     echo "Process failed."
@@ -54,13 +63,10 @@ read -n 1 -s -r -p "Press any key to exit..."
 echo
 EOF
 
-# --- Escape single quotes for shell ---
 ESCAPED_SCRIPT=${INNER_SCRIPT//\'/\'\\\'\'}
 
-# --- Final command ---
-FINAL_CMD="$TERMINAL --class=$CLASS -e sh -lc '$ESCAPED_SCRIPT'"
+FINAL_CMD="$TERMINAL -e sh -lc '$ESCAPED_SCRIPT'"
 
-# --- Launch through Lua ---
 hyprctl eval "hl.exec_cmd([==[$FINAL_CMD]==], {
     float = true,
     size = {1280, 720},

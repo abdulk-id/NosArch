@@ -76,12 +76,9 @@ session_lock() {
     # Stop the eyesight reminder timer
     nosarch-wellbeing eyesight stop
 
-    # Lock the screen, trigger after_unlock after screen unlocks
-    if ! pidof hyprlock > /dev/null; then
-        (
-            hyprlock
-            session_after_unlock
-        ) &
+    # Lock the screen (use lock helper script to avoid blocking)
+    if ! pidof hyprlock >/dev/null; then
+        setsid bash ~/.local/bin/util/nosarch-lock-helper.sh >/dev/null 2>&1 &
     fi
 }
 

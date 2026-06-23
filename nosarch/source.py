@@ -29,17 +29,22 @@ decman.aur.ignored_packages |= {"yay"}
 # User and Group management
 userManager: UserManager = UserManager()
 
+usergroups: list[str] = [
+    CONFIG["%USER%"],
+    "wheel",  # To make user an admin
+    "libvirt",  # For virtualization
+]
+
+if CONFIG["%GAMING_PROFILE%"] == "true":
+    usergroups.append("input")  # Allow user access to controller devices (/dev/input)
+
 userManager.add_user(
     User(
         username=CONFIG["%USER%"],
         group=CONFIG["%USER%"],
         home=f"/home/{CONFIG['%USER%']}",
         shell="/usr/bin/bash",
-        groups=(
-            CONFIG["%USER%"],
-            "wheel",  # To make user an admin
-            "libvirt",  # For virtualization
-        ),
+        groups=tuple(usergroups),
         system=False,
     )
 )

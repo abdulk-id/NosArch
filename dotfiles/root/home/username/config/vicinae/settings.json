@@ -10,14 +10,21 @@
 
 {
     "$schema": "https://vicinae.com/schemas/config.json",
+    "telemetry": {
+        "system_info": false
+    },
+    "input_server": {
+        "enabled": true
+    },
+    "search_files_in_root": false,
+    "activate_on_single_click": false,
+    "escape_key_behavior": "close_window",
+    "pop_on_backspace": true,
     "close_on_focus_loss": false,
     "consider_preedit": false,
     "pop_to_root_on_close": true,
-    "pop_on_backspace": true,
-    "activate_on_single_click": false,
     "favicon_service": "twenty",
     "keybinding": "default",
-    "search_files_in_root": false,
     "font": {
         "rendering": "native",
         "normal": {
@@ -31,15 +38,31 @@
             "icon_theme": "Adwaita"
         }
     },
-    "telemetry": {
-        "system_info": false
-    },
     "launcher_window": {
         "opacity": 0.95,
-        "client_side_decorations": {
+        "blur": {
             "enabled": true
+        },
+        "client_side_decorations": {
+            "enabled": true,
+            "rounding": 10,
+            "border_width": 1,
+            "shadow_size": 12
+        },
+        "compact_mode": {
+            "enabled": false
+        },
+        "size": {
+            "width": 770,
+            "height": 480
+        },
+        "layer_shell": {
+            "enabled": true,
+            "keyboard_interactivity": "exclusive",
+            "layer": "top"
         }
     },
+    "pixmap_cache_mb": 50,
     "keybinds": {
         "toggle-action-panel": "control+RETURN"
     },
@@ -87,7 +110,7 @@
         "calculator": {
             "entrypoints": {
                 "refresh-rates": {
-                    "enabled": false
+                    "enabled": true
                 }
             }
         },
@@ -231,7 +254,7 @@
                     "enabled": false
                 },
                 "suspend": {
-                    "alias": "Sleep",
+                    "enabled": true,
                     "preferences": {
                         "confirm": true,
                         "customProgram": ""

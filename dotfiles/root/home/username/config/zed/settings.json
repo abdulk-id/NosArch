@@ -8,6 +8,8 @@
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
     // General
+    "lsp_document_colors": "inlay",
+    "code_lens": "off",
     "cli_default_open_behavior": "existing_window",
     "when_closing_with_no_tabs": "platform_default",
     "on_last_window_closed": "platform_default",
@@ -59,8 +61,8 @@
         "delay_ms": 1000,
     },
     "scroll_beyond_last_line": "one_page",
-    "auto_signature_help": true,
-    "show_signature_help_after_edits": true,
+    "auto_signature_help": false,
+    "show_signature_help_after_edits": false,
     "scrollbar": {
         "show": "system",
     },
@@ -89,6 +91,9 @@
     "completion_menu_scrollbar": "system",
     "completion_menu_item_kind": "symbol",
     "inlay_hints": {
+        "show_parameter_hints": true,
+        "show_type_hints": true,
+        "show_other_hints": true,
         "enabled": true,
         "show_background": true,
     },

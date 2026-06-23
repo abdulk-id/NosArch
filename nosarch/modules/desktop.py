@@ -171,7 +171,6 @@ class DesktopModule(decman.Module):
     def flatpak_pkgs(self) -> set[str]:
         return {
             "it.mijorus.gearlever",  # AppImage Manager
-            "io.github.linx_systems.ClamUI",  # Clamav GUI
         }
 
     @systemd.user_units

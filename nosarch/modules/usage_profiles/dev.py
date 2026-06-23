@@ -24,12 +24,6 @@ class DevModule(decman.Module):
 
     def files(self) -> dict[str, File]:
         return {
-            f"/home/{CONFIG['%USER%']}/.gitconfig": File(
-                source_file="../dotfiles/root/home/username/dot_gitconfig",
-                bin_file=False,
-                encoding="UTF-8",
-                owner=f"{CONFIG['%USER%']}",
-            ),
             f"/home/{CONFIG['%USER%']}/.ideavimrc": File(
                 source_file="../dotfiles/root/home/username/dot_ideavimrc",
                 bin_file=False,
@@ -48,7 +42,6 @@ class DevModule(decman.Module):
             "docker-compose",
             "docker-buildx",
             "fd",  # Faster `find`; Needed for Neovim
-            "git",
             "lazydocker",
             "lazygit",
             "llvm",
@@ -66,7 +59,7 @@ class DevModule(decman.Module):
 
     @aur.packages
     def aur_pkgs(self) -> set[str]:
-        return {"t3code-bin"}
+        return {"t3code-bin", "ufw-docker"}
 
     @flatpak.user_packages
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:

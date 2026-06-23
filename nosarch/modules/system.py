@@ -48,6 +48,12 @@ class SystemModule(decman.Module):
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
+            f"/home/{CONFIG['%USER%']}/.gitconfig": File(
+                source_file="../dotfiles/root/home/username/dot_gitconfig",
+                bin_file=False,
+                encoding="UTF-8",
+                owner=f"{CONFIG['%USER%']}",
+            ),
         }
 
     # Packages ===
@@ -65,6 +71,7 @@ class SystemModule(decman.Module):
             "efibootmgr",
             "exfatprogs",
             "f2fs-tools",
+            "git",
             "greetd",
             "greetd-tuigreet",
             "limine",
@@ -91,7 +98,7 @@ class SystemModule(decman.Module):
 
         system_intel_set: set[str] = {"intel-ucode"}
 
-        security_set: set[str] = {"apparmor", "clamav", "firewalld", "lynis", "ufw"}
+        security_set: set[str] = {"apparmor", "firewalld", "lynis", "ufw"}
 
         connectivity_set: set[str] = {
             "bluez",
@@ -123,23 +130,16 @@ class SystemModule(decman.Module):
 
     @aur.packages
     def system_aur_packages(self) -> set[str]:
-        system_set: set[str] = {
+        return {
             "limine-mkinitcpio-hook",
             "yay-bin",
         }
-
-        connectivity_set: set[str] = {"ufw-docker"}
-
-        merged_set: set[str] = system_set.union(connectivity_set)
-        return merged_set
 
     @systemd.units
     def system_services(self) -> set[str]:
         return {
             "apparmor.service",
             "bluetooth.service",
-            # "clamav-daemon.service",
-            # "clamav-freshclam.service",
             "greetd.service",
             "NetworkManager.service",
             "power-profiles-daemon.service",

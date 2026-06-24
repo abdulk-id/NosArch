@@ -2,6 +2,7 @@ import decman
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
+from utils.chassis_type import has_battery, is_laptop
 from utils.luks_uuid import get_luks_uuid
 
 
@@ -83,7 +84,6 @@ class SystemModule(decman.Module):
             "man-db",
             "nano",
             "memtest86+-efi",
-            "power-profiles-daemon",
             "snapper",
             "sudo",
             "systemd-resolvconf",
@@ -95,6 +95,9 @@ class SystemModule(decman.Module):
             "xfsprogs",
             "zram-generator",
         }
+
+        if is_laptop() or has_battery():
+            system_set.add("power-profiles-daemon")
 
         system_intel_set: set[str] = {"intel-ucode"}
 

@@ -3,6 +3,7 @@ from config import CONFIG
 from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
 from modules.theme import get_current_theme
+from utils.chassis_type import has_battery, is_laptop
 from utils.gpu_lib32_drivers import get_lib32_gpu_drivers
 
 
@@ -46,7 +47,6 @@ class DesktopModule(decman.Module):
     @pacman.packages
     def pkgs(self) -> set[str]:
         desktop_set: set[str] = {
-            "brightnessctl",
             "fcitx5",
             "fcitx5-gtk",
             "fcitx5-qt",
@@ -64,7 +64,7 @@ class DesktopModule(decman.Module):
             "hyprshot",
             "hyprshutdown",
             "hyprsunset",
-            "imagemagick",
+            "imagemagick",  # TODO: Installed why?
             "qt5-wayland",
             "qt6-wayland",
             "quickshell",
@@ -80,6 +80,9 @@ class DesktopModule(decman.Module):
             "xdg-desktop-portal-gtk",
             "xdg-desktop-portal-hyprland",
         }
+
+        if is_laptop() or has_battery():
+            desktop_set.add("brightnessctl")
 
         config_set: set[str] = {
             "bluetui",

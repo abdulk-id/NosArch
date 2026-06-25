@@ -1,0 +1,9 @@
+[Unit]
+Description=Swap File
+
+[Swap]
+What=/swap/swapfile
+Priority=10
+
+[Install]
+WantedBy=swap.target

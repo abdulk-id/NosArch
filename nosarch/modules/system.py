@@ -148,4 +148,5 @@ class SystemModule(decman.Module):
             "power-profiles-daemon.service",
             "udisks2.service",
             "ufw.service",
+            "swap-swapfile.swap",
         }

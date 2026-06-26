@@ -33,7 +33,7 @@ send_eyesight_reminder() {
 }
 
 enable_eyesight_reminders() {
-    systemctl --user start nosarch-eyesight-reminder.timer
+    systemctl --user enable --now nosarch-eyesight-reminder.timer
 
     notify-send --urgency=normal \
       --icon="view-reveal-symbolic" \
@@ -43,7 +43,7 @@ enable_eyesight_reminders() {
 }
 
 disable_eyesight_reminders() {
-    systemctl --user stop nosarch-eyesight-reminder.timer
+    systemctl --user disable --now nosarch-eyesight-reminder.timer
 
     notify-send --urgency=normal \
       --icon="view-reveal-symbolic" \

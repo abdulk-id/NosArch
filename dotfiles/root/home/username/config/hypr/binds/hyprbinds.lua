@@ -21,7 +21,7 @@ hl.bind("SUPER + right", hl.dsp.focus({ direction = "r" }), { description = "Foc
 hl.bind("SUPER + up", hl.dsp.focus({ direction = "u" }), { description = "Focus on top window" })
 hl.bind("SUPER + down", hl.dsp.focus({ direction = "d" }), { description = "Focus on bottom window" })
 
--- Swap active window with the one next to it with mainMod + SHIFT + arrow keys
+-- Swap active window with the one next to it with SUPER + SHIFT + arrow keys
 hl.bind("SUPER + SHIFT + left", hl.dsp.window.swap({ direction = "l" }), { description = "Swap window to the left" })
 hl.bind("SUPER + SHIFT + right", hl.dsp.window.swap({ direction = "r" }), { description = "Swap window to the right" })
 hl.bind("SUPER + SHIFT + up", hl.dsp.window.swap({ direction = "u" }), { description = "Swap window up" })

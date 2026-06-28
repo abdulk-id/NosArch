@@ -19,51 +19,89 @@ class SystemModule(decman.Module):
         return CONFIG | system_variables
 
     def directories(self) -> dict[str, Directory]:
-        return {
-            "/etc/": Directory(
-                source_directory="../dotfiles/root/etc/",
-                bin_files=False,
-                encoding="UTF-8",
+        etc_dirs: dict[str, Directory] = {
+            "/etc/default/": Directory(
+                source_directory="../dotfiles/root/etc/default/",
                 owner="root",
             ),
+            "/etc/greetd/": Directory(
+                source_directory="../dotfiles/root/etc/greetd/",
+                owner="root",
+            ),
+            "/etc/NetworkManager/": Directory(
+                source_directory="../dotfiles/root/etc/NetworkManager/",
+                owner="root",
+            ),
+            "/etc/sysctl.d/": Directory(
+                source_directory="../dotfiles/root/etc/sysctl.d/",
+                owner="root",
+            ),
+            "/etc/systemd/": Directory(
+                source_directory="../dotfiles/root/etc/systemd/",
+                owner="root",
+            ),
+            "/etc/tmpfiles.d/": Directory(
+                source_directory="../dotfiles/root/etc/tmpfiles.d/",
+                owner="root",
+            ),
+            "/etc/udev/rules.d/": Directory(
+                source_directory="../dotfiles/root/etc/udev/rules.d/",
+                owner="root",
+            ),
+            "/etc/wireplumber/": Directory(
+                source_directory="../dotfiles/root/etc/wireplumber/",
+                owner="root",
+            ),
+        }
+
+        return etc_dirs | {
             "/usr/local/bin/": Directory(
                 source_directory="../dotfiles/root/usr/local/bin/",
-                bin_files=False,
-                encoding="UTF-8",
                 owner="root",
-                permissions=0o754,  # Make executable
+                permissions=0o744,  # Make executable
             ),
-            "/usr/lib/": Directory(
-                source_directory="../dotfiles/root/usr/lib/",
-                bin_files=False,
-                encoding="UTF-8",
+            "/usr/lib/nosarch/": Directory(
+                source_directory="../dotfiles/root/usr/lib/nosarch/",
+                owner="root",
+                permissions=0o744,  # Make executable
+            ),
+            "/usr/lib/systemd/user/": Directory(
+                source_directory="../dotfiles/root/usr/lib/systemd/user/",
                 owner="root",
             ),
         }
 
     def files(self) -> dict[str, File]:
-        return {
+        etc_files: dict[str, File] = {
+            "/etc/mkinitcpio.conf": File(
+                source_file="../dotfiles/root/etc/mkinitcpio.conf",
+                owner="root",
+            ),
+            "/etc/pacman.conf": File(
+                source_file="../dotfiles/root/etc/pacman.conf",
+                owner="root",
+            ),
+            "/etc/modules-load.d/zram.conf": File(
+                source_file="../dotfiles/root/etc/modules-load.d/zram.conf",
+                owner="root",
+            ),
+        }
+
+        return etc_files | {
             f"/home/{CONFIG['%USER%']}/.bash_profile": File(
                 source_file="../dotfiles/root/home/username/dot_bashprofile",
-                bin_file=False,
-                encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.bashrc": File(
                 source_file="../dotfiles/root/home/username/dot_bashrc",
-                bin_file=False,
-                encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.gitconfig": File(
                 source_file="../dotfiles/root/home/username/dot_gitconfig",
-                bin_file=False,
-                encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
         }
 
-    # Packages ===
     @pacman.packages
     def system_packages(self) -> set[str]:
         system_set: set[str] = {
@@ -147,13 +185,17 @@ class SystemModule(decman.Module):
 
     @systemd.units
     def system_services(self) -> set[str]:
-        return {
+        systemd_set: set[str] = {
             "apparmor.service",
             "bluetooth.service",
             "greetd.service",
             "NetworkManager.service",
-            "power-profiles-daemon.service",
             "udisks2.service",
             "ufw.service",
             "swap-swapfile.swap",
         }
+
+        if is_laptop() or has_battery():
+            systemd_set.add("power-profiles-daemon.service")
+
+        return systemd_set

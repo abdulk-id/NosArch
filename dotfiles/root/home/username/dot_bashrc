@@ -50,6 +50,3 @@ export MISE_RUSTUP_HOME="$HOME/Codespace/Language-Tooling/Rust/rustup"
 export CARGO_HOME="$MISE_CARGO_HOME"
 export RUSTUP_HOME="$MISE_RUSTUP_HOME"
 export PATH="$CARGO_HOME/bin:$PATH"
-
-# Exports
-export PATH="$HOME/.local/bin:$PATH"

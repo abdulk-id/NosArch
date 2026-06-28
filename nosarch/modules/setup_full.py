@@ -1,5 +1,6 @@
 import decman
 from config import CONFIG
+from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
 
 
@@ -8,6 +9,14 @@ class FullSetupModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="setup_full")
 
+    def directories(self) -> dict[str, Directory]:
+        return {
+            f"/home/{CONFIG['%USER%']}/.config/obsidian/": Directory(
+                source_directory="../dotfiles/root/home/username/config/obsidian/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+        }
+
     @pacman.packages
     def pkgs(self) -> set[str]:
         apps_set: set[str] = {
@@ -15,9 +24,9 @@ class FullSetupModule(decman.Module):
             "libreoffice-fresh",
             "obsidian",
             "obs-studio",
-            "proton-vpn-cli",  # Official ProtonVPN CLI
+            "proton-vpn-cli",
             "proton-vpn-gtk-app",  # ProtonVPN GTK app (community-maintained)
-            "transmission-gtk",  # BitTorrent client
+            "transmission-gtk",
         }
 
         virtualization_set: set[str] = {

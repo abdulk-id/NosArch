@@ -84,6 +84,7 @@ class SystemModule(decman.Module):
             "man-db",
             "nano",
             "memtest86+-efi",
+            "python-dbus-fast",  # Installed for battery monitoring `/usr/lib/nosarch/nosarch-battery-monitor.py`
             "snapper",
             "sudo",
             "systemd-resolvconf",

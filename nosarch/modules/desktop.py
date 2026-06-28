@@ -178,12 +178,15 @@ class DesktopModule(decman.Module):
 
     @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:
-        return {
-            f"{CONFIG['%USER%']}": {
-                "hyprmoncfgd.service",
-                "pipewire.service",
-                "pipewire-pulse.service",
-                "wireplumber.service",
-                "xdg-user-dirs.service",
-            }
+        desktop_user_services: set[str] = {
+            "hyprmoncfgd.service",
+            "pipewire.service",
+            "pipewire-pulse.service",
+            "wireplumber.service",
+            "xdg-user-dirs.service",
         }
+
+        if has_battery():
+            desktop_user_services.add("nosarch-battery-monitor.service")
+
+        return {f"{CONFIG['%USER%']}": desktop_user_services}

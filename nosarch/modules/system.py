@@ -33,6 +33,12 @@ class SystemModule(decman.Module):
                 owner="root",
                 permissions=0o754,  # Make executable
             ),
+            "/usr/lib/": Directory(
+                source_directory="../dotfiles/root/usr/lib/",
+                bin_files=False,
+                encoding="UTF-8",
+                owner="root",
+            ),
         }
 
     def files(self) -> dict[str, File]:

@@ -45,6 +45,10 @@ class DesktopModule(decman.Module):
                 source_directory="../dotfiles/root/home/username/config/hyprland-preview-share-picker/",
                 owner=f"{CONFIG['%USER%']}",
             ),
+            f"/home/{CONFIG['%USER%']}/.config/quickshell/": Directory(
+                source_directory="../dotfiles/root/home/username/config/quickshell/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
             f"/home/{CONFIG['%USER%']}/.config/swaync/": Directory(
                 source_directory="../dotfiles/root/home/username/config/swaync/",
                 owner=f"{CONFIG['%USER%']}",

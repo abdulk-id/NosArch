@@ -13,11 +13,24 @@ class DevModule(decman.Module):
         return CONFIG
 
     def directories(self) -> dict[str, Directory]:
-        return {
+        user_config_directories: dict[str, Directory] = {
+            f"/home/{CONFIG['%USER%']}/.config/mise/": Directory(
+                source_directory="../dotfiles/root/home/username/config/mise/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/nvim/": Directory(
+                source_directory="../dotfiles/root/home/username/config/nvim/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/zed/": Directory(
+                source_directory="../dotfiles/root/home/username/config/zed/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+        }
+
+        return user_config_directories | {
             f"/home/{CONFIG['%USER%']}/Codespace/": Directory(
                 source_directory="../dotfiles/root/home/username/Codespace/",
-                bin_files=False,
-                encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
         }
@@ -26,8 +39,6 @@ class DevModule(decman.Module):
         return {
             f"/home/{CONFIG['%USER%']}/.ideavimrc": File(
                 source_file="../dotfiles/root/home/username/dot_ideavimrc",
-                bin_file=False,
-                encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
             ),
         }

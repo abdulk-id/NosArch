@@ -1,4 +1,4 @@
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.local/bin/nosarch:$PATH"
 
 source ~/.config/uwsm/fcitx
 source ~/.config/uwsm/wayland

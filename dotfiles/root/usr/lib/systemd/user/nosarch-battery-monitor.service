@@ -1,0 +1,11 @@
+[Unit]
+Description=NosArch battery monitor
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/nosarch/nosarch-battery-monitor.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

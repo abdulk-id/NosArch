@@ -1,6 +1,6 @@
 import decman
 from config import CONFIG
-from decman import Directory
+from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman, systemd
 from modules.theme import get_current_theme
 from utils.chassis_type import has_battery, is_laptop
@@ -16,30 +16,101 @@ class DesktopModule(decman.Module):
         return CONFIG | get_current_theme()
 
     def directories(self) -> dict[str, Directory]:
-        return {
-            f"/home/{CONFIG['%USER%']}/.config/": Directory(
-                source_directory="../dotfiles/root/home/username/config/",
-                bin_files=False,
-                encoding="UTF-8",
+        user_config_directories: dict[str, Directory] = {
+            f"/home/{CONFIG['%USER%']}/.config/btop/": Directory(
+                source_directory="../dotfiles/root/home/username/config/btop/",
                 owner=f"{CONFIG['%USER%']}",
             ),
-            f"/home/{CONFIG['%USER%']}/.local/bin/": Directory(
-                source_directory="../dotfiles/root/home/username/local/bin/",
-                bin_files=False,
-                encoding="UTF-8",
+            f"/home/{CONFIG['%USER%']}/.config/environment.d/": Directory(
+                source_directory="../dotfiles/root/home/username/config/environment.d/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/ghostty/": Directory(
+                source_directory="../dotfiles/root/home/username/config/ghostty/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/gtk-3.0/": Directory(
+                source_directory="../dotfiles/root/home/username/config/gtk-3.0/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/gtk-4.0": Directory(
+                source_directory="../dotfiles/root/home/username/config/gtk-4.0/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/hypr/": Directory(
+                source_directory="../dotfiles/root/home/username/config/hypr/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/hyprland-preview-share-picker/": Directory(
+                source_directory="../dotfiles/root/home/username/config/hyprland-preview-share-picker/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/swaync/": Directory(
+                source_directory="../dotfiles/root/home/username/config/swaync/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/swayosd/": Directory(
+                source_directory="../dotfiles/root/home/username/config/swayosd/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/systemd/user/": Directory(
+                source_directory="../dotfiles/root/home/username/config/systemd/user/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/uwsm/": Directory(
+                source_directory="../dotfiles/root/home/username/config/uwsm/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/vicinae/": Directory(
+                source_directory="../dotfiles/root/home/username/config/vicinae/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/waybar/": Directory(
+                source_directory="../dotfiles/root/home/username/config/waybar/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/xdg-desktop-portal/": Directory(
+                source_directory="../dotfiles/root/home/username/config/xdg-desktop-portal/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
+        }
+
+        user_script_directories: dict[str, Directory] = {
+            f"/home/{CONFIG['%USER%']}/.local/bin/nosarch/": Directory(
+                source_directory="../dotfiles/root/home/username/local/bin/nosarch/",
                 owner=f"{CONFIG['%USER%']}",
                 permissions=0o754,  # Make executable
             ),
-            f"/home/{CONFIG['%USER%']}/.local/share/": Directory(
-                source_directory="../dotfiles/root/home/username/local/share/",
-                bin_files=False,
-                encoding="UTF-8",
+            f"/home/{CONFIG['%USER%']}/.local/bin/util/": Directory(
+                source_directory="../dotfiles/root/home/username/local/bin/util/",
+                owner=f"{CONFIG['%USER%']}",
+                permissions=0o754,  # Make executable
+            ),
+        }
+
+        return (
+            user_config_directories
+            | user_script_directories
+            | {
+                f"/home/{CONFIG['%USER%']}/.local/share/": Directory(
+                    source_directory="../dotfiles/root/home/username/local/share/",
+                    owner=f"{CONFIG['%USER%']}",
+                ),
+                f"/home/{CONFIG['%USER%']}/Templates/": Directory(
+                    source_directory="../dotfiles/root/home/username/Templates/",
+                    owner=f"{CONFIG['%USER%']}",
+                ),
+            }
+        )
+
+    def files(self) -> dict[str, File]:
+        return {
+            f"/home/{CONFIG['%USER%']}/.config/user-dirs.dirs": File(
+                source_file="../dotfiles/root/home/username/config/user-dirs.dirs",
                 owner=f"{CONFIG['%USER%']}",
             ),
-            f"/home/{CONFIG['%USER%']}/Templates/": Directory(
-                source_directory="../dotfiles/root/home/username/Templates/",
-                bin_files=False,
-                encoding="UTF-8",
+            f"/home/{CONFIG['%USER%']}/.config/xdg-terminals.list": File(
+                source_file="../dotfiles/root/home/username/config/xdg-terminals.list",
                 owner=f"{CONFIG['%USER%']}",
             ),
         }
@@ -178,12 +249,15 @@ class DesktopModule(decman.Module):
 
     @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:
-        return {
-            f"{CONFIG['%USER%']}": {
-                "hyprmoncfgd.service",
-                "pipewire.service",
-                "pipewire-pulse.service",
-                "wireplumber.service",
-                "xdg-user-dirs.service",
-            }
+        desktop_user_services: set[str] = {
+            "hyprmoncfgd.service",
+            "pipewire.service",
+            "pipewire-pulse.service",
+            "wireplumber.service",
+            "xdg-user-dirs.service",
         }
+
+        if has_battery():
+            desktop_user_services.add("nosarch-battery-monitor.service")
+
+        return {f"{CONFIG['%USER%']}": desktop_user_services}

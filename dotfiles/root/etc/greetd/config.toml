@@ -4,11 +4,10 @@ vt = next
 
 # The default session, also known as the greeter.
 [default_session]
-# `agreety` is the bundled agetty/login-lookalike. You can replace `/bin/sh`
-# with whatever you want started, such as `sway`.
-#command = "agreety --cmd /bin/sh"
+# `agreety` is the bundled agetty/login-lookalike. Replace `/bin/sh` with whatever you want started, such as `sway`.
+# command = "agreety --cmd /bin/sh"
 
-command = "tuigreet --cmd 'uwsm start hyprland.desktop' --time --user-menu --remember"
+command = "tuigreet --cmd 'uwsm start -e -D Hyprland hyprland.desktop' --user-menu --remember --power-shutdown 'systemctl poweroff --no-wall' --power-reboot 'systemctl reboot --no-wall' --time --asterisks --asterisks-char • --window-padding 1 --theme container=black;text=white;prompt=white;input=gray;border=white;action=blue;button=white"
 
 # The user to run the command as. The privileges this user must have depends on the greeter.
 # A graphical greeter may for example require the user to be in the `video` group.

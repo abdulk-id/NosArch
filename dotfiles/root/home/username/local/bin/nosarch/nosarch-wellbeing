@@ -23,17 +23,19 @@ EOF
 }
 
 send_eyesight_reminder() {
+    if bash ~/.local/bin/util/detect-screen-sharing.sh; then
+        return
+    fi
+
     notify-send --urgency=normal --expire-time=20000 --transient \
       --icon="view-reveal-symbolic" \
       --app-name="NosArch Wellbeing" \
       "Eyesight Reminder" \
       "Look away from the screen for 20 seconds"
-
-    # TODO: Maybe a transient notification would be better
 }
 
 enable_eyesight_reminders() {
-    systemctl --user start nosarch-eyesight-reminder.timer
+    systemctl --user enable --now nosarch-eyesight-reminder.timer
 
     notify-send --urgency=normal \
       --icon="view-reveal-symbolic" \
@@ -43,7 +45,7 @@ enable_eyesight_reminders() {
 }
 
 disable_eyesight_reminders() {
-    systemctl --user stop nosarch-eyesight-reminder.timer
+    systemctl --user disable --now nosarch-eyesight-reminder.timer
 
     notify-send --urgency=normal \
       --icon="view-reveal-symbolic" \

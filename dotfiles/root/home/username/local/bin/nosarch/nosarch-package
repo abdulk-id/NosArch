@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$HOME/.local/bin/nosarch-sudo-keepalive"
+source "$HOME/.local/bin/nosarch/nosarch-sudo-keepalive"
 
 _ensure_command() {
     if ! command -v "$1" &>/dev/null; then
@@ -274,6 +274,87 @@ remove_packages() {
     fi
 }
 
+remove_packages_new() {
+    local entries
+    entries=$(
+        {
+            yay -Qeqn | awk '{print "[arch]   \t" $0}'
+            yay -Qeqm | awk '{print "[aur]    \t" $0}'
+            if command -v flatpak &>/dev/null; then
+                flatpak list --app --columns=application | awk '{print "[flatpak]\t" $0}'
+            fi
+        } | sort -t$'\t' -k2 -f
+    )
+
+    local selected
+    selected=$(fzf \
+        --multi \
+        --delimiter $'\t' \
+        --with-nth 1,2 \
+        --preview $'source="${1//[[ \\t\\[\\]]/}"; case "$source" in arch|aur) yay -Qi {2} ;; flatpak) flatpak info {2} ;; esac' \
+        --preview-label 'alt-p: toggle description, alt-j/k: scroll, tab: multi-select' \
+        --preview-label-pos 'bottom' \
+        --preview-window 'down:40%:wrap' \
+        --bind 'alt-p:toggle-preview' \
+        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+        --bind 'alt-k:preview-up,alt-j:preview-down' \
+        --color 'pointer:red,marker:red' \
+        <<< "$entries") || return 0
+
+    [[ -z "$selected" ]] && return 0
+
+    local pacman_pkgs=() flatpak_pkgs=()
+    while IFS=$'\t' read -r source name; do
+        source="${source//[\[ \]]/}"
+        [[ "$source" == "flatpak" ]] && flatpak_pkgs+=("$name") || pacman_pkgs+=("$name")
+    done <<< "$selected"
+
+    gum style --foreground 2 --bold "▸ Authenticating..."
+    echo
+
+    if ! start_sudo_keepalive; then
+        echo
+        gum style --foreground 9 "x Authentication failed."
+        return 1
+    fi
+    trap stop_sudo_keepalive EXIT
+    echo
+
+    local success=true
+
+    if (( ${#pacman_pkgs[@]} > 0 )); then
+        gum style --foreground 2 --bold "▸ Removing Arch/AUR packages..."
+        echo
+        if yay -Rns --noconfirm "${pacman_pkgs[@]}"; then
+            echo
+            gum style --foreground 2 "✓ Arch/AUR packages removed!"
+        else
+            echo
+            gum style --foreground 9 "x Arch/AUR removal failed."
+            success=false
+        fi
+        echo
+    fi
+
+    if (( ${#flatpak_pkgs[@]} > 0 )); then
+        gum style --foreground 2 --bold "▸ Removing Flatpak packages..."
+        echo
+        if flatpak uninstall --assumeyes "${flatpak_pkgs[@]}"; then
+            echo
+            gum style --foreground 2 "✓ Flatpak packages removed!"
+        else
+            echo
+            gum style --foreground 9 "x Flatpak removal failed."
+            success=false
+        fi
+    fi
+
+    stop_sudo_keepalive
+    trap - EXIT
+
+    $success
+}
+
 remove_unused_packages() {
     gum style --foreground 2 --bold "▸ Removing unused (orphan) packages..."
     echo
@@ -318,7 +399,7 @@ main() {
             update_packages
             ;;
         remove)
-            remove_packages
+            remove_packages_new
             ;;
         remove-unused)
             remove_unused_packages

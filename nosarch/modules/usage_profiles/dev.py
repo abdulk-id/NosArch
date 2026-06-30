@@ -1,7 +1,7 @@
 import decman
 from config import CONFIG
 from decman import Directory, File
-from decman.plugins import aur, flatpak, pacman
+from decman.plugins import aur, flatpak, pacman, systemd
 
 
 # Dev Setup module
@@ -37,6 +37,18 @@ class DevModule(decman.Module):
 
     def files(self) -> dict[str, File]:
         return {
+            "/etc/containers/registries.conf.d/10-unqualified-search-registries.conf": File(
+                source_file="../dotfiles/root/etc/containers/registries.conf.d/10-unqualified-search-registries.conf",
+                owner="root",
+            ),
+            "/etc/containers/registries.conf.d/01-registries.conf": File(
+                source_file="../dotfiles/root/etc/containers/registries.conf.d/01-registries.conf",
+                owner="root",
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/environment.d/dev.conf": File(
+                source_file="../dotfiles/root/home/username/config/environment.d/dev.conf",
+                owner=f"{CONFIG['%USER%']}",
+            ),
             f"/home/{CONFIG['%USER%']}/.ideavimrc": File(
                 source_file="../dotfiles/root/home/username/dot_ideavimrc",
                 owner=f"{CONFIG['%USER%']}",
@@ -49,11 +61,7 @@ class DevModule(decman.Module):
             "ast-grep",  # Needed for Neovim
             "bash-completion",
             "cmake",
-            "docker",
-            "docker-compose",
-            "docker-buildx",
             "fd",  # Faster `find`; Needed for Neovim
-            "lazydocker",
             "lazygit",
             "llvm",
             "luarocks",  # Needed for Neovim
@@ -63,6 +71,10 @@ class DevModule(decman.Module):
             "neovim",
             "ninja",
             "opencode",
+            "podman",
+            "podman-compose",
+            "podman-docker",
+            "podman-desktop",
             "tectonic",  # Needed for Neovim
             "uv",  # Package manager for Python (not sure why installed)
             "zed",
@@ -77,3 +89,7 @@ class DevModule(decman.Module):
         return {
             f"{CONFIG['%USER%']}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}
         }
+
+    @systemd.user_units
+    def desktop_user_services(self) -> dict[str, set[str]]:
+        return {f"{CONFIG['%USER%']}": {"podman.socket"}}

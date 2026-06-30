@@ -21,10 +21,6 @@ class DesktopModule(decman.Module):
                 source_directory="../dotfiles/root/home/username/config/btop/",
                 owner=f"{CONFIG['%USER%']}",
             ),
-            f"/home/{CONFIG['%USER%']}/.config/environment.d/": Directory(
-                source_directory="../dotfiles/root/home/username/config/environment.d/",
-                owner=f"{CONFIG['%USER%']}",
-            ),
             f"/home/{CONFIG['%USER%']}/.config/ghostty/": Directory(
                 source_directory="../dotfiles/root/home/username/config/ghostty/",
                 owner=f"{CONFIG['%USER%']}",
@@ -105,6 +101,10 @@ class DesktopModule(decman.Module):
 
     def files(self) -> dict[str, File]:
         return {
+            f"/home/{CONFIG['%USER%']}/.config/environment.d/defaults.conf": File(
+                source_file="../dotfiles/root/home/username/config/environment.d/defaults.conf",
+                owner=f"{CONFIG['%USER%']}",
+            ),
             f"/home/{CONFIG['%USER%']}/.config/user-dirs.dirs": File(
                 source_file="../dotfiles/root/home/username/config/user-dirs.dirs",
                 owner=f"{CONFIG['%USER%']}",

@@ -32,6 +32,14 @@ class SystemModule(decman.Module):
                 source_directory="../dotfiles/root/etc/NetworkManager/",
                 owner="root",
             ),
+            "/etc/snapper/configs/": Directory(
+                source_directory="../dotfiles/root/etc/snapper/configs/",
+                owner="root",
+            ),
+            "/etc/pacman.d/hooks/": Directory(
+                source_directory="../dotfiles/root/etc/pacman.d/hooks/",
+                owner="root",
+            ),
             "/etc/sysctl.d/": Directory(
                 source_directory="../dotfiles/root/etc/sysctl.d/",
                 owner="root",
@@ -73,6 +81,10 @@ class SystemModule(decman.Module):
 
     def files(self) -> dict[str, File]:
         etc_files: dict[str, File] = {
+            "/etc/modules-load.d/zram.conf": File(
+                source_file="../dotfiles/root/etc/modules-load.d/zram.conf",
+                owner="root",
+            ),
             "/etc/mkinitcpio.conf": File(
                 source_file="../dotfiles/root/etc/mkinitcpio.conf",
                 owner="root",
@@ -81,8 +93,8 @@ class SystemModule(decman.Module):
                 source_file="../dotfiles/root/etc/pacman.conf",
                 owner="root",
             ),
-            "/etc/modules-load.d/zram.conf": File(
-                source_file="../dotfiles/root/etc/modules-load.d/zram.conf",
+            "/etc/updatedb.conf": File(
+                source_file="../dotfiles/root/etc/updatedb.conf",
                 owner="root",
             ),
         }
@@ -180,6 +192,7 @@ class SystemModule(decman.Module):
     def system_aur_packages(self) -> set[str]:
         return {
             "limine-mkinitcpio-hook",
+            "limine-snapper-sync",
             "yay-bin",
         }
 
@@ -189,6 +202,7 @@ class SystemModule(decman.Module):
             "apparmor.service",
             "bluetooth.service",
             "greetd.service",
+            "limine-snapper-sync.service",
             "NetworkManager.service",
             "udisks2.service",
             "ufw.service",

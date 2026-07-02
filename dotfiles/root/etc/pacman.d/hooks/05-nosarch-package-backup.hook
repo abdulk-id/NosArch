@@ -1,0 +1,36 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+
+Target = btrfs-progs
+Target = cryptsetup
+Target = glibc
+Target = kernel-modules-hook
+Target = limine
+Target = limine-mkinitcpio-hook
+Target = linux
+Target = linux-lts
+Target = linux-firmware
+Target = linux-lts-firmware
+Target = linux-headers
+Target = mkinitcpio
+Target = mesa
+Target = networkmanager
+Target = systemd
+
+Target = intel-ucode
+Target = vulkan-intel
+
+Target = amd-ucode
+Target = vulkan-radeon
+
+[Action]
+Description = Creating backup snapshot for critical packages...
+Exec = /usr/bin/bash -c 'snapper --config root create --type single --description "Critical package backup: $(xargs)"'
+When = PreTransaction
+Depends = btrfs-progs
+Depends = snapper
+AbortOnFail
+NeedsTargets

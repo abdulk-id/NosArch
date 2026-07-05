@@ -49,6 +49,10 @@ class DevModule(decman.Module):
                 source_file="../dotfiles/root/home/username/config/environment.d/dev.conf",
                 owner=f"{CONFIG['%USER%']}",
             ),
+            f"/home/{CONFIG['%USER%']}/.bashrc.d/dev.bashrc": File(
+                source_file="../dotfiles/root/home/username/bashrc.d/dev.bashrc",
+                owner=f"{CONFIG['%USER%']}",
+            ),
             f"/home/{CONFIG['%USER%']}/.ideavimrc": File(
                 source_file="../dotfiles/root/home/username/dot_ideavimrc",
                 owner=f"{CONFIG['%USER%']}",
@@ -82,7 +86,7 @@ class DevModule(decman.Module):
 
     @aur.packages
     def aur_pkgs(self) -> set[str]:
-        return {"t3code-bin", "ufw-docker"}
+        return {"t3code-bin", "try-cli", "ufw-docker"}
 
     @flatpak.user_packages
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:

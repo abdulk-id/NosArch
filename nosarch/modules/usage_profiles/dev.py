@@ -1,4 +1,5 @@
 import decman
+import utils.dev_lang_config
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman, systemd
@@ -14,10 +15,6 @@ class DevModule(decman.Module):
 
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
-            f"/home/{CONFIG['%USER%']}/.config/mise/": Directory(
-                source_directory="../dotfiles/root/home/username/config/mise/",
-                owner=f"{CONFIG['%USER%']}",
-            ),
             f"/home/{CONFIG['%USER%']}/.config/nvim/": Directory(
                 source_directory="../dotfiles/root/home/username/config/nvim/",
                 owner=f"{CONFIG['%USER%']}",
@@ -36,6 +33,11 @@ class DevModule(decman.Module):
         }
 
     def files(self) -> dict[str, File]:
+        mise_config_file: File = File(
+            content=utils.dev_lang_config.get_mise_config_contents(),
+            owner=f"{CONFIG['%USER%']}",
+        )
+
         return {
             "/etc/containers/registries.conf.d/10-unqualified-search-registries.conf": File(
                 source_file="../dotfiles/root/etc/containers/registries.conf.d/10-unqualified-search-registries.conf",
@@ -45,6 +47,7 @@ class DevModule(decman.Module):
                 source_file="../dotfiles/root/etc/containers/registries.conf.d/01-registries.conf",
                 owner="root",
             ),
+            f"/home/{CONFIG['%USER%']}/.config/mise/config.toml": mise_config_file,
             f"/home/{CONFIG['%USER%']}/.config/environment.d/dev.conf": File(
                 source_file="../dotfiles/root/home/username/config/environment.d/dev.conf",
                 owner=f"{CONFIG['%USER%']}",
@@ -71,7 +74,6 @@ class DevModule(decman.Module):
             "luarocks",  # Needed for Neovim
             "mise",  # Language tooling manager
             "meson",
-            "nasm",
             "neovim",
             "ninja",
             "opencode",
@@ -80,7 +82,6 @@ class DevModule(decman.Module):
             "podman-docker",
             "podman-desktop",
             "tectonic",  # Needed for Neovim
-            "uv",  # Package manager for Python (not sure why installed)
             "zed",
         }
 

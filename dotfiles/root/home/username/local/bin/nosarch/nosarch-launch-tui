@@ -24,8 +24,7 @@ done
 CMD=( "$@" )
 
 FULL_CMD="${CMD[*]}"
-CLASS="TUI.${FULL_CMD// /_}"
-TITLE="TUI.$(basename "${CMD[0]}")"
+TITLE="TUI.${FULL_CMD// /_}"
 
 # --- Refocus existing window if present ---
 ADDR=$(
@@ -39,6 +38,14 @@ if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
     hyprctl eval "
     hl.dispatch(
         hl.dsp.focus({
+            window = 'address:${ADDR}'
+        })
+    )
+    "
+    hyprctl eval "
+    hl.dispatch(
+        hl.dsp.window.alter_zorder({
+            mode = 'top',
             window = 'address:${ADDR}'
         })
     )

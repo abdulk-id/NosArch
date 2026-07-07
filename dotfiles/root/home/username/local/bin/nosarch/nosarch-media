@@ -1,0 +1,52 @@
+#!/bin/bash
+
+show_help() {
+    cat <<EOF
+Usage: nosarch-display <command> [option]
+
+Commands:
+    play-pause      Play or pause the current media
+    next            Skip to the next media
+    previous        Skip to the previous media
+EOF
+}
+
+# === Playerctl control ===
+play_pause_media() {
+    playerctl play-pause
+}
+
+next_media() {
+    playerctl next
+}
+
+previous_media() {
+    playerctl previous
+}
+
+
+## === Main logic ===
+main() {
+    if [[ $# -eq 0 ]]; then
+        show_help
+        return
+    fi
+
+    case "${1:-}" in
+        play-pause)
+            play_pause_media
+            ;;
+        next)
+            next_media
+            ;;
+        previous)
+            previous_media
+            ;;
+        *)
+            show_help
+            return
+            ;;
+    esac
+}
+
+main "$@"

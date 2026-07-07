@@ -1,0 +1,79 @@
+#!/bin/bash
+
+show_help() {
+    cat <<EOF
+Usage: nosarch-display <command> [option]
+
+Commands:
+    brightness      Adjust display brightness [set | increase | decrease]
+
+brightness options:
+    set             Set brightness to a specific value [0-100]%
+    increase        Increase brightness by [INT] (default 5%)
+    decrease        Decrease brightness by [INT] (default 5%)
+EOF
+}
+
+# === Brightness control ===
+set_brightness() {
+    brightnessctl set "${1}"%
+}
+
+increase_brightness() {
+    # if [[ -z "${1}" ]]; then
+    #     swayosd-client --monitor "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')" --brightness raise
+    # else
+    #     swayosd-client --monitor "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')" --brightness "+${1}"
+    # fi
+
+    brightnessctl set "${1:-5}"%+
+}
+
+decrease_brightness() {
+    # if [[ -z "${1}" ]]; then
+    #     swayosd-client --monitor "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')" --brightness lower
+    # else
+    #     swayosd-client --monitor "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')" --brightness "-${1}"
+    # fi
+
+    brightnessctl set "${1:-5}"%-
+}
+
+## === Main logic ===
+main() {
+    if [[ $# -eq 0 ]]; then
+        show_help
+        return
+    fi
+
+    case "${1:-}" in
+        brightness)
+            case "${2:-}" in
+                set)
+                    if [[ $# -ne 3 ]]; then
+                        show_help
+                        return
+                    fi
+
+                    set_brightness "${3}"
+                    ;;
+                increase)
+                    increase_brightness "${3:-}"
+                    ;;
+                decrease)
+                    decrease_brightness "${3:-}"
+                    ;;
+                *)
+                    show_help
+                    return
+                    ;;
+            esac
+            ;;
+        *)
+            show_help
+            return
+            ;;
+    esac
+}
+
+main "$@"

@@ -2,6 +2,20 @@
 -- See https://wiki.hypr.land/Configuring/Window-Rules/ for more
 -- See https://wiki.hypr.land/Configuring/Workspace-Rules/ for workspace rules
 
+hl.config({
+    -- Miscellaneous config related to windows
+    misc = {
+        focus_on_activate = true,
+        on_focus_under_fullscreen = 1,
+
+        enable_anr_dialog = true,
+        anr_missed_pings = 3,
+
+        -- Solve issue of windows opening in workspace 1 when called from other workspaces
+        initial_workspace_tracking = 0
+    }
+})
+
 -- Ignore maximize requests from all apps. You'll probably like this.
 hl.window_rule({
     name = "suppress-maximize-events",

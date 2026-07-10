@@ -1,9 +1,12 @@
 import decman
+import utils.cpu_vendor
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
 from utils.chassis_type import has_battery, is_laptop
 from utils.luks_uuid import get_luks_uuid
+
+cpu_vendor: str = utils.cpu_vendor.get_cpu_vendor()
 
 
 # Base system module
@@ -144,7 +147,6 @@ class SystemModule(decman.Module):
             "snapper",
             "sudo",
             "systemd-resolvconf",
-            "thermald",
             "udftools",
             "udisks2",
             "unzip",
@@ -156,7 +158,12 @@ class SystemModule(decman.Module):
         if is_laptop() or has_battery():
             system_set.add("power-profiles-daemon")
 
-        system_intel_set: set[str] = {"intel-ucode"}
+        if cpu_vendor == "GenuineIntel":
+            system_set.add("intel-ucode")
+            system_set.add("intel-lpmd")
+            system_set.add("thermald")
+        elif cpu_vendor == "AuthenticAMD":
+            system_set.add("amd-ucode")
 
         security_set: set[str] = {"apparmor", "firewalld", "lynis", "ufw"}
 
@@ -180,9 +187,7 @@ class SystemModule(decman.Module):
             "wireless-regdb",
         }
 
-        merged_set: set[str] = system_set.union(
-            system_intel_set, security_set, connectivity_set
-        )
+        merged_set: set[str] = system_set.union(security_set, connectivity_set)
         return merged_set
 
     # Packages causing issues when running decman
@@ -211,5 +216,9 @@ class SystemModule(decman.Module):
 
         if is_laptop() or has_battery():
             systemd_set.add("power-profiles-daemon.service")
+
+        if cpu_vendor == "GenuineIntel":
+            systemd_set.add("intel_lpmd.service")
+            systemd_set.add("thermald.service")
 
         return systemd_set

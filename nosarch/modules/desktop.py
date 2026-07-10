@@ -1,10 +1,13 @@
 import decman
+import utils.gpu_vendor
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman, systemd
 from modules.theme import get_current_theme
 from utils.chassis_type import has_battery, is_laptop
 from utils.gpu_lib32_drivers import get_lib32_gpu_drivers
+
+gpu_vendor: str = utils.gpu_vendor.get_gpu_vendor()
 
 
 # Desktop module
@@ -100,7 +103,7 @@ class DesktopModule(decman.Module):
         )
 
     def files(self) -> dict[str, File]:
-        return {
+        files: dict[str, File] = {
             f"/home/{CONFIG['%USER%']}/.config/environment.d/defaults.conf": File(
                 source_file="../dotfiles/root/home/username/config/environment.d/defaults.conf",
                 owner=f"{CONFIG['%USER%']}",
@@ -114,6 +117,36 @@ class DesktopModule(decman.Module):
                 owner=f"{CONFIG['%USER%']}",
             ),
         }
+
+        def get_nvidia_env_vars() -> str:
+            nvidia_env_vars: str = ""
+
+            if gpu_vendor == "nvidia_gsp":
+                nvidia_env_vars = "export NVD_BACKEND=direct\nexport LIBVA_DRIVER_NAME=nvidia\nexport __GLX_VENDOR_LIBRARY_NAME=nvidia"
+            elif gpu_vendor == "nvidia_non_gsp":
+                nvidia_env_vars = (
+                    "export NVD_BACKEND=egl\nexport __GLX_VENDOR_LIBRARY_NAME=nvidia"
+                )
+
+            return nvidia_env_vars
+
+        if gpu_vendor == "nvidia_gsp" or gpu_vendor == "nvidia_non_gsp":
+            files |= {
+                "/etc/mkinitcpio.conf.d/nvidia.conf": File(
+                    source_file="../dotfiles/root/etc/mkinitcpio.conf.d/nvidia.conf",
+                    owner="root",
+                ),
+                "/etc/modprobe.d/nvidia.conf": File(
+                    source_file="../dotfiles/root/etc/modprobe.d/nvidia.conf",
+                    owner="root",
+                ),
+                f"/home/{CONFIG['%USER%']}/.config/uwsm/env-nvidia": File(
+                    content=get_nvidia_env_vars(),
+                    owner=f"{CONFIG['%USER%']}",
+                ),
+            }
+
+        return files
 
     @pacman.packages
     def pkgs(self) -> set[str]:
@@ -166,12 +199,37 @@ class DesktopModule(decman.Module):
         }
         graphics_set |= get_lib32_gpu_drivers()
 
-        graphics_intel_set: set[str] = {
-            "intel-gpu-tools",
-            "intel-media-driver",
-            "libva-intel-driver",
-            "vulkan-intel",
-        }
+        if gpu_vendor == "intel":
+            graphics_set |= {
+                "intel-media-driver",
+                "lib32-mesa",
+                "lib32-vulkan-intel",
+                "libva-intel-driver",
+                "libvpl",
+                "mesa",
+                "mesa-utils",
+                "vpl-gpu-rt",
+                "vulkan-mesa-layers",
+                "vulkan-intel",
+            }
+
+        if gpu_vendor == "amd":
+            graphics_set |= {
+                "lib32-mesa",
+                "lib32-vulkan-radeon",
+                "mesa",
+                "mesa-utils",
+                "vulkan-mesa-layers",
+                "vulkan-radeon",
+            }
+
+        if gpu_vendor == "nvidia_gsp":
+            graphics_set |= {
+                "lib32-nvidia-utils",
+                "libva-nvidia-driver",
+                "nvidia-open-dkms",
+                "nvidia-utils",
+            }
 
         media_set: set[str] = {
             "alsa-utils",  # ALSA utilities
@@ -204,7 +262,6 @@ class DesktopModule(decman.Module):
         merged_set: set[str] = desktop_set.union(
             config_set,
             graphics_set,
-            graphics_intel_set,
             media_set,
             printer_set,
             utilities_set,
@@ -233,13 +290,22 @@ class DesktopModule(decman.Module):
             "walker-bin",
         }
 
-        return {
+        desktop_set: set[str] = {
             "hyprmoncfg",
             "hyprland-preview-share-picker-git",
             "hyprqt6engine",
             "vicinae-bin",
             "xdg-terminal-exec",
         }
+
+        if gpu_vendor == "nvidia_non_gsp":
+            desktop_set |= {
+                "lib32-nvidia-580xx-utils",
+                "nvidia-580xx-dkms",
+                "nvidia-580xx-utils",
+            }
+
+        return desktop_set
 
     @flatpak.packages
     def flatpak_pkgs(self) -> set[str]:

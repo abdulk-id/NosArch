@@ -2,16 +2,15 @@ import re
 import subprocess
 
 
-def get_lib32_gpu_drivers() -> set[str]:
+def get_gpu_vendor() -> str:
     try:
-        packages: set[str] = set()
         lspci_output: str = subprocess.check_output(["lspci"], text=True)
 
-        if bool(re.search(rf"(VGA|Display).+{'Intel'}", lspci_output, re.IGNORECASE)):
-            packages.update({"lib32-mesa", "lib32-vulkan-intel"})
+        if bool(re.search(r"(VGA|3D|Display).+Intel", lspci_output, re.IGNORECASE)):
+            return "intel"
 
-        if bool(re.search(rf"(VGA|Display).+{'AMD'}", lspci_output, re.IGNORECASE)):
-            packages.update({"lib32-mesa", "lib32-vulkan-radeon"})
+        if bool(re.search(r"(VGA|3D|Display).+(AMD|ATI)", lspci_output, re.IGNORECASE)):
+            return "amd"
 
         lspci_nvidia_output: str = "\n".join(
             line for line in lspci_output.splitlines() if "nvidia" in line.lower()
@@ -32,7 +31,7 @@ def get_lib32_gpu_drivers() -> set[str]:
                 re.IGNORECASE,
             )
         ):
-            packages.add("lib32-nvidia-utils")
+            return "nvidia_gsp"
         elif bool(
             re.search(
                 r"GTX (9[0-9]{2}|10[0-9]{2})|"
@@ -46,13 +45,25 @@ def get_lib32_gpu_drivers() -> set[str]:
                 re.IGNORECASE,
             )
         ):
-            packages.add("lib32-nvidia-580xx-utils")
+            return "nvidia_non_gsp"
 
-        return packages
-    except Exception:
-        print("Exception occured trying to get lib32 gpu drivers")
-        return set()
+        return ""
+    except subprocess.CalledProcessError:
+        print("Failed to get GPU vendor")
+        return ""
 
 
-if __name__ == "__main__":
-    print(get_lib32_gpu_drivers())
+def is_gpu_intel() -> bool:
+    return get_gpu_vendor() == "intel"
+
+
+def is_gpu_amd() -> bool:
+    return get_gpu_vendor() == "amd"
+
+
+def is_gpu_nvidia_gsp() -> bool:
+    return get_gpu_vendor() == "nvidia_gsp"
+
+
+def is_gpu_nvidia_non_gsp() -> bool:
+    return get_gpu_vendor() == "nvidia_non_gsp"

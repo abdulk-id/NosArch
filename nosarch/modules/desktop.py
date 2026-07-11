@@ -5,7 +5,6 @@ from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman, systemd
 from modules.theme import get_current_theme
 from utils.chassis_type import has_battery, is_laptop
-from utils.gpu_lib32_drivers import get_lib32_gpu_drivers
 
 gpu_vendor: str = utils.gpu_vendor.get_gpu_vendor()
 
@@ -192,12 +191,7 @@ class DesktopModule(decman.Module):
             "bluetui",
         }
 
-        graphics_set: set[str] = {
-            "mesa",
-            "mesa-utils",
-            "vulkan-mesa-layers",
-        }
-        graphics_set |= get_lib32_gpu_drivers()
+        graphics_set: set[str] = set()
 
         if gpu_vendor == "intel":
             graphics_set |= {

@@ -2,7 +2,25 @@
 
 set -euo pipefail
 
-## === Utility logic ===
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-capture <command> [actions]
+
+Commands:
+    screenshot <action>     Take a screenshot
+    extract-text            Extract text from screen and copy to clipboard
+    colorpick               Open Color Picker
+    help                    Show this help message
+
+Screenshot actions:
+    region                  Screenshot a region
+    window                  Screenshot a window
+    monitor                 Screenshot a monitor
+EOF
+}
+
+## === Utilities ===
 _ensure_command() {
     if ! command -v "$1" &>/dev/null; then
         echo "Error: $1 is required but not found."
@@ -10,25 +28,7 @@ _ensure_command() {
     fi
 }
 
-## === Actions logic ===
-show_help() {
-    cat <<EOF
-Usage:
-    nosarch-capture <command> [option]
-
-Command:
-    screenshot          Take a screenshot  [region | window | monitor]
-    extract-text        Extract text from screen and copy to clipboard
-    colorpick           Open Color Picker
-    help                Show this help message
-
-Screenshot options:
-    region              Screenshot a region
-    window              Screenshot a window
-    monitor             Screenshot a monitor
-EOF
-}
-
+## === Features ===
 extract_text() {
     _ensure_command tesseract
 
@@ -53,10 +53,12 @@ extract_text() {
 
     printf "%s" "$TEXT" | wl-copy
 
-    notify-send --urgency=normal --app-name="Nosarch Capture" --app-icon="applets-screenshooter-symbolic" "Text Extraction" "Copied text from selection to clipboard"
+    notify-send --urgency=normal \
+    --app-name="Nosarch Capture" --app-icon="applets-screenshooter-symbolic" \
+    "Text Extraction" "Copied text from selection to clipboard"
 }
 
-## === Main logic ===
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help
@@ -77,6 +79,7 @@ main() {
                     hyprshot --freeze --mode output --output-folder ~/Pictures/Screenshots
                     ;;
                 *)
+                    echo "Unknown screenshot action: $2"
                     show_help
                     exit 1
                     ;;

@@ -2,23 +2,22 @@
 
 set -euo pipefail
 
-## === Actions Logic ===
 show_help() {
     cat <<EOF
-NosArch script to launch common apps
-
 Usage:
     nosarch-launch-app <command>
 
 Commands:
-    browser             Launch the default browser
-    browser-private     Launch the default browser in private mode
-    editor              Launch the default editor
-    files               Launch the file manager
-    terminal            Launch the default terminal emulator
+    browser                 Launch the default browser
+    browser-private         Launch the default browser in private mode
+    editor                  Launch the default editor
+    files                   Launch the file manager
+    terminal                Launch the default terminal emulator
+    help                    Show this help message
 EOF
 }
 
+## === Features ===
 get_browser_exec() {
     # Copied from Omarchy
 
@@ -53,7 +52,7 @@ launch_browser_private() {
     exec setsid uwsm-app -- "$browser" "$private_flag"
 }
 
-## === Main logic ===
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help

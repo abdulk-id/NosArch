@@ -2,6 +2,19 @@
 
 set -euo pipefail
 
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-toggle <command>
+
+Commands:
+    dnd             Toggle Notifications (Do Not Disturb)
+    dnd-status      Get Do Not Disturb state
+    help            Show this help message
+EOF
+}
+
+## === Utilities ===
 _ensure_command() {
     if ! command -v "$1" &>/dev/null; then
         echo "Error: $1 is required but not found."
@@ -9,19 +22,7 @@ _ensure_command() {
     fi
 }
 
-
-## === Actions logic ===
-show_help() {
-    cat <<EOF
-Usage: nosarch-toggle <command> [option]
-
-Commands:
-    dnd             Toggle Notifications (Do Not Disturb)
-    dnd-status      Get Do Not Disturb state
-EOF
-}
-
-
+## === Features ===
 toggle_dnd() {
     dnd_status=$(get_dnd_status)
 
@@ -46,6 +47,7 @@ get_dnd_status() {
     swaync-client --get-dnd
 }
 
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help

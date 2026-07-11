@@ -2,7 +2,16 @@
 
 set -euo pipefail
 
-## === Utility logic ===
+show_help() {
+    cat <<EOF
+Usage: nosarch-battery <command>
+
+Commands:
+    power-profile-auto      Automatically set the power profile based on charging state
+EOF
+}
+
+## === Utilities ===
 notify_battery_status() {
     # Copied from Omarchy
 
@@ -54,15 +63,6 @@ notify_battery_status() {
 }
 
 ## === Actions logic ===
-show_help() {
-    cat <<EOF
-Usage: ${0##*/} <command>
-
-Commands:
-    power-profile-auto    Automatically set the power profile based on charging state
-EOF
-}
-
 auto_set_power_profile() {
     notify-send "Auto-setting power profile based on charging state"
     # Copied from Omarchy
@@ -116,7 +116,7 @@ auto_set_power_profile() {
     esac
 }
 
-## === Main logic ===
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help

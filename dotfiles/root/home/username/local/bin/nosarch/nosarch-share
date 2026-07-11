@@ -2,6 +2,25 @@
 
 set -euo pipefail
 
+show_help() {
+cat <<EOF
+Usage:
+    nosarch-share <command>
+
+Commands:
+    file            Share file(s)
+    folder          Share folder(s)
+    text            Share text
+    clipboard       Share clipboard content
+    help            Show this help message
+
+    files           Same as `file`
+    folders         Same as `folder`
+EOF
+}
+
+
+## === Utilities ===
 _ensure_command() {
     if ! command -v "$1" &>/dev/null; then
         echo "Error: $1 is required but not found."
@@ -9,25 +28,8 @@ _ensure_command() {
     fi
 }
 
-for cmd in localsend fzf xdg-terminal-exec; do
-    _ensure_command "$cmd"
-done
 
-
-## === Actions logic ===
-show_help() {
-cat <<EOF
-Usage: nosarch-share <command>
-
-Commands:
-    file            Share file(s)
-    folder          Share folder(s)
-    text            Share text
-    clipboard       Share clipboard content
-EOF
-}
-
-
+## === Features ===
 pick_files() {
     zenity --file-selection --multiple --separator=$'\n'
 }
@@ -83,7 +85,7 @@ share_clipboard() {
     systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
 }
 
-## === Main logic ===
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help
@@ -94,7 +96,7 @@ main() {
         file|files)
             share_files
             ;;
-        folder)
+            folder|folders)
             share_folder
             ;;
         text)
@@ -113,5 +115,9 @@ main() {
             ;;
     esac
 }
+
+for cmd in localsend fzf xdg-terminal-exec; do
+    _ensure_command "$cmd"
+done
 
 main "$@"

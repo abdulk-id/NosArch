@@ -2,7 +2,28 @@
 
 set -euo pipefail
 
-## === Utility logic ===
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-session <command> [action]
+
+Commands:
+    idle-lock <action>      Manage Idle-lock
+    lock                    Lock the session
+    logout                  Log out of the session
+    restart                 Restart the system
+    shutdown                Shutdown the system
+    help                    Show this help message
+
+Idle-Lock actions:
+    toggle                  Toggle Idle-Lock on/off
+    enable                  Enable Idle-Lock
+    disable                 Disable idle-lock
+    status                  Check idle-lock state (outputs "true" if enabled, "false" otherwise)
+EOF
+}
+
+## === Utilities ===
 _ensure_command() {
     if ! command -v "$1" &>/dev/null; then
         echo "Error: $1 is required but not found."
@@ -10,28 +31,7 @@ _ensure_command() {
     fi
 }
 
-## === Actions logic ===
-show_help() {
-    cat <<EOF
-Usage:
-    nosarch-session <command> [option]
-
-Commands:
-    idle-lock       Turn idle lock on/off  [toggle | enable | disable | status]
-    lock            Lock the session
-    logout          Log out of the session
-    restart         Restart the system
-    shutdown        Shutdown the system
-    help            Show this help message
-
-Idle-Lock options:
-    toggle          Toggle Idle-Lock on/off
-    enable          Enable Idle-Lock
-    disable         Disable idle-lock
-    status          Check idle-lock state (outputs "true" if enabled, "false" otherwise)
-EOF
-}
-
+## === Features ===
 IDLE_LOCK_UNIT="nosarch-idle-inhibit.service"
 
 enable_idle_lock() {
@@ -91,6 +91,8 @@ session_after_unlock() {
 }
 
 session_logout() {
+    _ensure_command "hyprshutdown"
+
     if zenity --question \
         --title="Logout" \
         --text="Are you sure you want to quit all applications and log out now?" \
@@ -136,7 +138,7 @@ system_restart() {
     fi
 }
 
-## === Main logic ===
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help
@@ -159,7 +161,7 @@ main() {
                     idle_lock_status
                     ;;
                 *)
-                    echo "Unknown idle-lock option: $2"
+                    echo "Unknown idle-lock action: $2"
                     show_help
                     exit 1
                     ;;

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Usage:
-#   launch-tui <command> [args...]
+#   nosarch-launch-tui <command> [args...]
 
 [[ $# -eq 0 ]] && {
     echo "Usage: $0 <command> [args...]"

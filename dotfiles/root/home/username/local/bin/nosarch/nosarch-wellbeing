@@ -2,26 +2,27 @@
 
 set -euo pipefail
 
-## === Actions logic ===
 show_help() {
     cat <<EOF
 Usage:
-    nosarch-wellbeing <command> [option]
+    nosarch-wellbeing <command> [actions]
 
 Commands:
-    eyesight        Control Eyesight Reminders [remind | toggle | enable | disable | status | start | stop]
+    eyesight <action>       Control Eyesight Reminders
+    help                    Show this help message
 
-Eyesight options
-    remind          Send an eyesight reminder
-    toggle          Toggle eyesight reminders on/off
-    enable          Enable eyesight reminders
-    disable         Disable eyesight reminders
-    status          Get the current eyesight reminders status
-    start           Start the eyesight reminder timer (Used mainly for restarting the timer)
-    stop            Stop the eyesight reminder timer (without disabling reminders) (Used mainly for restarting the timer)
+Eyesight actions:
+    remind                  Send an eyesight reminder
+    toggle                  Toggle eyesight reminders on/off
+    enable                  Enable eyesight reminders
+    disable                 Disable eyesight reminders
+    status                  Get the current eyesight reminders status
+    start                   Start the eyesight reminder timer
+    stop                    Stop the eyesight reminder timer (without disabling reminders)
 EOF
 }
 
+## === Actions logic ===
 send_eyesight_reminder() {
     if bash ~/.local/bin/util/detect-screen-sharing.sh; then
         return
@@ -84,7 +85,7 @@ start_eyesight_timer() {
 }
 
 
-## === Main logic ===
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help
@@ -116,7 +117,7 @@ main() {
                     stop_eyesight_timer
                     ;;
                 *)
-                    echo "Unknown command: $2"
+                    echo "Unknown eyesight action: $2"
                     show_help
                     exit 1
                     ;;

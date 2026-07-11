@@ -4,6 +4,26 @@ set -euo pipefail
 
 source "$HOME/.local/bin/nosarch/nosarch-sudo-keepalive"
 
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-package <command> [actions]
+
+Commands:
+    install <action>        Install packages
+    update                  Update packages (Arch and AUR, and Flatpak if installed)
+    remove                  Remove packages (Arch and AUR, and Flatpak if installed)
+    remove-unused           Remove unused packages (Arch and AUR)
+    help                    Show this help message
+
+Install actions:
+    arch            Install packages from Arch repositories
+    aur             Install packages from AUR
+    flatpak         Install Flatpak packages
+EOF
+}
+
+## === Utilities ===
 _ensure_command() {
     if ! command -v "$1" &>/dev/null; then
         echo "Error: $1 is required but not found."
@@ -11,29 +31,7 @@ _ensure_command() {
     fi
 }
 
-for cmd in gum fzf yay; do
-    _ensure_command "$cmd"
-done
-
-
-## === Actions logic ===
-show_help() {
-    cat <<EOF
-Usage: nosarch-package <command> [option]
-
-Commands:
-    install         Install packages [arch | aur | flatpak]
-    update          Update packages (Arch and AUR, and Flatpak if installed)
-    remove          Remove packages
-    remove-unused   Remove unused (orphan) packages
-
-Install options:
-    arch            Install packages from Arch repositories
-    aur             Install packages from AUR
-    flatpak         Install packages from Flatpak
-EOF
-}
-
+## === Features ===
 install_arch_packages() {
     # Copied from Omarchy
     fzf_args=(
@@ -369,7 +367,7 @@ remove_unused_packages() {
 }
 
 
-## === Main logic ===
+## ===
 main() {
     if [[ $# -eq 0 ]]; then
         show_help
@@ -389,7 +387,7 @@ main() {
                     install_flatpak_packages
                     ;;
                 *)
-                    echo "Unknown command: $2"
+                    echo "Unknown install action: $2"
                     show_help
                     exit 1
                     ;;
@@ -414,5 +412,9 @@ main() {
             ;;
     esac
 }
+
+for cmd in gum fzf yay; do
+    _ensure_command "$cmd"
+done
 
 main "$@"

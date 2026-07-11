@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$HOME/.local/bin/nosarch/nosarch-sudo-keepalive"
+source "$HOME/.local/bin/util/sudo-keepalive.sh"
 
 show_help() {
     cat <<EOF
@@ -17,9 +17,9 @@ Commands:
     help                    Show this help message
 
 Install actions:
-    arch            Install packages from Arch repositories
-    aur             Install packages from AUR
-    flatpak         Install Flatpak packages
+    arch                    Install packages from Arch repositories
+    aur                     Install packages from AUR
+    flatpak                 Install Flatpak packages
 EOF
 }
 

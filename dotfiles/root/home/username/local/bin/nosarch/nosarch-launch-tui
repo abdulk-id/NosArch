@@ -1,30 +1,41 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
-# Usage:
-#   nosarch-launch-tui <command> [args...]
-
-[[ $# -eq 0 ]] && {
-    echo "Usage: $0 <command> [args...]"
-    exit 1
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-launch-tui <command> [args...]
+EOF
 }
 
-# --- Dependencies ---
-for cmd in hyprctl jq; do
-    command -v "$cmd" &>/dev/null || {
-        echo "Error: $cmd is required."
+## === Utilities ===
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found."
         exit 1
-    }
+    fi
+}
+
+shell_quote() {
+    printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+## Action
+for cmd in hyprctl jq; do
+    _ensure_command "$cmd"
 done
+
+[ "$#" -eq 0 ] && {
+    show_help
+    return
+}
 
 : "${TERMINAL:=xdg-terminal-exec}"
 
 # --- Command info ---
-CMD=( "$@" )
-
-FULL_CMD="${CMD[*]}"
-TITLE="TUI.${FULL_CMD// /_}"
+FULL_CMD="$*"
+TITLE="TUI.$(printf '%s' "$FULL_CMD" | sed 's/ /_/g')"
 
 # --- Refocus existing window if present ---
 ADDR=$(
@@ -34,7 +45,7 @@ ADDR=$(
     head -n1
 )
 
-if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
+if [ -n "$ADDR" ] && [ "$ADDR" != "null" ]; then
     hyprctl eval "
     hl.dispatch(
         hl.dsp.focus({
@@ -53,12 +64,15 @@ if [[ -n "$ADDR" && "$ADDR" != "null" ]]; then
     exit 0
 fi
 
-# --- Build safely escaped command ---
-printf -v CMD_STRING '%q ' "${CMD[@]}"
+CMD_STRING=
 
-# --- Build inner shell script ---
-read -r -d '' INNER_SCRIPT <<EOF || true
-printf '\e]0;%s\a' '$TITLE'
+for arg in "$@"; do
+    quoted=$(shell_quote "$arg")
+    CMD_STRING="${CMD_STRING}${CMD_STRING:+ }${quoted}"
+done
+
+INNER_SCRIPT=$(cat <<EOF
+printf '\e]0;%s\a' $(shell_quote "$TITLE")
 
 if ! $CMD_STRING; then
     echo
@@ -69,9 +83,9 @@ echo
 read -n 1 -s -r -p "Press any key to exit..."
 echo
 EOF
+)
 
-ESCAPED_SCRIPT=${INNER_SCRIPT//\'/\'\\\'\'}
-
+ESCAPED_SCRIPT=$(printf '%s' "$INNER_SCRIPT" | sed "s/'/'\\\\''/g")
 FINAL_CMD="$TERMINAL -e sh -lc '$ESCAPED_SCRIPT'"
 
 hyprctl eval "hl.exec_cmd([==[$FINAL_CMD]==], {

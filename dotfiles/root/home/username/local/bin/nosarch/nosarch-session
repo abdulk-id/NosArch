@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
 show_help() {
     cat <<EOF
@@ -25,7 +25,7 @@ EOF
 
 ## === Utilities ===
 _ensure_command() {
-    if ! command -v "$1" &>/dev/null; then
+    if ! command -v "$1" >/dev/null 2>&1; then
         echo "Error: $1 is required but not found."
         exit 1
     fi
@@ -41,11 +41,11 @@ enable_idle_lock() {
         --description="NosArch Idle Inhibition (Manual Toggle)" \
         /usr/bin/systemd-inhibit --what=idle --who="Manual Toggle" --why="User requested" sleep infinity
 
-    notify-send -a "NosArch Power" -u low "󱫖  Enabled Idle-Lock" "Stop locking computer when idle"
+    notify-send --app-name "NosArch Power" --urgency low "󱫖  Enabled Idle-Lock" "Stop locking computer when idle"
 }
 disable_idle_lock() {
     systemctl --user stop "$IDLE_LOCK_UNIT"
-    notify-send -a "NosArch Power" -u low "󱫖  Disabled Idle-Lock" "Now locking computer when idle"
+    notify-send --app-name "NosArch Power" --urgency low "󱫖  Disabled Idle-Lock" "Now locking computer when idle"
 }
 toggle_idle_lock() {
     if systemctl --user is-active --quiet "$IDLE_LOCK_UNIT"; then
@@ -66,7 +66,7 @@ idle_lock_status() {
 
 session_lock() {
     # Close Bitwarden if installed
-    if command -v bitwarden &>/dev/null; then
+    if command -v bitwarden >/dev/null 2>&1; then
         pkill -i bitwarden
     fi
 
@@ -140,7 +140,7 @@ system_restart() {
 
 ## ===
 main() {
-    if [[ $# -eq 0 ]]; then
+    if [ "$#" -eq 0 ]; then
         show_help
         return
     fi

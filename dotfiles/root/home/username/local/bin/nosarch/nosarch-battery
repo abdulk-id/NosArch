@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
 show_help() {
     cat <<EOF
@@ -15,7 +15,7 @@ EOF
 notify_battery_status() {
     # Copied from Omarchy
 
-    battery_info=$(upower -i $(upower -e | grep BAT))
+    battery_info=$(upower -i "$(upower -e | grep BAT)")
 
     capacity=$(echo "$battery_info" | awk '/energy-full:/ {
         printf "%d", $2
@@ -53,17 +53,17 @@ notify_battery_status() {
         exit
     }')
 
-    if [[ $state == "charging" ]]; then
+    if [ "$state" = "charging" ]; then
         echo "Battery ${percentage}%  ·  ${time_remaining} to full  ·   ${power_rate}W / ${capacity}Wh"
-    elif [[ $state == "discharging" ]]; then
+    elif [ "$state" = "discharging" ]; then
         echo "Battery ${percentage}%  ·  ${time_remaining} left  ·   ${power_rate}W / ${capacity}Wh"
-    elif [[ $state == "fully-charged" ]]; then
+    elif [ "$state" = "fully-charged" ]; then
         echo "Battery ${percentage}%  ·  fully charged  ·   ${power_rate}W / ${capacity}Wh"
     fi
 }
 
 ## === Actions logic ===
-auto_set_power_profile() {
+auto_set_power_profile() (
     notify-send "Auto-setting power profile based on charging state"
     # Copied from Omarchy
 
@@ -77,31 +77,39 @@ auto_set_power_profile() {
     # some laptops. A short settle delay lets the kernel update before we read state.
     sleep 0.3
 
-    local action=battery
+    action=battery
 
     for power_supply in /sys/class/power_supply/*; do
-        [[ -r $power_supply/online && -r $power_supply/type ]] || continue
+        [ -r "$power_supply"/online ] && [ -r "$power_supply"/type ] || continue
 
         type=$(cat "$power_supply/type")
-        [[ $type == "Mains" ]] || continue
+        [ "$type" = "Mains" ] || continue
 
-        # TODO: Commented out: only treat "Mains" as AC because "USB" is stuck
-        # at online=1 (On Dell XPS 13)
-        #[[ $type == "Mains" || $type == "USB" ]] || continue
+        # TODO: Commented out: only treat "Mains" as AC because "USB" is stuck at online=1 (On Dell XPS 13)
+        # [ "$type" = "Mains" ] || [ "$type" = "USB" ] || continue
 
-        if [[ $(cat "$power_supply/online") == "1" ]]; then
+        if [ "$(cat "$power_supply/online")" = "1" ]; then
             action=ac
             break
         fi
     done
 
-    # Get available power profiles
-    mapfile -t profiles < <(powerprofilesctl list | awk '/^\s*[* ]\s*[a-zA-Z0-9\-]+:$/ { gsub(/^[*[:space:]]+|:$/,""); print }')
+    # Check if performance profile is available
+    has_performance=false
+
+    while read -r profile; do
+        if [ "$profile" = "performance" ]; then
+            has_performance=true
+            break
+        fi
+    done << EOF
+$(powerprofilesctl list | awk '/^\s*[* ]\s*[a-zA-Z0-9\-]+:$/ { gsub(/^[*[:space:]]+|:$/,""); print }')
+EOF
 
     case "$action" in
         ac)
             # Prefer performance, fall back to balanced
-            if [[ " ${profiles[*]} " == *" performance "* ]]; then
+            if [ "$has_performance" = true ]; then
                 powerprofilesctl set performance
                 notify-send "Power profile set to performance on AC"
             else
@@ -114,11 +122,11 @@ auto_set_power_profile() {
             powerprofilesctl set balanced
             ;;
     esac
-}
+)
 
 ## ===
 main() {
-    if [[ $# -eq 0 ]]; then
+    if [ "$#" -eq 0 ]; then
         show_help
         return
     fi

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 start_sudo_keepalive() {
     sudo -v || return 1
@@ -12,6 +12,5 @@ start_sudo_keepalive() {
 }
 
 stop_sudo_keepalive() {
-    [[ -n "${SUDO_KEEPALIVE_PID:-}" ]] && \
-        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
+    [ -n "${SUDO_KEEPALIVE_PID:-}" ] && kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
 }

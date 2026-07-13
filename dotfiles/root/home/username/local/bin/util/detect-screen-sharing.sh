@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 is_screen_shared() {
     pw-dump | jq -e '

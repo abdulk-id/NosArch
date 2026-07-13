@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
 show_help() {
-    cat <<EOF
+    cat <<'EOF'
 Usage:
     nosarch-share <command>
 
@@ -22,7 +22,7 @@ EOF
 
 ## === Utilities ===
 _ensure_command() {
-    if ! command -v "$1" &>/dev/null; then
+    if ! command -v "$1" >/dev/null 2>&1; then
         echo "Error: $1 is required but not found."
         exit 1
     fi
@@ -31,7 +31,7 @@ _ensure_command() {
 
 ## === Features ===
 pick_files() {
-    zenity --file-selection --multiple --separator=$'\n'
+    zenity --file-selection --multiple --separator="$(printf '\n')"
 }
 pick_folder() {
     zenity --file-selection --directory
@@ -49,45 +49,42 @@ input_text() {
 }
 
 share_files() {
-    local result
     result="$(pick_files)" || return 0
 
-    local files=()
-    mapfile -t files <<< "$result"
-    [[ "${#files[@]}" -eq 0 ]] && return 0
-
-    systemd-run --user --quiet --collect localsend --headless send "${files[@]}"
+    (
+        IFS='
+'
+        set -f
+        set -- "$result"
+        systemd-run --user --quiet --collect localsend --headless send "$@"
+    )
 }
 
-share_folder() {
-    local folder
+share_folder() (
     folder="$(pick_folder)" || return 0
 
     systemd-run --user --quiet --collect localsend --headless send "$folder"
-}
+)
 
-share_text() {
-    local text
+share_text() (
     text="$(input_text)" || return 0
 
-    local tmpfile
     tmpfile="$(mktemp --suffix=.txt)"
     echo "$text" > "$tmpfile"
 
     systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
-}
+)
 
-share_clipboard() {
-    local tmpfile
+share_clipboard() (
     tmpfile="$(mktemp --suffix=.txt)"
     wl-paste > "$tmpfile"
 
     systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
-}
+)
 
 ## ===
 main() {
-    if [[ $# -eq 0 ]]; then
+    if [ "$#" -eq 0 ]; then
         show_help
         return
     fi

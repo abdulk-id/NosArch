@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
 show_help() {
     cat <<EOF
@@ -22,8 +22,8 @@ EOF
 
 ## === Utilities ===
 _ensure_command() {
-    if ! command -v "$1" &>/dev/null; then
-        echo "Error: $1 is required but not found."
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found." >&2
         exit 1
     fi
 }
@@ -37,30 +37,31 @@ extract_text() {
     # Keep hyprpicker alive until after grim captures so the screenshot sees the
     # frozen overlay rather than live content shifting during teardown.
     cleanup_freeze() {
-      [[ -n $PID ]] && kill $PID 2>/dev/null
+      [ -n "$PID" ] && kill "$PID" 2>/dev/null
     }
     trap cleanup_freeze EXIT
 
-    hyprpicker -r -z >/dev/null 2>&1 &
+    hyprpicker --render-inactive --no-zoom >/dev/null 2>&1 &
     PID=$!
     sleep .1
 
     SELECTION=$(slurp 2>/dev/null)
-    [[ -z $SELECTION ]] && exit 0
+    [ -z "$SELECTION" ] && exit 0
 
-    TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem 1 --psm 6 -l "eng" --dpi 300 -c preserve_interword_spaces=1 2>/dev/null) || exit 1
-    [[ -z $TEXT ]] && exit 1
+    TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem lstm-only --psm single_block -l "eng" --dpi 300 -c preserve_interword_spaces=1 2>/dev/null) || exit 1
+    [ -z "$TEXT" ] && exit 1
 
     printf "%s" "$TEXT" | wl-copy
 
     notify-send --urgency=normal \
-    --app-name="Nosarch Capture" --app-icon="applets-screenshooter-symbolic" \
+    --app-name="Nosarch Capture" \
+    --app-icon="applets-screenshooter-symbolic" \
     "Text Extraction" "Copied text from selection to clipboard"
 }
 
 ## ===
 main() {
-    if [[ $# -eq 0 ]]; then
+    if [ "$#" -eq 0 ]; then
         show_help
         return
     fi

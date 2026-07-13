@@ -10,14 +10,16 @@ You can still apen an issue or a PR.
 
 ### Shell Script style
 
+All shell scripts must be strictly POSIX-compliant.
+
 NosArch shell script example:
 
 ```sh
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
-source "some-script"
+. "some-script"
 
 show_help() {
     cat <<EOF
@@ -43,7 +45,7 @@ EOF
 ## === Utilities ===
 # Example function
 # _ensure_command() {
-#     if ! command -v "$1" &>/dev/null; then
+#     if ! command -v "$1" >/dev/null 2>&1; then
 #         echo "Error: $1 is required but not found."
 #         exit 1
 #     fi
@@ -54,7 +56,7 @@ EOF
 
 ## ===
 main() {
-    if [[ $# -eq 0 ]]; then
+    if [ "$#" -eq 0 ]; then
         show_help
         return
     fi

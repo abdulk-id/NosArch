@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
 show_help() {
     cat <<EOF
@@ -18,34 +18,41 @@ EOF
 }
 
 ## === Features ===
-get_browser_exec() {
+get_browser_exec() (
     # Copied from Omarchy
 
-    local desktop
     desktop=$(xdg-settings get default-web-browser)
 
-    sed -n 's/^Exec=\([^ ]*\).*/\1/p' \
-        {~/.local,~/.nix-profile,/usr}/share/applications/"$desktop" \
-        2>/dev/null | head -1
-}
-get_private_flag() {
+    for dir in "$HOME/.local" "$HOME/.nix-profile" "/usr"; do
+        file="$dir/share/applications/$desktop"
+        if [ -f "$file" ]; then
+            sed -n 's/^Exec=\([^ ]*\).*/\1/p' "$file" | head -n 1
+            break
+        fi
+    done
+)
+get_private_flag() (
     # Copied from Omarchy
 
-    local browser=$1
+    browser="$1"
 
     if "$browser" --help | grep -q MOZ_LOG; then
         echo "--private-window"
-    elif [[ $browser =~ edge ]]; then
-        echo "--inprivate"
     else
-        echo "--incognito"
+        case "$browser" in
+            *edge*)
+                echo "--inprivate"
+                ;;
+            *)
+                echo "--incognito"
+                ;;
+        esac
     fi
-}
+)
 launch_browser() {
     exec setsid uwsm-app -- "$(get_browser_exec)"
 }
 launch_browser_private() {
-    local browser private_flag
     browser=$(get_browser_exec)
     private_flag=$(get_private_flag "$browser")
 
@@ -54,7 +61,7 @@ launch_browser_private() {
 
 ## ===
 main() {
-    if [[ $# -eq 0 ]]; then
+    if [ "$#" -eq 0 ]; then
         show_help
         return
     fi

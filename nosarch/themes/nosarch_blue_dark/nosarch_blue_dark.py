@@ -11,6 +11,7 @@ THEME: dict[str, str] = {
     "%FOREGROUND_PRIMARY%": "ffffff",
     "%FOREGROUND_SECONDARY%": "9a9a9c",
     "%ACCENT%": "6799e4",
+    "%ALERT_RED%": "ff6666",
     # ANSI Colors
     "%ANSI_COLOR_0%": "010101",
     "%ANSI_COLOR_1%": "cd3131",

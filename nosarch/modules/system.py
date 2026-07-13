@@ -1,5 +1,6 @@
 import decman
 import utils.cpu_vendor
+import utils.wireless_regdom
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
@@ -101,6 +102,20 @@ class SystemModule(decman.Module):
                 owner="root",
             ),
         }
+
+        wireless_regdom: str | None = (
+            utils.wireless_regdom.get_wireless_regdom_contents()
+        )
+        if wireless_regdom:
+            etc_files.update(
+                {
+                    "/etc/conf.d/wireless-regdom": File(
+                        content="# Wireless regulatory domain configuration\n\n"
+                        + wireless_regdom,
+                        owner="root",
+                    )
+                }
+            )
 
         return etc_files | {
             f"/home/{CONFIG['%USER%']}/.bash_profile": File(

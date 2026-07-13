@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
-source "$HOME/.local/bin/util/sudo-keepalive.sh"
+. "$HOME/.local/bin/util/sudo-keepalive.sh"
 
 show_help() {
     cat <<EOF
@@ -25,32 +25,35 @@ EOF
 
 ## === Utilities ===
 _ensure_command() {
-    if ! command -v "$1" &>/dev/null; then
+    if ! command -v "$1" >/dev/null 2>&1; then
         echo "Error: $1 is required but not found."
         exit 1
     fi
 }
 
+update_db() {
+    if command -v updatedb >/dev/null 2>&1; then
+        sudo updatedb
+    fi
+}
+
 ## === Features ===
 install_arch_packages() {
-    # Copied from Omarchy
-    fzf_args=(
-        --multi
-        --preview 'pacman -Sii {1}'
-        --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
-        --preview-label-pos='bottom'
-        --preview-window 'down:65%:wrap'
-        --bind 'alt-p:toggle-preview'
-        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
-        --bind 'alt-k:preview-up,alt-j:preview-down'
+    pkg_names=$(
+        pacman -Slq | fzf \
+        --multi \
+        --preview 'pacman -Sii {1}' \
+        --preview-label='alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+        --preview-label-pos='bottom' \
+        --preview-window 'down:65%:wrap' \
+        --bind 'alt-p:toggle-preview' \
+        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+        --bind 'alt-k:preview-up,alt-j:preview-down' \
         --color 'pointer:green,marker:green'
-    )
+    ) || return 0
 
-    # List all arch packages (names only)
-    pkg_names=$(pacman -Slq | fzf "${fzf_args[@]}")
-
-    if [[ "$pkg_names" != "" ]]; then
-        gum style --foreground 2 --bold "▸ Authenticating..."
+    if [ -n "$pkg_names" ]; then
+        gum style --foreground 10 "▸ Authenticating..."
         echo
 
         if ! start_sudo_keepalive; then
@@ -58,52 +61,53 @@ install_arch_packages() {
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
-        trap stop_sudo_keepalive EXIT
+        trap 'stop_sudo_keepalive' 0
         echo
 
-        mapfile -t pkg_array <<< "$pkg_names"
+        old_ifs=$IFS
+        IFS='
+'
+        set -f
+        set -- "$pkg_names"
+        set +f
+        IFS=$old_ifs
 
-        gum style --foreground 2 --bold "▸ Installing packages..."
+        gum style --foreground 10 "▸ Installing packages..."
         echo
 
-        if sudo pacman -S --needed --noconfirm "${pkg_array[@]}"; then
-            if command -v updatedb &>/dev/null; then
-                sudo updatedb
-            fi
+        if sudo pacman -S --needed --noconfirm "$@"; then
+            update_db
 
             echo
-            gum style --foreground 2 "✓ Installation complete!"
+            gum style --foreground 10 "✓ Installation complete!"
         else
             echo
             gum style --foreground 9 "x Installation failed."
         fi
 
         stop_sudo_keepalive
-        trap - EXIT
+        trap - 0
     fi
 }
 
 install_aur_packages() {
-    # Copied from Omarchy
-    fzf_args=(
-        --multi
-        --preview 'yay -Siia {1}'
-        --preview-label='alt-p: toggle description, alt-b/B: toggle PKGBUILD, alt-j/k: scroll, tab: multi-select'
-        --preview-label-pos='bottom'
-        --preview-window 'down:65%:wrap'
-        --bind 'alt-p:toggle-preview'
-        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
-        --bind 'alt-k:preview-up,alt-j:preview-down'
-        --bind 'alt-b:change-preview:yay -Gpa {1} | tail -n +5'
-        --bind 'alt-B:change-preview:yay -Siia {1}'
-        --color 'pointer:green,marker:green'
-    )
+    pkg_names=$(
+        yay -Slqa | fzf \
+            --multi \
+            --preview 'yay -Siia {1}' \
+            --preview-label='alt-p: toggle description, alt-b/B: toggle PKGBUILD, alt-j/k: scroll description, tab: multi-select' \
+            --preview-label-pos='bottom' \
+            --preview-window 'down:65%:wrap' \
+            --bind 'alt-p:toggle-preview' \
+            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+            --bind 'alt-k:preview-up,alt-j:preview-down' \
+            --bind 'alt-b:change-preview:yay -Gpa {1} | tail -n +5' \
+            --bind 'alt-B:change-preview:yay -Siia {1}' \
+            --color 'pointer:green,marker:green'
+    ) || return 0
 
-    # List all AUR packages (names only)
-    pkg_names=$(yay -Slqa | fzf "${fzf_args[@]}")
-
-    if [[ "$pkg_names" != "" ]]; then
-        gum style --foreground 2 --bold "▸ Authenticating..."
+    if [ -n "$pkg_names" ]; then
+        gum style --foreground 10 "▸ Authenticating..."
         echo
 
         if ! start_sudo_keepalive; then
@@ -111,46 +115,38 @@ install_aur_packages() {
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
-        trap stop_sudo_keepalive EXIT
+        trap 'stop_sudo_keepalive' 0
         echo
 
-        mapfile -t pkg_array <<< "$pkg_names"
+        old_ifs=$IFS
+        IFS='
+'
+        set -f
+        set -- "$pkg_names"
+        set +f
+        IFS=$old_ifs
 
-        gum style --foreground 2 --bold "▸ Installing AUR packages..."
+        gum style --foreground 10 "▸ Installing AUR packages..."
         echo
 
-        if yay -S --noconfirm "${pkg_array[@]}"; then
-            if command -v updatedb &>/dev/null; then
-                sudo updatedb
-            fi
+        if yay -S --noconfirm "$@"; then
+            update_db
 
             echo
-            gum style --foreground 2 "✓ Installation complete!"
+            gum style --foreground 10 "✓ Installation complete!"
         else
             echo
             gum style --foreground 9 "x Installation failed."
         fi
 
         stop_sudo_keepalive
-        trap - EXIT
+        trap - 0
     fi
 
 }
 
 install_flatpak_packages() {
-    fzf_args=(
-        --multi
-        --delimiter=$'\t'
-        --with-nth=2
-        --preview 'printf "%s\n" "{}" | cut -f3'
-        --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
-        --preview-label-pos='bottom'
-        --preview-window 'down:30%:wrap'
-        --bind 'alt-p:toggle-preview'
-        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
-        --bind 'alt-k:preview-up,alt-j:preview-down'
-        --color 'pointer:green,marker:green'
-    )
+    TAB_CHAR=$(printf '\t')
 
     # APP_ID<TAB>NAME<TAB>DESCRIPTION
     pkg_selection=$(
@@ -159,20 +155,38 @@ install_flatpak_packages() {
             !seen[$1]++ {
                 printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
             }
-        ' | sort -t$'\t' -k2,2f | fzf "${fzf_args[@]}"
-    )
+        ' | \
+        sort -t"$TAB_CHAR" -k2,2f | fzf \
+            --multi \
+            --delimiter="$TAB_CHAR" \
+            --with-nth=2 \
+            --preview 'printf "%s\n" "{}" | cut -f3' \
+            --preview-label='alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+            --preview-label-pos='bottom' \
+            --preview-window 'down:30%:wrap' \
+            --bind 'alt-p:toggle-preview' \
+            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+            --bind 'alt-k:preview-up,alt-j:preview-down' \
+            --color 'pointer:green,marker:green'
+    ) || return 0
 
-    if [[ -n "$pkg_selection" ]]; then
-        mapfile -t pkg_array < <(
-            printf '%s\n' "$pkg_selection" | cut -f1
-        )
+    if [ -n "$pkg_selection" ]; then
+        pkg_array=$(printf '%s\n' "$pkg_selection" | cut -f1)
 
-        gum style --foreground 2 --bold "▸ Installing Flatpak packages..."
+        old_ifs=$IFS
+        IFS='
+        '
+        set -f
+        set -- "$pkg_array"
+        set +f
+        IFS=$old_ifs
+
+        gum style --foreground 10 "▸ Installing Flatpak packages..."
         echo
 
-        if flatpak install "${pkg_array[@]}"; then
+        if flatpak install "$@"; then
             echo
-            gum style --foreground 2 "✓ Installation complete!"
+            gum style --foreground 10 "✓ Installation complete!"
         else
             echo
             gum style --foreground 9 "x Installation failed."
@@ -181,7 +195,7 @@ install_flatpak_packages() {
 }
 
 update_packages() {
-    gum style --foreground 2 --bold "▸ Authenticating..."
+    gum style --foreground 10 "▸ Authenticating..."
     echo
 
     if ! start_sudo_keepalive; then
@@ -189,32 +203,30 @@ update_packages() {
         gum style --foreground 9 "x Authentication failed."
         return 1
     fi
-    trap stop_sudo_keepalive EXIT
+    trap 'stop_sudo_keepalive' 0
     echo
 
-    gum style --foreground 2 --bold "▸ Updating Arch and AUR packages..."
+    gum style --foreground 10 "▸ Updating Arch and AUR packages..."
     echo
 
     if yay -Syu; then
-        if command -v updatedb &>/dev/null; then
-            sudo updatedb
-        fi
+        update_db
 
         echo
-        gum style --foreground 2 "✓ Arch and AUR packages updated!"
+        gum style --foreground 10 "✓ Arch and AUR packages updated!"
     else
         echo
         gum style --foreground 9 "x Arch and AUR package update failed."
     fi
 
-    if command -v flatpak &>/dev/null; then
+    if command -v flatpak >/dev/null 2>&1; then
         echo
-        gum style --foreground 2 --bold "▸ Updating Flatpak packages..."
+        gum style --foreground 10 "▸ Updating Flatpak packages..."
         echo
 
         if flatpak update --assumeyes; then
             echo
-            gum style --foreground 2 "✓ Flatpak packages updated!"
+            gum style --foreground 10 "✓ Flatpak packages updated!"
         else
             echo
             gum style --foreground 9 "x Flatpak package update failed."
@@ -222,28 +234,25 @@ update_packages() {
     fi
 
     stop_sudo_keepalive
-    trap - EXIT
+    trap - 0
 }
 
 remove_packages() {
-    # Copied from Omarchy
-    fzf_args=(
-        --multi
-        --preview 'yay -Qi {1}'
-        --preview-label='alt-p: toggle description, alt-j/k: scroll, tab: multi-select'
-        --preview-label-pos='bottom'
-        --preview-window 'down:65%:wrap'
-        --bind 'alt-p:toggle-preview'
-        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
-        --bind 'alt-k:preview-up,alt-j:preview-down'
-        --color 'pointer:red,marker:red'
-    )
+    pkg_names=$(
+        yay -Qqe | fzf \
+            --multi \
+            --preview 'yay -Qi {1}' \
+            --preview-label='alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+            --preview-label-pos='bottom' \
+            --preview-window 'down:65%:wrap' \
+            --bind 'alt-p:toggle-preview' \
+            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+            --bind 'alt-k:preview-up,alt-j:preview-down' \
+            --color 'pointer:red,marker:red'
+    ) || return 0
 
-    # List all AUR packages (names only)
-    pkg_names=$(yay -Qqe | fzf "${fzf_args[@]}")
-
-    if [[ "$pkg_names" != "" ]]; then
-        gum style --foreground 2 --bold "▸ Authenticating..."
+    if [ "$pkg_names" != "" ]; then
+        gum style --foreground 10 "▸ Authenticating..."
         echo
 
         if ! start_sudo_keepalive; then
@@ -251,63 +260,78 @@ remove_packages() {
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
-        trap stop_sudo_keepalive EXIT
+        trap 'stop_sudo_keepalive' 0
         echo
 
-        mapfile -t pkg_array <<< "$pkg_names"
+        old_ifs=$IFS
+        IFS='
+'
+        set -f
+        set -- "$pkg_names"
+        set +f
+        IFS=$old_ifs
 
-        gum style --foreground 2 --bold "▸ Removing packages..."
+        gum style --foreground 10 "▸ Removing packages..."
         echo
 
-        if yay -Rns --noconfirm "${pkg_array[@]}"; then
+        if yay -Rns --noconfirm "$@"; then
             echo
-            gum style --foreground 2 "✓ Packages removed!"
+            gum style --foreground 10 "✓ Packages removed!"
         else
             echo
             gum style --foreground 9 "x Removal failed."
         fi
 
         stop_sudo_keepalive
-        trap - EXIT
+        trap - 0
     fi
 }
 
-remove_packages_new() {
-    local entries
+remove_packages_new() (
+    TAB_CHAR=$(printf '\t')
+
     entries=$(
         {
             yay -Qeqn | awk '{print "[arch]   \t" $0}'
             yay -Qeqm | awk '{print "[aur]    \t" $0}'
-            if command -v flatpak &>/dev/null; then
+
+            if command -v flatpak >/dev/null 2>&1; then
                 flatpak list --app --columns=application | awk '{print "[flatpak]\t" $0}'
             fi
-        } | sort -t$'\t' -k2 -f
+        } | sort -t"$TAB_CHAR" -k2 -f
     )
 
-    local selected
-    selected=$(fzf \
-        --multi \
-        --delimiter $'\t' \
-        --with-nth 1,2 \
-        --preview $'source="${1//[[ \\t\\[\\]]/}"; case "$source" in arch|aur) yay -Qi {2} ;; flatpak) flatpak info {2} ;; esac' \
-        --preview-label 'alt-p: toggle description, alt-j/k: scroll, tab: multi-select' \
-        --preview-label-pos 'bottom' \
-        --preview-window 'down:40%:wrap' \
-        --bind 'alt-p:toggle-preview' \
-        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-        --bind 'alt-k:preview-up,alt-j:preview-down' \
-        --color 'pointer:red,marker:red' \
-        <<< "$entries") || return 0
+    selected=$(
+        printf '%s\n' "$entries" |
+        fzf \
+            --multi \
+            --delimiter "$TAB_CHAR" \
+            --with-nth 1,2 \
+            --preview '
+                case "{1}" in
+                    "[arch]"|"[aur]")
+                        yay -Qi {2}
+                        ;;
+                    "[flatpak]")
+                        flatpak info {2}
+                        ;;
+                esac
+            ' \
+            --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+            --preview-label-pos 'bottom' \
+            --preview-window 'down:40%:wrap' \
+            --bind 'alt-p:toggle-preview' \
+            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+            --bind 'alt-k:preview-up,alt-j:preview-down' \
+            --color 'pointer:red,marker:red'
+    ) || return 0
 
-    [[ -z "$selected" ]] && return 0
+    [ -z "$selected" ] && return 0
 
-    local pacman_pkgs=() flatpak_pkgs=()
-    while IFS=$'\t' read -r source name; do
-        source="${source//[\[ \]]/}"
-        [[ "$source" == "flatpak" ]] && flatpak_pkgs+=("$name") || pacman_pkgs+=("$name")
-    done <<< "$selected"
+    pacman_pkgs=$(printf '%s\n' "$selected" | awk -F '\t' '$1 != "[flatpak]" { print $2 }')
+    flatpak_pkgs=$(printf '%s\n' "$selected" | awk -F '\t' '$1 == "[flatpak]" { print $2 }')
 
-    gum style --foreground 2 --bold "▸ Authenticating..."
+    gum style --foreground 10 "▸ Authenticating..."
     echo
 
     if ! start_sudo_keepalive; then
@@ -315,17 +339,26 @@ remove_packages_new() {
         gum style --foreground 9 "x Authentication failed."
         return 1
     fi
-    trap stop_sudo_keepalive EXIT
+    trap 'stop_sudo_keepalive' 0
     echo
 
-    local success=true
+    success=true
 
-    if (( ${#pacman_pkgs[@]} > 0 )); then
-        gum style --foreground 2 --bold "▸ Removing Arch/AUR packages..."
+    if [ -n "$pacman_pkgs" ]; then
+        old_ifs=$IFS
+        IFS='
+'
+        set -f
+        set -- "$pacman_pkgs"
+        set +f
+        IFS=$old_ifs
+
+        gum style --foreground 10 "▸ Removing Arch/AUR packages..."
         echo
-        if yay -Rns --noconfirm "${pacman_pkgs[@]}"; then
+
+        if yay -Rns --noconfirm "$@"; then
             echo
-            gum style --foreground 2 "✓ Arch/AUR packages removed!"
+            gum style --foreground 10 "✓ Arch/AUR packages removed!"
         else
             echo
             gum style --foreground 9 "x Arch/AUR removal failed."
@@ -334,12 +367,21 @@ remove_packages_new() {
         echo
     fi
 
-    if (( ${#flatpak_pkgs[@]} > 0 )); then
-        gum style --foreground 2 --bold "▸ Removing Flatpak packages..."
+    if [ -n "$flatpak_pkgs" ]; then
+        old_ifs=$IFS
+        IFS='
+'
+        set -f
+        set -- "$flatpak_pkgs"
+        set +f
+        IFS=$old_ifs
+
+        gum style --foreground 10 "▸ Removing Flatpak packages..."
         echo
-        if flatpak uninstall --assumeyes "${flatpak_pkgs[@]}"; then
+
+        if flatpak uninstall --assumeyes "$@"; then
             echo
-            gum style --foreground 2 "✓ Flatpak packages removed!"
+            gum style --foreground 10 "✓ Flatpak packages removed!"
         else
             echo
             gum style --foreground 9 "x Flatpak removal failed."
@@ -348,18 +390,18 @@ remove_packages_new() {
     fi
 
     stop_sudo_keepalive
-    trap - EXIT
+    trap - 0
 
     $success
-}
+)
 
 remove_unused_packages() {
-    gum style --foreground 2 --bold "▸ Removing unused (orphan) packages..."
+    gum style --foreground 10 "▸ Removing unused (orphan) packages..."
     echo
 
     if pacman -Qdtq | sudo pacman -Rns --noconfirm -; then
         echo
-        gum style --foreground 2 "✓ Unused packages removed!"
+        gum style --foreground 10 "✓ Unused packages removed!"
     else
         echo
         gum style --foreground 9 "x Removal failed."
@@ -369,7 +411,7 @@ remove_unused_packages() {
 
 ## ===
 main() {
-    if [[ $# -eq 0 ]]; then
+    if [ "$#" -eq 0 ]; then
         show_help
         return
     fi

@@ -69,6 +69,7 @@ class DevModule(decman.Module):
             "bash-completion",
             "cmake",
             "fd",  # Faster `find`; Needed for Neovim
+            "github-cli",
             "lazygit",
             "llvm",
             "luarocks",  # Needed for Neovim

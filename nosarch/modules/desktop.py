@@ -262,9 +262,6 @@ class DesktopModule(decman.Module):
         )
         return merged_set
 
-    # Ignored because needed for testing, not for user setups
-    decman.pacman.ignored_packages |= {"icon-library", "dconf-editor"}
-
     @aur.packages
     def aur_pkgs(self) -> set[str]:
         # Packages that are no longer used by NosArch.

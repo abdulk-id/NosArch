@@ -24,6 +24,9 @@ decman.execution_order = [
 
 decman.aur.packages |= {"decman"}
 decman.aur.ignored_packages |= {"yay"}
+
+# Ignored because needed for testing, not for user setups
+decman.pacman.ignored_packages |= {"icon-library", "dconf-editor", "shellcheck"}
 # ---
 
 # User and Group management

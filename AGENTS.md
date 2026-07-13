@@ -1,101 +1,47 @@
-# NosArch — Agent Instructions
+# Repository Guidelines
 
-Arch Linux dotfile repo managed by [decman](https://github.com/kiviktnm/decman). Declaratively defines packages, files, services, and user config via Python.
+## Project Structure & Module Organization
 
-## Apply / test
+NosArch is an Arch Linux dotfile and system configuration repo managed by Decman. The entrypoint is `nosarch/source.py`, which registers users, execution order, and modules. Core modules live in `nosarch/modules/`: `system.py` manages system packages, services, and root-owned files; `desktop.py` manages Hyprland and user config; `theme.py` deploys wallpapers; `setup.py` and `setup_full.py` install common and full-profile apps. Optional profiles live under `nosarch/modules/usage_profiles/`.
+
+Reusable helpers are in `nosarch/utils/`. Theme data and wallpapers are under `nosarch/themes/`. Managed files mirror target paths under `dotfiles/root/`, for example `dotfiles/root/etc/` maps to `/etc/` and `dotfiles/root/home/username/` maps to `/home/<user>/`.
+
+## Build, Test, and Development Commands
 
 ```sh
-sudo decman                 # apply
-sudo decman --dry-run       # preview
+cp config.example.py nosarch/config.py
+sudo decman --source ~/NosArch/nosarch/source.py --dry-run
+sudo decman --source ~/NosArch/nosarch/source.py
 ```
 
-Must run as root. `--source` defaults to `~/NosArch/nosarch/source.py`.
+Use `config.example.py` as the local template; `nosarch/config.py` is gitignored. Run the dry run before applying changes to preview package, file, Flatpak, and systemd operations.
 
-## Setup before first run
+Reference Decman syntax and behavior in the official docs: https://github.com/kiviktnm/decman/blob/main/docs/README.md
 
-- `nosarch/config.py` is **gitignored**. Copy from `nosarch/config.example.py`.
-- `decman` itself is installed via AUR (listed in `source.py`).
+## Coding Style & Naming Conventions
 
-## Config profiles (`nosarch/config.py`)
+Python modules use PEP 8 style with 4-space indentation and descriptive names. Keep module ownership clear: add system-level changes to `system.py`, desktop/user config to `desktop.py`, and profile-specific behavior to the matching usage profile.
 
-Conditional flags control which modules load in `source.py`:
+When adding to Decman collections, use `|=` to extend sets; do not reassign existing package or file sets. Import Decman as `import decman` and then access plugin namespaces such as `decman.pacman`.
 
-| Flag                 | Module            | What it adds                            |
-| -------------------- | ----------------- | --------------------------------------- |
-| `%FULL_SETUP%`       | `FullSetupModule` | Office, media, virtualization apps      |
-| `%CREATIVE_PROFILE%` | `CreativeModule`  | Placeholder — empty class               |
-| `%DEV_PROFILE%`      | `DevModule`       | Dev tools, git/ideavimrc, Codespace dir |
-| `%GAMING_PROFILE%`   | `GamingModule`    | Steam, Lutris, Gamescope, ntsync        |
+Shell scripts in `dotfiles/root/**/bin/` must be POSIX `sh`, start with `#!/bin/sh`, use `set -eu`, and follow the help/function layout shown in `CONTRIBUTING.md`.
 
-Set to `"true"` to enable. Default `"false"`.
+## Testing Guidelines
 
-## Module ownership (under `nosarch/`)
+There is no dedicated test suite. Validate changes with:
 
-| Path                                 | Module            | What it owns                                                                   |
-| ------------------------------------ | ----------------- | ------------------------------------------------------------------------------ |
-| `source.py`                          | —                 | Entrypoint, execution order, user/group, conditional module registration       |
-| `modules/system.py`                  | `SystemModule`    | System packages, systemd services, `/etc/`, `/usr/local/bin/`, `~/.gitconfig`  |
-| `modules/desktop.py`                 | `DesktopModule`   | Hyprland/Wayland, desktop apps, user systemd units, `~/.config/`               |
-| `modules/theme.py`                   | `ThemingModule`   | Theme variables, wallpaper deployment, `~/.local/share/nosarch/current-theme/` |
-| `modules/setup.py`                   | `SetupModule`     | Minimal personal apps (browsers, basic tools) and user setup                   |
-| `modules/setup_full.py`              | `FullSetupModule` | LibreOffice, Obsidian, OBS, virt-manager, QEMU, Spotify                        |
-| `modules/usage_profiles/creative.py` | `CreativeModule`  | Empty placeholder                                                              |
-| `modules/usage_profiles/dev.py`      | `DevModule`       | Dev packages, `~/.ideavimrc`, `~/Codespace/`                                   |
-| `modules/usage_profiles/gaming.py`   | `GamingModule`    | Steam/Lutris, Gamescope, ntsync, `dotfiles/gaming-root/`                       |
+```sh
+sudo decman --source ~/NosArch/nosarch/source.py --dry-run
+```
 
-## Variable substitution
+For utility changes, run targeted commands when possible, such as invoking a script with `help` or testing a Python helper in isolation. Avoid applying system changes until the dry run is clean.
 
-Config files interpolate `%VARIABLE%` from two merged sources:
+## Commit & Pull Request Guidelines
 
-- **`nosarch/config.py`** (gitignored): `%USER%`, `%FULLNAME%`, `%GIT_EMAIL%`, profile flags
-- **Theme dict** (e.g. `themes/nosarch_blue_dark/nosarch_blue_dark.py`): colors, `%FILENAME%`, fonts
-- **Dynamic**: `%LUKS_UUID%` from `utils/luks_uuid.py` (system module).
-- **Switch theme** by changing the import in `modules/theme.py` line 6.
-- Merging: `modules/system.py` uses `CONFIG | system_variables`, `modules/desktop.py` uses `CONFIG | get_current_theme()`, profile modules use `CONFIG` directly.
+Recent commits use scoped, imperative subjects such as `Scripts: Make all shell scripts POSIX-compliant` and `System: Add vendor-based CPU and GPU setup`. Keep that pattern: `Area: Action summary`.
 
-## File layout
+Pull requests should describe the affected module or dotfile path, list validation performed, and call out package, service, or root-owned file changes. Screenshots are useful for visible desktop or theme changes.
 
-`dotfiles/root/` mirrors the target filesystem. Paths relative from `nosarch/`:
+## Configuration & Safety Notes
 
-| Source                         | Target            | Owner |
-| ------------------------------ | ----------------- | ----- |
-| `dotfiles/root/etc/`           | `/etc/`           | root  |
-| `dotfiles/root/usr/local/bin/` | `/usr/local/bin/` | root  |
-| `dotfiles/root/home/username/` | `/home/<user>/`   | user  |
-
-`dotfiles/gaming-root/` — same mirror pattern, deployed by `GamingModule`.
-
-`Directory()` recursively deploys, `File()` handles single files. `bin_files=False` enables variable substitution.
-
-## Decman conventions
-
-- **Use `|=` to add to sets**, never `=` (reassignment wipes prior operations).
-- **Always `import decman` then `decman.pacman`** — `from decman import pacman` may not work with global plugin instances.
-- Decorators from `decman.plugins`: `@pacman.packages`, `@aur.packages`, `@flatpak.packages`, `@flatpak.user_packages`, `@systemd.units`, `@systemd.user_units`.
-- Plugin execution order (set in `source.py`): `files → pacman → flatpak → systemd`.
-    - AUR is **commented out** of execution order. `@aur.packages` methods still exist but are never executed.
-    - AUR is **commented out** because of the 2026 "Atomic-Arch" AUR attacks from the npm supply chain compromise.
-- **Ignored packages**: `kernel-modules-hook` (pacman), `icon-library` (pacman), `dconf-editor` (pacman), `yay` (AUR).
-- Single-user only.
-
-## Additional directories
-
-- `customization/fonts/` — custom font assets (not deployed by decman, manual)
-- `dotfiles/unused-config/` — leftover configs for Elephant and Walker launchers (replaced by Vicinae)
-- `docs/` — reference documentation
-
-## No CI/CD, tests, or linting
-
-No test runner, CI, or linters (except `.editorconfig`). Verify with `sudo decman --dry-run`.
-
-## OpenCode permissions (`opencode.jsonc`)
-
-- `AGENTS.md` edits: auto-allowed
-- `sudo decman --dry-run`: auto-allowed
-- Other `sudo` commands: **denied**
-- Edits to `*`: require `ask` permission
-
-## Reference
-
-- Decman docs: https://github.com/kiviktnm/decman/blob/main/docs/README.md
-- Source repo: https://github.com/abdulk-id/NosArch
+This repo targets a single-user Arch Linux setup. Profile flags in `CONFIG` control optional modules, including full setup, creative, development, and gaming profiles. AUR execution is currently disabled in `nosarch/source.py`, even though AUR package decorators may appear in modules.

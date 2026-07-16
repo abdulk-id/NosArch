@@ -93,6 +93,17 @@ hl.window_rule({
     center = true,
 })
 
+-- Satty
+hl.window_rule({
+    name = "satty-screenshot-annotation-rule",
+    match = {
+        class = "com.gabm.satty"
+    },
+    -- Static effects
+    float = true,
+    center = true,
+})
+
 -- Define terminal tag to style them uniformly
 -- TODO: Removable?? No window rules tagging windows with 'terminal' tag
 hl.window_rule({

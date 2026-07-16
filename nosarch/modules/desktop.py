@@ -43,6 +43,10 @@ class DesktopModule(decman.Module):
                 source_directory="../dotfiles/root/home/username/config/hyprland-preview-share-picker/",
                 owner=f"{CONFIG['%USER%']}",
             ),
+            f"/home/{CONFIG['%USER%']}/.config/satty/": Directory(
+                source_directory="../dotfiles/root/home/username/config/satty/",
+                owner=f"{CONFIG['%USER%']}",
+            ),
             f"/home/{CONFIG['%USER%']}/.config/swaync/": Directory(
                 source_directory="../dotfiles/root/home/username/config/swaync/",
                 owner=f"{CONFIG['%USER%']}",
@@ -156,6 +160,7 @@ class DesktopModule(decman.Module):
             "flatpak",
             "flatseal",  # Flatpak permission manager
             "ghostty",
+            "grim",  # Screenshot utility
             "hyprcursor",
             "hypridle",
             "hyprland",
@@ -164,13 +169,14 @@ class DesktopModule(decman.Module):
             "hyprpaper",
             "hyprpicker",
             "hyprpolkitagent",
-            "hyprshot",
             "hyprshutdown",
             "hyprsunset",
             "imagemagick",  # TODO: Installed why?
             "qt5-wayland",
             "qt6-wayland",
             "quickshell",
+            "satty",  # Screenshot annotation tool
+            "slurp",  # Region selection tool (used for screenshots)
             "swaync",
             "swayosd",
             "ttf-jetbrains-mono-nerd",

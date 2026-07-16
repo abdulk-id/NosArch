@@ -3,24 +3,34 @@
 set -eu
 
 show_help() {
-    cat <<EOF
+    cat <<'EOF'
 Usage:
-    nosarch-capture <command> [actions]
+    nosarch-capture [options] <command> [action]
+
+Options:
+    -s, --just-save     Save the screenshot without opening the annotation editor
+    -h, --help          Show this help message
 
 Commands:
     screenshot <action>     Take a screenshot
     extract-text            Extract text from screen and copy to clipboard
     colorpick               Open Color Picker
-    help                    Show this help message
 
 Screenshot actions:
     region                  Screenshot a region
-    window                  Screenshot a window
-    monitor                 Screenshot a monitor
+    window [active]         Screenshot a window [`active` to screenshot the active window]
+    monitor [active]        Screenshot a monitor [`active` to screenshot the active monitor]
+    all                     Screenshot all monitors
 EOF
 }
 
 ## === Utilities ===
+OUTPUT_DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
+FILE_NAME="screenshot-$(date +'%d-%m-%Y_%H-%M-%S').png"
+FILE_PATH="$OUTPUT_DIR/$FILE_NAME"
+
+SELECTION_COLOR="#6799e4FF"
+
 _ensure_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
         echo "Error: $1 is required but not found." >&2
@@ -28,35 +38,82 @@ _ensure_command() {
     fi
 }
 
+send_notification() {
+    notify-send --urgency=low --transient \
+        --app-name="NosArch Capture" \
+        --app-icon="applets-screenshooter-symbolic" \
+        "Screenshot Captured" \
+        "Image saved to \"<i>${FILE_PATH}</i>\""
+}
+
+finish_screenshot() {
+    if [ "$JUST_SAVE" -eq 1 ]; then
+        mv "$1" "$FILE_PATH"
+        send_notification
+    else
+        satty --filename "$1" --output-filename "$FILE_PATH"
+        rm --force "$1"
+    fi
+}
+
 ## === Features ===
 extract_text() {
-    _ensure_command tesseract
-
-    # Copied from Omarchy, put NosArch on the success notification
-
-    # Keep hyprpicker alive until after grim captures so the screenshot sees the
-    # frozen overlay rather than live content shifting during teardown.
-    cleanup_freeze() {
-      [ -n "$PID" ] && kill "$PID" 2>/dev/null
-    }
-    trap cleanup_freeze EXIT
-
-    hyprpicker --render-inactive --no-zoom >/dev/null 2>&1 &
-    PID=$!
-    sleep .1
-
-    SELECTION=$(slurp 2>/dev/null)
-    [ -z "$SELECTION" ] && exit 0
-
-    TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem lstm-only --psm single_block -l "eng" --dpi 300 -c preserve_interword_spaces=1 2>/dev/null) || exit 1
-    [ -z "$TEXT" ] && exit 1
-
+    SELECTION=$(still -c "slurp -c \"#6799e4FF\" -w 2")
+    TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem lstm_only --psm single_block -l eng --dpi 300 -c preserve_interword_spaces=1) || return 1
     printf "%s" "$TEXT" | wl-copy
 
-    notify-send --urgency=normal \
-    --app-name="Nosarch Capture" \
-    --app-icon="applets-screenshooter-symbolic" \
-    "Text Extraction" "Copied text from selection to clipboard"
+    notify-send --urgency=low --transient \
+        --app-name="Nosarch Capture" \
+        --app-icon="applets-screenshooter-symbolic" \
+        "Text Extracted" "Copied text from selection to clipboard"
+}
+
+screenshot_active_monitor() {
+    grim -o "$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name')" - | finish_screenshot -
+}
+screenshot_monitor() {
+    TMP_FILE=$(mktemp)
+
+    still -c "slurp -or | grim -g - \"$TMP_FILE\""
+
+    finish_screenshot "$TMP_FILE"
+}
+screenshot_all_monitors() {
+    grim - | finish_screenshot -
+}
+
+### TODO: If there are windows on top of the active window, they also get captured
+screenshot_active_window() {
+    active_window_geometry="$(hyprctl -j activewindow | jq --raw-output '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' | cut -f1,2 -d' ')"
+
+    TMP_FILE=$(mktemp)
+    grim -g "$active_window_geometry" "$TMP_FILE"
+
+    finish_screenshot "$TMP_FILE"
+}
+screenshot_window() {
+    TMP_FILE=$(mktemp)
+    still -c "
+        active_ids=\$(hyprctl -j monitors | jq '[.[].activeWorkspace.id]') &&
+        hyprctl -j clients |
+        jq -r --argjson active_ids \"\$active_ids\" '
+            .[]
+            | select(.visible == true)
+            | select(.workspace.id as \$wid | (\$active_ids | index(\$wid)) != null)
+            | \"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1]) \\(.title)\"
+        ' |
+        slurp -r |
+        grim -g - \"$TMP_FILE\"
+    " || return 1
+
+    finish_screenshot "$TMP_FILE"
+}
+
+screenshot_region() {
+    TMP_FILE=$(mktemp)
+    still -c "slurp -c \"$SELECTION_COLOR\" -w 2 -d | grim -g - \"$TMP_FILE\""
+
+    finish_screenshot "$TMP_FILE"
 }
 
 ## ===
@@ -66,21 +123,77 @@ main() {
         return
     fi
 
+    # Global options
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --just-save|-s)
+                JUST_SAVE=1
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                exit 1
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    # Command actions
     case "${1:-}" in
         screenshot)
-            _ensure_command hyprshot
             case "${2:-}" in
                 region)
-                    hyprshot --freeze --mode region --output-folder ~/Pictures/Screenshots
+                    screenshot_region
                     ;;
                 window)
-                    hyprshot --freeze --mode window --output-folder ~/Pictures/Screenshots
+                    case "${3:-}" in
+                        active)
+                            screenshot_active_window
+                            ;;
+                        "")
+                            if [ "$#" -ne 2 ]; then
+                                echo "Unknown trailing arguments" >&2
+                                show_help
+                                exit 1
+                            fi
+                            screenshot_window
+                            ;;
+                        *)
+                            echo "Unknown screenshot window action: $3" >&2
+                            show_help
+                            exit 1
+                    esac
                     ;;
                 monitor)
-                    hyprshot --freeze --mode output --output-folder ~/Pictures/Screenshots
+                    case "${3:-}" in
+                        active)
+                            screenshot_active_monitor
+                            ;;
+                        "")
+                            if [ "$#" -ne 2 ]; then
+                                echo "Unknown trailing arguments" >&2
+                                show_help
+                                exit 1
+                            fi
+                            screenshot_monitor
+                            ;;
+                        *)
+                            echo "Unknown screenshot monitor action: $3" >&2
+                            show_help
+                            exit 1
+                    esac
+                    ;;
+                all)
+                    screenshot_all_monitors
                     ;;
                 *)
-                    echo "Unknown screenshot action: $2"
+                    echo "Unknown screenshot action: $2" >&2
                     show_help
                     exit 1
                     ;;
@@ -90,7 +203,7 @@ main() {
             extract_text
             ;;
         colorpick)
-            pkill hyprpicker || hyprpicker -a
+            pkill hyprpicker || hyprpicker --autocopy
             ;;
         help|-h|--help)
             show_help
@@ -103,4 +216,5 @@ main() {
     esac
 }
 
+JUST_SAVE=0
 main "$@"

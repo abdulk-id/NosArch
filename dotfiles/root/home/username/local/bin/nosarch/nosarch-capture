@@ -29,7 +29,7 @@ OUTPUT_DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
 FILE_NAME="screenshot-$(date +'%d-%m-%Y_%H-%M-%S').png"
 FILE_PATH="$OUTPUT_DIR/$FILE_NAME"
 
-SELECTION_COLOR="#6799e4FF"
+SELECTION_COLOR="#%ACCENT%FF"
 
 _ensure_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
@@ -51,6 +51,7 @@ finish_screenshot() {
         mv "$1" "$FILE_PATH"
         send_notification
     else
+        _ensure_command satty
         satty --filename "$1" --output-filename "$FILE_PATH"
         rm --force "$1"
     fi
@@ -58,7 +59,11 @@ finish_screenshot() {
 
 ## === Features ===
 extract_text() {
-    SELECTION=$(still -c "slurp -c \"#6799e4FF\" -w 2")
+    for cmd in grim slurp still tesseract wl-copy; do
+        _ensure_command "$cmd"
+    done
+
+    SELECTION=$(still -c "slurp -c \"$SELECTION_COLOR\" -w 2")
     TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem lstm_only --psm single_block -l eng --dpi 300 -c preserve_interword_spaces=1) || return 1
     printf "%s" "$TEXT" | wl-copy
 
@@ -69,9 +74,17 @@ extract_text() {
 }
 
 screenshot_active_monitor() {
+    for cmd in grim hyprctl jq; do
+        _ensure_command "$cmd"
+    done
+
     grim -o "$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name')" - | finish_screenshot -
 }
 screenshot_monitor() {
+    for cmd in grim slurp still; do
+        _ensure_command "$cmd"
+    done
+
     TMP_FILE=$(mktemp)
 
     still -c "slurp -or | grim -g - \"$TMP_FILE\""
@@ -79,11 +92,17 @@ screenshot_monitor() {
     finish_screenshot "$TMP_FILE"
 }
 screenshot_all_monitors() {
+    _ensure_command grim
+
     grim - | finish_screenshot -
 }
 
 ### TODO: If there are windows on top of the active window, they also get captured
 screenshot_active_window() {
+    for cmd in grim hyprctl jq; do
+        _ensure_command "$cmd"
+    done
+
     active_window_geometry="$(hyprctl -j activewindow | jq --raw-output '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' | cut -f1,2 -d' ')"
 
     TMP_FILE=$(mktemp)
@@ -92,6 +111,10 @@ screenshot_active_window() {
     finish_screenshot "$TMP_FILE"
 }
 screenshot_window() {
+    for cmd in grim hyprctl jq slurp still; do
+        _ensure_command "$cmd"
+    done
+
     TMP_FILE=$(mktemp)
     still -c "
         active_ids=\$(hyprctl -j monitors | jq '[.[].activeWorkspace.id]') &&
@@ -110,6 +133,10 @@ screenshot_window() {
 }
 
 screenshot_region() {
+    for cmd in grim slurp still; do
+        _ensure_command "$cmd"
+    done
+
     TMP_FILE=$(mktemp)
     still -c "slurp -c \"$SELECTION_COLOR\" -w 2 -d | grim -g - \"$TMP_FILE\""
 

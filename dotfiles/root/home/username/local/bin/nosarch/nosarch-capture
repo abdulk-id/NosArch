@@ -10,13 +10,13 @@ Usage:
     nosarch-capture [options] <command> [action]
 
 Options:
-    -s, --just-save     Save the screenshot without opening the annotation editor
-    -h, --help          Show this help message
+    -s, --just-save         Save the screenshot without opening the annotation editor
 
 Commands:
     screenshot <action>     Take a screenshot
     extract-text            Extract text from screen and copy to clipboard
     colorpick               Open Color Picker
+    help                    Show this help message
 
 Screenshot actions:
     region                  Screenshot a region

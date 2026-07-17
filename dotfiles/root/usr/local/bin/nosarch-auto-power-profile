@@ -4,6 +4,7 @@ set -euo pipefail
 
 auto_set_power_profile() {
     # Copied from Omarchy
+    # https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-powerprofiles-set
 
     # Auto-detect: treat any Mains or USB power-supply device reporting
     # online=1 as "on AC". This handles USB-C only laptops where the legacy
@@ -23,8 +24,7 @@ auto_set_power_profile() {
         type=$(cat "$power_supply/type")
         [[ $type == "Mains" ]] || continue
 
-        # TODO: Commented out: only treat "Mains" as AC because "USB" is stuck
-        # at online=1 (On Dell XPS 13)
+        # TODO: Commented out: only treat "Mains" as AC because "USB" is stuck at online=1 (On Dell XPS 13)
         #[[ $type == "Mains" || $type == "USB" ]] || continue
 
         if [[ $(cat "$power_supply/online") == "1" ]]; then

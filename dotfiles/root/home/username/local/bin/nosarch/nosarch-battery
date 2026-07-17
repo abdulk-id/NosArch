@@ -13,7 +13,8 @@ EOF
 
 ## === Utilities ===
 notify_battery_status() {
-    # Copied from Omarchy
+    # Adapted from Omarchy
+    # https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-battery-status
 
     battery_info=$(upower -i "$(upower -e | grep BAT)")
 
@@ -64,8 +65,10 @@ notify_battery_status() {
 
 ## === Actions logic ===
 auto_set_power_profile() (
-    notify-send "Auto-setting power profile based on charging state"
     # Copied from Omarchy
+    # https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-powerprofiles-set
+
+    notify-send "Auto-setting power profile based on charging state"
 
     # Auto-detect: treat any Mains or USB power-supply device reporting
     # online=1 as "on AC". This handles USB-C only laptops where the legacy

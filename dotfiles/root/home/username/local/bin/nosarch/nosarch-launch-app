@@ -18,9 +18,11 @@ EOF
 }
 
 ## === Features ===
-get_browser_exec() (
-    # Copied from Omarchy
 
+# Browser launching logic adapted from Omarchy
+# https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-launch-browser
+
+get_browser_exec() (
     desktop=$(xdg-settings get default-web-browser)
 
     for dir in "$HOME/.local" "$HOME/.nix-profile" "/usr"; do
@@ -32,8 +34,6 @@ get_browser_exec() (
     done
 )
 get_private_flag() (
-    # Copied from Omarchy
-
     browser="$1"
 
     if "$browser" --help | grep -q MOZ_LOG; then

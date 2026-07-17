@@ -2,6 +2,8 @@
 
 set -eu
 
+[ -f ~/.config/user-dirs.dirs ] && . ~/.config/user-dirs.dirs
+
 show_help() {
     cat <<'EOF'
 Usage:
@@ -26,6 +28,8 @@ EOF
 
 ## === Utilities ===
 OUTPUT_DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
+[ ! -d "$OUTPUT_DIR" ] && mkdir --parents "$OUTPUT_DIR"
+
 FILE_NAME="screenshot-$(date +'%d-%m-%Y_%H-%M-%S').png"
 FILE_PATH="$OUTPUT_DIR/$FILE_NAME"
 

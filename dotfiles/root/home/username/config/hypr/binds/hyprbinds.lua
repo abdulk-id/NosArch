@@ -47,7 +47,6 @@ end, { description = "Cycle to previous window (Monocle)" })
 
 -- === Workspace Binds ===
 
--- Copied from Omarchy
 -- Switch workspaces with SUPER + [0-9]
 -- Move active window to a workspace with SUPER + SHIFT + [0-9]
 -- Move active window silently to a workspace with SUPER + SHIFT + ALT + [0-9]

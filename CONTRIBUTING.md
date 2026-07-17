@@ -1,78 +1,34 @@
 # Contributing to NosArch
 
-Currently not accepting contributions.
+NosArch is still a work in progress. Currently not accepting contributions.
 
-You can still apen an issue or a PR.
+The project is in the early stages and its conventions are still evolving.
 
----
+There is no guarantee of acceptance, but you can still open an issue or a PR to report bugs and suggest features or improvements.
 
-## Code Style Guidelines
+## Commit Messages
 
-### Shell Script style
+Write commit messages using the following format:
 
-All shell scripts must be strictly POSIX-compliant.
-
-NosArch shell script example:
-
-```sh
-#!/bin/sh
-
-set -eu
-
-. "some-script"
-
-show_help() {
-    cat <<EOF
-Usage:
-    nosarch-script-name <command> [actions]
-
-Commands:
-    simple-cmd                  Simple command
-    actions-cmd <action>        Command with required actions
-    opt-actions-cmd [action]    Command with optional actions (default: default-value)
-    help                        Show this help message
-
-actions-cmd actions:
-    action1                     Action 1
-    action2                     Action 2
-
-opt-actions-cmd actions:
-    action1                     Action 1
-    action2                     Action 2
-EOF
-}
-
-## === Utilities ===
-# Example function
-# _ensure_command() {
-#     if ! command -v "$1" >/dev/null 2>&1; then
-#         echo "Error: $1 is required but not found."
-#         exit 1
-#     fi
-# }
-
-## === Features ===
-
-
-## ===
-main() {
-    if [ "$#" -eq 0 ]; then
-        show_help
-        return
-    fi
-
-    case "${1:-}" in
-        ...
-        help|-h|--help)
-            show_help
-            ;;
-        *)
-            echo "Unknown command: $1"
-            show_help
-            exit 1
-            ;;
-    esac
-}
-
-main "$@"
 ```
+Area: Action summary
+```
+
+Some examples:
+
+- `Scripts: Make all shell scripts POSIX-compliant`
+- `System: Add vendor-based CPU and GPU setup`
+- `Hyprland: Fix opening windows in wrong workspaces`
+
+Common areas include:
+
+- `Decman`: Decman-specific changes (which do not affect the system)
+- `Dev`: Dev-related changes (made in the Dev module)
+- `Repo`: Repository changes such as codebase documentation, repo config files (`.gitignore`, `.editorconfig` etc.), `opencode.jsonc` etc.
+- `Scripts`: All user-facing shell scripts
+- `System`: TODO: Broad category, needs better explanation
+
+Message style:
+
+- Use an imperative verb ("Add", "Fix", "Update", "Remove") rather than past tense ("Added", "Fixed").
+- Keep the subject concise.

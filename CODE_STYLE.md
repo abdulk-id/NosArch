@@ -1,15 +1,63 @@
 # Code Style Guidelines
 
+- Include code attribution and a source link when copying or adapting code from elsewhere.
+
 ## Python style
 
-TODO
+NosArch follows PEP 8. Keep changes consistent with the surrounding code.
+
+### General Python
+
+- Use four spaces for indentation and two blank lines between top-level declarations.
+- Prefer double-quoted strings.
+- Group imports into standard library, third-party, and local imports. Avoid wildcard imports.
+- Prefer module-qualified local imports so call sites show where names come
+  from:
+
+    ```python
+    import utils.chassis_type
+
+    if utils.chassis_type.is_laptop():
+        ...
+    ```
+
+- Use strict typing for NosArch code. Annotate function parameters, return values, and meaningful variables with
+  modern syntax such as `list[str]` and `X | None`.
+    - External integration code, such as Nautilus extensions, is exempt when host API types are unavailable.
+- Use `PascalCase` for classes, `snake_case` for functions and variables, and `UPPER_SNAKE_CASE` for constants.
+
+### NosArch and Decman
+
+- Keep ownership aligned with the repository structure: system changes in `system.py`, desktop changes in `desktop.py`,
+  themes in `theme.py`, profile changes in the matching setup or usage-profile module,
+  and reusable logic in `nosarch/utils/`.
+- Import Decman as `import decman` and use its namespaces explicitly, such as `decman.Module`.
+- Decman modules should subclass `decman.Module`, initialize it with a stable name, and expose resources through
+  the appropriate hook.
+- Place Decman decorators such as `@pacman.packages` directly above the hook they register.
+- Preserve hook return types: sets for packages and services, dictionaries for files, directories, symlinks, and
+  per-user resources.
+- Extend Decman-managed collections with `|=` or `+=`. Do not reassign existing Decman collections.
+
+---
 
 ## Shell Script style
 
-- All shell scripts must be strictly POSIX-compliant.
-- Always use longer forms of flags when possible (e.g., `--option` instead of `-o`).
+- Shell scripts must be strictly POSIX-compliant.
+- Shell scripts must use `set -eu` for reliable error handling.
+- Always use longer forms of command options when possible, because they make intent clear in context
+  (e.g., `jq --raw-output` instead of `jq -r`).
+- Organize every user-facing shell script into these sections:
+    - `Utilities`: shared helpers, command checks, and constants.
+    - `Features`: script-specific functionality.
+    - `main()`: global option parsing and command dispatch.
+- The `main "$@"` call should be at the end of the script, along with any finalization.
+- User-facing scripts should provide `help`, `-h`, and `--help` for the help message.
+- Comment system-specific behavior, workarounds, and adapted code.
+- Use `shellcheck` to lint shell scripts.
+- Keep shell scripts consistent with existing code.
 
-### Example NosArch shell script:
+### User-facing Shell Script Template:
 
 ```sh
 #!/bin/sh

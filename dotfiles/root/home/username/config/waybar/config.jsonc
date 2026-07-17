@@ -5,11 +5,7 @@
     "spacing": 10,
     "height": 35,
     "fixed-center": true,
-    "modules-left": [
-        "custom/archicon",
-        "hyprland/workspaces",
-        "group/group-usage",
-    ],
+    "modules-left": ["custom/archicon", "hyprland/workspaces", "group/group-usage"],
     "modules-center": ["mpris", "clock", "privacy"],
     "modules-right": ["tray", "group/group-system"],
     // Change "tray" to "group/tray-expander" if you want to only show the tray when needed
@@ -77,7 +73,6 @@
     },
     "clock": {
         "format": "{:%I:%M %p | %a %B %d}",
-        //"format-alt": "{:L%d %B W%V %Y}",
         "tooltip-format": "<span>{calendar}</span>",
         "calendar": {
             "mode": "month",
@@ -95,7 +90,6 @@
         "actions": {
             "on-click-right": "mode",
         },
-        //"on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select",
     },
     "privacy": {
         "icon-spacing": 6,
@@ -144,14 +138,7 @@
     },
     "group/group-system": {
         "orientation": "inherit",
-        "modules": [
-            "network",
-            "bluetooth",
-            "pulseaudio",
-            //"custom/airpods",
-            "battery",
-            "custom/notifications",
-        ],
+        "modules": ["network", "bluetooth", "pulseaudio", "battery", "custom/notifications"],
     },
     "network": {
         "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
@@ -198,12 +185,6 @@
             "default": ["", "", ""],
         },
     },
-    //"custom/airpods": {
-    //    "exec": "airpods-tui --waybar-watch",
-    //    "return-type": "json",
-    //    "format": "󱡏",
-    //    "on-click": "nosarch-launch-tui airpods-tui",
-    //},
     "battery": {
         "format": "{icon} {capacity}%",
         "format-charging": "{icon} {capacity}%",

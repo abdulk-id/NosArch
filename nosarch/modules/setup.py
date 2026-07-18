@@ -36,8 +36,4 @@ class SetupModule(decman.Module):
 
     @systemd.user_units
     def systemd_user_services(self) -> dict[str, set[str]]:
-        return {
-            f"{CONFIG['%USER%']}": {
-                "nosarch-eyesight-reminder.timer",
-            }
-        }
+        return {f"{CONFIG['%USER%']}": {"nosarch-eyesight-reminder.timer"}}

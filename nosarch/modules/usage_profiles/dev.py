@@ -16,26 +16,22 @@ class DevModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
             f"/home/{CONFIG['%USER%']}/.config/nvim/": Directory(
-                source_directory="../dotfiles/root/home/username/config/nvim/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/nvim/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/zed/": Directory(
-                source_directory="../dotfiles/root/home/username/config/zed/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/zed/", owner=f"{CONFIG['%USER%']}"
             ),
         }
 
         return user_config_directories | {
             f"/home/{CONFIG['%USER%']}/Codespace/": Directory(
-                source_directory="../dotfiles/root/home/username/Codespace/",
-                owner=f"{CONFIG['%USER%']}",
-            ),
+                source_directory="../dotfiles/root/home/username/Codespace/", owner=f"{CONFIG['%USER%']}"
+            )
         }
 
     def files(self) -> dict[str, File]:
         mise_config_file: File = File(
-            content=utils.dev_lang_config.get_mise_config_contents(),
-            owner=f"{CONFIG['%USER%']}",
+            content=utils.dev_lang_config.get_mise_config_contents(), owner=f"{CONFIG['%USER%']}"
         )
 
         return {
@@ -44,21 +40,17 @@ class DevModule(decman.Module):
                 owner="root",
             ),
             "/etc/containers/registries.conf.d/01-registries.conf": File(
-                source_file="../dotfiles/root/etc/containers/registries.conf.d/01-registries.conf",
-                owner="root",
+                source_file="../dotfiles/root/etc/containers/registries.conf.d/01-registries.conf", owner="root"
             ),
             f"/home/{CONFIG['%USER%']}/.config/mise/config.toml": mise_config_file,
             f"/home/{CONFIG['%USER%']}/.config/environment.d/dev.conf": File(
-                source_file="../dotfiles/root/home/username/config/environment.d/dev.conf",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/config/environment.d/dev.conf", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.bashrc.d/dev.bashrc": File(
-                source_file="../dotfiles/root/home/username/bashrc.d/dev.bashrc",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/bashrc.d/dev.bashrc", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.ideavimrc": File(
-                source_file="../dotfiles/root/home/username/dot_ideavimrc",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/dot_ideavimrc", owner=f"{CONFIG['%USER%']}"
             ),
         }
 
@@ -92,9 +84,7 @@ class DevModule(decman.Module):
 
     @flatpak.user_packages
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {
-            f"{CONFIG['%USER%']}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}
-        }
+        return {f"{CONFIG['%USER%']}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}}
 
     @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:

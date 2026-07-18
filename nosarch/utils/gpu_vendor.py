@@ -12,9 +12,7 @@ def get_gpu_vendor() -> str:
         if bool(re.search(r"(VGA|3D|Display).+(AMD|ATI)", lspci_output, re.IGNORECASE)):
             return "amd"
 
-        lspci_nvidia_output: str = "\n".join(
-            line for line in lspci_output.splitlines() if "nvidia" in line.lower()
-        )
+        lspci_nvidia_output: str = "\n".join(line for line in lspci_output.splitlines() if "nvidia" in line.lower())
 
         if bool(
             re.search(

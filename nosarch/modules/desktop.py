@@ -20,56 +20,44 @@ class DesktopModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
             f"/home/{CONFIG['%USER%']}/.config/btop/": Directory(
-                source_directory="../dotfiles/root/home/username/config/btop/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/btop/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/ghostty/": Directory(
-                source_directory="../dotfiles/root/home/username/config/ghostty/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/ghostty/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/gtk-3.0/": Directory(
-                source_directory="../dotfiles/root/home/username/config/gtk-3.0/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/gtk-3.0/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/gtk-4.0": Directory(
-                source_directory="../dotfiles/root/home/username/config/gtk-4.0/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/gtk-4.0/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/hypr/": Directory(
-                source_directory="../dotfiles/root/home/username/config/hypr/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/hypr/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/hyprland-preview-share-picker/": Directory(
                 source_directory="../dotfiles/root/home/username/config/hyprland-preview-share-picker/",
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.config/satty/": Directory(
-                source_directory="../dotfiles/root/home/username/config/satty/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/satty/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/swaync/": Directory(
-                source_directory="../dotfiles/root/home/username/config/swaync/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/swaync/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/swayosd/": Directory(
-                source_directory="../dotfiles/root/home/username/config/swayosd/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/swayosd/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/systemd/user/": Directory(
-                source_directory="../dotfiles/root/home/username/config/systemd/user/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/systemd/user/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/uwsm/": Directory(
-                source_directory="../dotfiles/root/home/username/config/uwsm/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/uwsm/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/vicinae/": Directory(
-                source_directory="../dotfiles/root/home/username/config/vicinae/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/vicinae/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/waybar/": Directory(
-                source_directory="../dotfiles/root/home/username/config/waybar/",
-                owner=f"{CONFIG['%USER%']}",
+                source_directory="../dotfiles/root/home/username/config/waybar/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/xdg-desktop-portal/": Directory(
                 source_directory="../dotfiles/root/home/username/config/xdg-desktop-portal/",
@@ -95,12 +83,10 @@ class DesktopModule(decman.Module):
             | user_script_directories
             | {
                 f"/home/{CONFIG['%USER%']}/.local/share/": Directory(
-                    source_directory="../dotfiles/root/home/username/local/share/",
-                    owner=f"{CONFIG['%USER%']}",
+                    source_directory="../dotfiles/root/home/username/local/share/", owner=f"{CONFIG['%USER%']}"
                 ),
                 f"/home/{CONFIG['%USER%']}/Templates/": Directory(
-                    source_directory="../dotfiles/root/home/username/Templates/",
-                    owner=f"{CONFIG['%USER%']}",
+                    source_directory="../dotfiles/root/home/username/Templates/", owner=f"{CONFIG['%USER%']}"
                 ),
             }
         )
@@ -112,12 +98,10 @@ class DesktopModule(decman.Module):
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.config/user-dirs.dirs": File(
-                source_file="../dotfiles/root/home/username/config/user-dirs.dirs",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/config/user-dirs.dirs", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/xdg-terminals.list": File(
-                source_file="../dotfiles/root/home/username/config/xdg-terminals.list",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/config/xdg-terminals.list", owner=f"{CONFIG['%USER%']}"
             ),
         }
 
@@ -127,25 +111,20 @@ class DesktopModule(decman.Module):
             if gpu_vendor == "nvidia_gsp":
                 nvidia_env_vars = "export NVD_BACKEND=direct\nexport LIBVA_DRIVER_NAME=nvidia\nexport __GLX_VENDOR_LIBRARY_NAME=nvidia"
             elif gpu_vendor == "nvidia_non_gsp":
-                nvidia_env_vars = (
-                    "export NVD_BACKEND=egl\nexport __GLX_VENDOR_LIBRARY_NAME=nvidia"
-                )
+                nvidia_env_vars = "export NVD_BACKEND=egl\nexport __GLX_VENDOR_LIBRARY_NAME=nvidia"
 
             return nvidia_env_vars
 
         if gpu_vendor == "nvidia_gsp" or gpu_vendor == "nvidia_non_gsp":
             files |= {
                 "/etc/mkinitcpio.conf.d/nvidia.conf": File(
-                    source_file="../dotfiles/root/etc/mkinitcpio.conf.d/nvidia.conf",
-                    owner="root",
+                    source_file="../dotfiles/root/etc/mkinitcpio.conf.d/nvidia.conf", owner="root"
                 ),
                 "/etc/modprobe.d/nvidia.conf": File(
-                    source_file="../dotfiles/root/etc/modprobe.d/nvidia.conf",
-                    owner="root",
+                    source_file="../dotfiles/root/etc/modprobe.d/nvidia.conf", owner="root"
                 ),
                 f"/home/{CONFIG['%USER%']}/.config/uwsm/env-nvidia": File(
-                    content=get_nvidia_env_vars(),
-                    owner=f"{CONFIG['%USER%']}",
+                    content=get_nvidia_env_vars(), owner=f"{CONFIG['%USER%']}"
                 ),
             }
 
@@ -193,9 +172,7 @@ class DesktopModule(decman.Module):
         if is_laptop() or has_battery():
             desktop_set.add("brightnessctl")
 
-        config_set: set[str] = {
-            "bluetui",
-        }
+        config_set: set[str] = {"bluetui"}
 
         graphics_set: set[str] = set()
 
@@ -224,12 +201,7 @@ class DesktopModule(decman.Module):
             }
 
         if gpu_vendor == "nvidia_gsp":
-            graphics_set |= {
-                "lib32-nvidia-utils",
-                "libva-nvidia-driver",
-                "nvidia-open-dkms",
-                "nvidia-utils",
-            }
+            graphics_set |= {"lib32-nvidia-utils", "libva-nvidia-driver", "nvidia-open-dkms", "nvidia-utils"}
 
         media_set: set[str] = {
             "alsa-utils",  # ALSA utilities
@@ -259,13 +231,7 @@ class DesktopModule(decman.Module):
             "zenity",  # GUI dialog box from shell commands
         }
 
-        merged_set: set[str] = desktop_set.union(
-            config_set,
-            graphics_set,
-            media_set,
-            printer_set,
-            utilities_set,
-        )
+        merged_set: set[str] = desktop_set.union(config_set, graphics_set, media_set, printer_set, utilities_set)
         return merged_set
 
     @aur.packages
@@ -296,18 +262,14 @@ class DesktopModule(decman.Module):
         }
 
         if gpu_vendor == "nvidia_non_gsp":
-            desktop_set |= {
-                "lib32-nvidia-580xx-utils",
-                "nvidia-580xx-dkms",
-                "nvidia-580xx-utils",
-            }
+            desktop_set |= {"lib32-nvidia-580xx-utils", "nvidia-580xx-dkms", "nvidia-580xx-utils"}
 
         return desktop_set
 
     @flatpak.packages
     def flatpak_pkgs(self) -> set[str]:
         return {
-            "it.mijorus.gearlever",  # AppImage Manager
+            "it.mijorus.gearlever"  # AppImage Manager
         }
 
     @systemd.user_units

@@ -16,54 +16,22 @@ class SystemModule(decman.Module):
         super().__init__(name="system")
 
     def file_variables(self) -> dict[str, str]:
-        system_variables: dict[str, str] = {
-            "%LUKS_UUID%": get_luks_uuid(),
-        }
+        system_variables: dict[str, str] = {"%LUKS_UUID%": get_luks_uuid()}
 
         return CONFIG | system_variables
 
     def directories(self) -> dict[str, Directory]:
         etc_dirs: dict[str, Directory] = {
-            "/etc/default/": Directory(
-                source_directory="../dotfiles/root/etc/default/",
-                owner="root",
-            ),
-            "/etc/greetd/": Directory(
-                source_directory="../dotfiles/root/etc/greetd/",
-                owner="root",
-            ),
-            "/etc/NetworkManager/": Directory(
-                source_directory="../dotfiles/root/etc/NetworkManager/",
-                owner="root",
-            ),
-            "/etc/snapper/configs/": Directory(
-                source_directory="../dotfiles/root/etc/snapper/configs/",
-                owner="root",
-            ),
-            "/etc/pacman.d/hooks/": Directory(
-                source_directory="../dotfiles/root/etc/pacman.d/hooks/",
-                owner="root",
-            ),
-            "/etc/sysctl.d/": Directory(
-                source_directory="../dotfiles/root/etc/sysctl.d/",
-                owner="root",
-            ),
-            "/etc/systemd/": Directory(
-                source_directory="../dotfiles/root/etc/systemd/",
-                owner="root",
-            ),
-            "/etc/tmpfiles.d/": Directory(
-                source_directory="../dotfiles/root/etc/tmpfiles.d/",
-                owner="root",
-            ),
-            "/etc/udev/rules.d/": Directory(
-                source_directory="../dotfiles/root/etc/udev/rules.d/",
-                owner="root",
-            ),
-            "/etc/wireplumber/": Directory(
-                source_directory="../dotfiles/root/etc/wireplumber/",
-                owner="root",
-            ),
+            "/etc/default/": Directory(source_directory="../dotfiles/root/etc/default/", owner="root"),
+            "/etc/greetd/": Directory(source_directory="../dotfiles/root/etc/greetd/", owner="root"),
+            "/etc/NetworkManager/": Directory(source_directory="../dotfiles/root/etc/NetworkManager/", owner="root"),
+            "/etc/snapper/configs/": Directory(source_directory="../dotfiles/root/etc/snapper/configs/", owner="root"),
+            "/etc/pacman.d/hooks/": Directory(source_directory="../dotfiles/root/etc/pacman.d/hooks/", owner="root"),
+            "/etc/sysctl.d/": Directory(source_directory="../dotfiles/root/etc/sysctl.d/", owner="root"),
+            "/etc/systemd/": Directory(source_directory="../dotfiles/root/etc/systemd/", owner="root"),
+            "/etc/tmpfiles.d/": Directory(source_directory="../dotfiles/root/etc/tmpfiles.d/", owner="root"),
+            "/etc/udev/rules.d/": Directory(source_directory="../dotfiles/root/etc/udev/rules.d/", owner="root"),
+            "/etc/wireplumber/": Directory(source_directory="../dotfiles/root/etc/wireplumber/", owner="root"),
         }
 
         return etc_dirs | {
@@ -78,57 +46,39 @@ class SystemModule(decman.Module):
                 permissions=0o744,  # Make executable
             ),
             "/usr/lib/systemd/user/": Directory(
-                source_directory="../dotfiles/root/usr/lib/systemd/user/",
-                owner="root",
+                source_directory="../dotfiles/root/usr/lib/systemd/user/", owner="root"
             ),
         }
 
     def files(self) -> dict[str, File]:
         etc_files: dict[str, File] = {
             "/etc/modules-load.d/zram.conf": File(
-                source_file="../dotfiles/root/etc/modules-load.d/zram.conf",
-                owner="root",
+                source_file="../dotfiles/root/etc/modules-load.d/zram.conf", owner="root"
             ),
-            "/etc/mkinitcpio.conf": File(
-                source_file="../dotfiles/root/etc/mkinitcpio.conf",
-                owner="root",
-            ),
-            "/etc/pacman.conf": File(
-                source_file="../dotfiles/root/etc/pacman.conf",
-                owner="root",
-            ),
-            "/etc/updatedb.conf": File(
-                source_file="../dotfiles/root/etc/updatedb.conf",
-                owner="root",
-            ),
+            "/etc/mkinitcpio.conf": File(source_file="../dotfiles/root/etc/mkinitcpio.conf", owner="root"),
+            "/etc/pacman.conf": File(source_file="../dotfiles/root/etc/pacman.conf", owner="root"),
+            "/etc/updatedb.conf": File(source_file="../dotfiles/root/etc/updatedb.conf", owner="root"),
         }
 
-        wireless_regdom: str | None = (
-            utils.wireless_regdom.get_wireless_regdom_contents()
-        )
+        wireless_regdom: str | None = utils.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
             etc_files.update(
                 {
                     "/etc/conf.d/wireless-regdom": File(
-                        content="# Wireless regulatory domain configuration\n\n"
-                        + wireless_regdom,
-                        owner="root",
+                        content="# Wireless regulatory domain configuration\n\n" + wireless_regdom, owner="root"
                     )
                 }
             )
 
         return etc_files | {
             f"/home/{CONFIG['%USER%']}/.bash_profile": File(
-                source_file="../dotfiles/root/home/username/dot_bashprofile",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/dot_bashprofile", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.bashrc": File(
-                source_file="../dotfiles/root/home/username/dot_bashrc",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/dot_bashrc", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.gitconfig": File(
-                source_file="../dotfiles/root/home/username/dot_gitconfig",
-                owner=f"{CONFIG['%USER%']}",
+                source_file="../dotfiles/root/home/username/dot_gitconfig", owner=f"{CONFIG['%USER%']}"
             ),
         }
 
@@ -210,11 +160,7 @@ class SystemModule(decman.Module):
 
     @aur.packages
     def system_aur_packages(self) -> set[str]:
-        return {
-            "limine-mkinitcpio-hook",
-            "limine-snapper-sync",
-            "yay-bin",
-        }
+        return {"limine-mkinitcpio-hook", "limine-snapper-sync", "yay-bin"}
 
     @systemd.units
     def system_services(self) -> set[str]:

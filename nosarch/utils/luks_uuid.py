@@ -4,10 +4,7 @@ from subprocess import CompletedProcess
 
 def get_luks_uuid() -> str:
     result: CompletedProcess[str] = subprocess.run(
-        ["lsblk", "--raw", "--noheadings", "--output", "UUID,FSTYPE"],
-        capture_output=True,
-        text=True,
-        check=True,
+        ["lsblk", "--raw", "--noheadings", "--output", "UUID,FSTYPE"], capture_output=True, text=True, check=True
     )
 
     luks_uuids: list[str] = [

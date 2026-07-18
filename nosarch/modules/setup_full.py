@@ -12,9 +12,8 @@ class FullSetupModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{CONFIG['%USER%']}/.config/obsidian/": Directory(
-                source_directory="../dotfiles/root/home/username/config/obsidian/",
-                owner=f"{CONFIG['%USER%']}",
-            ),
+                source_directory="../dotfiles/root/home/username/config/obsidian/", owner=f"{CONFIG['%USER%']}"
+            )
         }
 
     @pacman.packages

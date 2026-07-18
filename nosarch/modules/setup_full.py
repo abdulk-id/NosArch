@@ -22,7 +22,6 @@ class FullSetupModule(decman.Module):
             "dua-cli",  # Disk usage analyzer
             "libreoffice-fresh",
             "obsidian",
-            "obs-studio",
             "proton-vpn-cli",
             "proton-vpn-gtk-app",  # ProtonVPN GTK app (community-maintained)
             "transmission-gtk",

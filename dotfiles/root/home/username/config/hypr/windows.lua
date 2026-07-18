@@ -114,6 +114,23 @@ hl.window_rule({
     tag = "+terminal"
 })
 
+-- Webcam overlay for screen recording
+hl.window_rule({
+    name = "webcam-overlay-rules",
+    match = {
+        title = "WebcamOverlay",
+    },
+    -- Static effects
+    float = true,
+    move = { "(monitor_w - window_w - 40)", "(monitor_h - window_h - 40)" },
+    no_initial_focus = true,
+    pin = true,
+
+    -- Dynamic effects
+    no_dim = true,
+    no_follow_mouse = true,
+})
+
 -- ## App-specific tweaks ##
 
 -- 1password
@@ -325,22 +342,6 @@ hl.window_rule({
     -- Static effects
     fullscreen = true,
     content = "game"
-})
-
--- Webcam overlay for screen recording
-hl.window_rule({
-    name = "webcam-overlay-rules",
-    match = {
-        title = "WebcamOverlay",
-    },
-    -- Static effects
-    float = true,
-    move = { "(monitor_w - window_w - 40)", "(monitor_h - window_h - 40)" },
-    no_initial_focus = true,
-    pin = true,
-
-    -- Dynamic effects
-    no_dim = true,
 })
 
 -- Localsend

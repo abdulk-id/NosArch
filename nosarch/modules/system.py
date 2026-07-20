@@ -31,6 +31,7 @@ class SystemModule(decman.Module):
             "/etc/systemd/": Directory(source_directory="../dotfiles/root/etc/systemd/", owner="root"),
             "/etc/tmpfiles.d/": Directory(source_directory="../dotfiles/root/etc/tmpfiles.d/", owner="root"),
             "/etc/udev/rules.d/": Directory(source_directory="../dotfiles/root/etc/udev/rules.d/", owner="root"),
+            "/etc/ufw/": Directory(source_directory="../dotfiles/root/etc/ufw/", owner="root"),
             "/etc/wireplumber/": Directory(source_directory="../dotfiles/root/etc/wireplumber/", owner="root"),
         }
 

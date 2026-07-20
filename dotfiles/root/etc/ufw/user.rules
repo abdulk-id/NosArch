@@ -23,6 +23,12 @@
 ### tuple ### allow udp 53317 0.0.0.0/0 any 0.0.0.0/0 LocalSend - in
 -A ufw-user-input -p udp --dport 53317 -j ACCEPT -m comment --comment 'dapp_LocalSend'
 
+### tuple ### allow tcp 1714:1764 0.0.0.0/0 any 192.168.1.0/24 KDEConnect - in
+-A ufw-user-input -p tcp -m multiport --dports 1714:1764 -s 192.168.1.0/24 -j ACCEPT -m comment --comment 'dapp_KDEConnect'
+
+### tuple ### allow udp 1714:1764 0.0.0.0/0 any 192.168.1.0/24 KDEConnect - in
+-A ufw-user-input -p udp -m multiport --dports 1714:1764 -s 192.168.1.0/24 -j ACCEPT -m comment --comment 'dapp_KDEConnect'
+
 ### END RULES ###
 
 ### LOGGING ###

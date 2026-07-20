@@ -20,6 +20,7 @@ class FullSetupModule(decman.Module):
     def pkgs(self) -> set[str]:
         apps_set: set[str] = {
             "dua-cli",  # Disk usage analyzer
+            "kdeconnect",
             "libreoffice-fresh",
             "obsidian",
             "proton-vpn-cli",

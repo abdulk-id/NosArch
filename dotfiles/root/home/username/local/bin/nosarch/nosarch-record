@@ -49,9 +49,11 @@ start_webcam_overlay() {
     # Get first available webcam device
     WEBCAM_DEVICE=$(v4l2-ctl --list-devices 2>/dev/null | grep --max-count 1 "^[[:space:]]*/dev/video" | tr --delete '\t')
     if [ -z "$WEBCAM_DEVICE" ]; then
-        notify-send --urgency normal \
+        notify-send --urgency critical \
             --app-name "NosArch Record" \
-            "No webcam devices found"
+            --app-icon "screencast-recorded-symbolic" \
+            "Failed to start webcam" \
+            "No webcam device found"
         return 1
     fi
 
@@ -126,6 +128,14 @@ start_screen_recording() {
 stop_screen_recording() {
     if pgrep --full "^gpu-screen-recorder" >/dev/null; then
         pkill -SIGINT --full "^gpu-screen-recorder"
+        notify-send --urgency normal \
+            --app-name "NosArch Record" \
+            --app-icon "screencast-recorded-symbolic" \
+            "Screen recording stopped" \
+            "Recording saved in \"<i>${RECORDING_OUTPUT_DIR}</i>\""
+
+    # TODO: How to get the actual file name of the recording stopped.
+    # Currently just showing the output directory in the notification.
     fi
 
     stop_webcam_overlay

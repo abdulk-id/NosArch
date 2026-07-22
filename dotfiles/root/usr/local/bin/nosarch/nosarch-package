@@ -2,7 +2,7 @@
 
 set -eu
 
-. "$HOME/.local/bin/util/sudo-keepalive.sh"
+. "/usr/local/bin/util/sudo-keepalive.sh"
 
 show_help() {
     cat <<EOF

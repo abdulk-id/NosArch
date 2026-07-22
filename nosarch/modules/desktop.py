@@ -65,31 +65,14 @@ class DesktopModule(decman.Module):
             ),
         }
 
-        user_script_directories: dict[str, Directory] = {
-            f"/home/{CONFIG['%USER%']}/.local/bin/nosarch/": Directory(
-                source_directory="../dotfiles/root/home/username/local/bin/nosarch/",
-                owner=f"{CONFIG['%USER%']}",
-                permissions=0o754,  # Make executable
+        return user_config_directories | {
+            f"/home/{CONFIG['%USER%']}/.local/share/": Directory(
+                source_directory="../dotfiles/root/home/username/local/share/", owner=f"{CONFIG['%USER%']}"
             ),
-            f"/home/{CONFIG['%USER%']}/.local/bin/util/": Directory(
-                source_directory="../dotfiles/root/home/username/local/bin/util/",
-                owner=f"{CONFIG['%USER%']}",
-                permissions=0o754,  # Make executable
+            f"/home/{CONFIG['%USER%']}/Templates/": Directory(
+                source_directory="../dotfiles/root/home/username/Templates/", owner=f"{CONFIG['%USER%']}"
             ),
         }
-
-        return (
-            user_config_directories
-            | user_script_directories
-            | {
-                f"/home/{CONFIG['%USER%']}/.local/share/": Directory(
-                    source_directory="../dotfiles/root/home/username/local/share/", owner=f"{CONFIG['%USER%']}"
-                ),
-                f"/home/{CONFIG['%USER%']}/Templates/": Directory(
-                    source_directory="../dotfiles/root/home/username/Templates/", owner=f"{CONFIG['%USER%']}"
-                ),
-            }
-        )
 
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {

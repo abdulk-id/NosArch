@@ -36,15 +36,20 @@ class SystemModule(decman.Module):
         }
 
         return etc_dirs | {
-            "/usr/local/bin/": Directory(
-                source_directory="../dotfiles/root/usr/local/bin/",
+            "/usr/local/bin/nosarch/": Directory(
+                source_directory="../dotfiles/root/usr/local/bin/nosarch/",
                 owner="root",
-                permissions=0o744,  # Make executable
+                permissions=0o755,  # Make executable
+            ),
+            "/usr/local/bin/util/": Directory(
+                source_directory="../dotfiles/root/usr/local/bin/util/",
+                owner="root",
+                permissions=0o755,  # Make executable
             ),
             "/usr/lib/nosarch/": Directory(
                 source_directory="../dotfiles/root/usr/lib/nosarch/",
                 owner="root",
-                permissions=0o744,  # Make executable
+                permissions=0o755,  # Make executable
             ),
             "/usr/lib/systemd/user/": Directory(
                 source_directory="../dotfiles/root/usr/lib/systemd/user/", owner="root"
@@ -57,6 +62,9 @@ class SystemModule(decman.Module):
                 source_file="../dotfiles/root/etc/modules-load.d/zram.conf", owner="root"
             ),
             "/etc/mkinitcpio.conf": File(source_file="../dotfiles/root/etc/mkinitcpio.conf", owner="root"),
+            "/etc/profile.d/nosarch.sh": File(
+                source_file="../dotfiles/root/etc/profile.d/nosarch.sh", owner="root", permissions=0o644
+            ),
             "/etc/pacman.conf": File(source_file="../dotfiles/root/etc/pacman.conf", owner="root"),
             "/etc/updatedb.conf": File(source_file="../dotfiles/root/etc/updatedb.conf", owner="root"),
         }

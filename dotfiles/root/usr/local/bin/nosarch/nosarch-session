@@ -78,7 +78,7 @@ session_lock() {
 
     # Lock the screen (use lock helper script to avoid blocking)
     if ! pidof hyprlock >/dev/null; then
-        setsid bash ~/.local/bin/util/nosarch-lock-helper.sh >/dev/null 2>&1 &
+        setsid bash /usr/local/bin/util/nosarch-lock-helper.sh >/dev/null 2>&1 &
     fi
 }
 

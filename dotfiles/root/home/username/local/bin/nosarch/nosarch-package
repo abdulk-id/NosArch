@@ -39,18 +39,20 @@ update_db() {
 
 ## === Features ===
 install_arch_packages() {
-    pkg_names=$(
+    fzf_output=$(
         pacman -Slq | fzf \
         --multi \
         --preview 'pacman -Sii {1}' \
         --preview-label='alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
         --preview-label-pos='bottom' \
-        --preview-window 'down:65%:wrap' \
+        --preview-window 'down:55%:wrap' \
         --bind 'alt-p:toggle-preview' \
         --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
         --bind 'alt-k:preview-up,alt-j:preview-down' \
         --color 'pointer:green,marker:green'
     ) || return 0
+
+    pkg_names=$(printf '%s\n' "$fzf_output" | tr '\n' ' ')
 
     if [ -n "$pkg_names" ]; then
         gum style --foreground 10 "▸ Authenticating..."
@@ -64,18 +66,10 @@ install_arch_packages() {
         trap 'stop_sudo_keepalive' 0
         echo
 
-        old_ifs=$IFS
-        IFS='
-'
-        set -f
-        set -- "$pkg_names"
-        set +f
-        IFS=$old_ifs
-
         gum style --foreground 10 "▸ Installing packages..."
         echo
 
-        if sudo pacman -S --needed --noconfirm "$@"; then
+        if sudo pacman -S --needed --noconfirm $pkg_names; then
             update_db
 
             echo
@@ -91,13 +85,13 @@ install_arch_packages() {
 }
 
 install_aur_packages() {
-    pkg_names=$(
+    fzf_output=$(
         yay -Slqa | fzf \
             --multi \
             --preview 'yay -Siia {1}' \
             --preview-label='alt-p: toggle description, alt-b/B: toggle PKGBUILD, alt-j/k: scroll description, tab: multi-select' \
             --preview-label-pos='bottom' \
-            --preview-window 'down:65%:wrap' \
+            --preview-window 'down:55%:wrap' \
             --bind 'alt-p:toggle-preview' \
             --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
             --bind 'alt-k:preview-up,alt-j:preview-down' \
@@ -105,6 +99,8 @@ install_aur_packages() {
             --bind 'alt-B:change-preview:yay -Siia {1}' \
             --color 'pointer:green,marker:green'
     ) || return 0
+
+    pkg_names=$(printf '%s\n' "$fzf_output" | tr '\n' ' ')
 
     if [ -n "$pkg_names" ]; then
         gum style --foreground 10 "▸ Authenticating..."
@@ -118,18 +114,10 @@ install_aur_packages() {
         trap 'stop_sudo_keepalive' 0
         echo
 
-        old_ifs=$IFS
-        IFS='
-'
-        set -f
-        set -- "$pkg_names"
-        set +f
-        IFS=$old_ifs
-
         gum style --foreground 10 "▸ Installing AUR packages..."
         echo
 
-        if yay -S --noconfirm "$@"; then
+        if yay -S --noconfirm $pkg_names; then
             update_db
 
             echo
@@ -151,19 +139,20 @@ install_flatpak_packages() {
     # APP_ID<TAB>NAME<TAB>DESCRIPTION
     pkg_selection=$(
         flatpak remote-ls --app --columns=application,name,description | \
-        awk -F'\t' '
+        awk -F "$TAB_CHAR" '
             !seen[$1]++ {
                 printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
             }
         ' | \
-        sort -t"$TAB_CHAR" -k2,2f | fzf \
+        sort -t "$TAB_CHAR" -k2,2f |
+        fzf \
             --multi \
             --delimiter="$TAB_CHAR" \
             --with-nth=2 \
             --preview 'printf "%s\n" "{}" | cut -f3' \
-            --preview-label='alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos='bottom' \
-            --preview-window 'down:30%:wrap' \
+            --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+            --preview-label-pos 'bottom' \
+            --preview-window 'down:55%:wrap' \
             --bind 'alt-p:toggle-preview' \
             --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
             --bind 'alt-k:preview-up,alt-j:preview-down' \
@@ -171,20 +160,12 @@ install_flatpak_packages() {
     ) || return 0
 
     if [ -n "$pkg_selection" ]; then
-        pkg_array=$(printf '%s\n' "$pkg_selection" | cut -f1)
-
-        old_ifs=$IFS
-        IFS='
-        '
-        set -f
-        set -- "$pkg_array"
-        set +f
-        IFS=$old_ifs
+        pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
 
         gum style --foreground 10 "▸ Installing Flatpak packages..."
         echo
 
-        if flatpak install "$@"; then
+        if flatpak install --assumeyes $pkg_ids; then
             echo
             gum style --foreground 10 "✓ Installation complete!"
         else
@@ -238,56 +219,6 @@ update_packages() {
 }
 
 remove_packages() {
-    pkg_names=$(
-        yay -Qqe | fzf \
-            --multi \
-            --preview 'yay -Qi {1}' \
-            --preview-label='alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos='bottom' \
-            --preview-window 'down:65%:wrap' \
-            --bind 'alt-p:toggle-preview' \
-            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-            --bind 'alt-k:preview-up,alt-j:preview-down' \
-            --color 'pointer:red,marker:red'
-    ) || return 0
-
-    if [ "$pkg_names" != "" ]; then
-        gum style --foreground 10 "▸ Authenticating..."
-        echo
-
-        if ! start_sudo_keepalive; then
-            echo
-            gum style --foreground 9 "x Authentication failed."
-            return 1
-        fi
-        trap 'stop_sudo_keepalive' 0
-        echo
-
-        old_ifs=$IFS
-        IFS='
-'
-        set -f
-        set -- "$pkg_names"
-        set +f
-        IFS=$old_ifs
-
-        gum style --foreground 10 "▸ Removing packages..."
-        echo
-
-        if yay -Rns --noconfirm "$@"; then
-            echo
-            gum style --foreground 10 "✓ Packages removed!"
-        else
-            echo
-            gum style --foreground 9 "x Removal failed."
-        fi
-
-        stop_sudo_keepalive
-        trap - 0
-    fi
-}
-
-remove_packages_new() (
     TAB_CHAR=$(printf '\t')
 
     entries=$(
@@ -308,9 +239,9 @@ remove_packages_new() (
             --delimiter "$TAB_CHAR" \
             --with-nth 1,2 \
             --preview '
-                case "{1}" in
+                case {1} in
                     "[arch]"|"[aur]")
-                        yay -Qi {2}
+                        yay -Qi -- {2}
                         ;;
                     "[flatpak]")
                         flatpak info {2}
@@ -319,7 +250,7 @@ remove_packages_new() (
             ' \
             --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
             --preview-label-pos 'bottom' \
-            --preview-window 'down:40%:wrap' \
+            --preview-window 'down:55%:wrap' \
             --bind 'alt-p:toggle-preview' \
             --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
             --bind 'alt-k:preview-up,alt-j:preview-down' \
@@ -328,8 +259,8 @@ remove_packages_new() (
 
     [ -z "$selected" ] && return 0
 
-    pacman_pkgs=$(printf '%s\n' "$selected" | awk -F '\t' '$1 != "[flatpak]" { print $2 }')
-    flatpak_pkgs=$(printf '%s\n' "$selected" | awk -F '\t' '$1 == "[flatpak]" { print $2 }')
+    pacman_pkgs=$(printf '%s\n' "$selected" | awk -F '\t' '$1 != "[flatpak]" { print $2 }' | tr '\n' ' ')
+    flatpak_pkgs=$(printf '%s\n' "$selected" | awk -F '\t' '$1 == "[flatpak]" { print $2 }' | tr '\n' ' ')
 
     gum style --foreground 10 "▸ Authenticating..."
     echo
@@ -345,18 +276,10 @@ remove_packages_new() (
     success=true
 
     if [ -n "$pacman_pkgs" ]; then
-        old_ifs=$IFS
-        IFS='
-'
-        set -f
-        set -- "$pacman_pkgs"
-        set +f
-        IFS=$old_ifs
-
         gum style --foreground 10 "▸ Removing Arch/AUR packages..."
         echo
 
-        if yay -Rns --noconfirm "$@"; then
+        if yay -Rns --noconfirm $pacman_pkgs; then
             echo
             gum style --foreground 10 "✓ Arch/AUR packages removed!"
         else
@@ -368,18 +291,10 @@ remove_packages_new() (
     fi
 
     if [ -n "$flatpak_pkgs" ]; then
-        old_ifs=$IFS
-        IFS='
-'
-        set -f
-        set -- "$flatpak_pkgs"
-        set +f
-        IFS=$old_ifs
-
         gum style --foreground 10 "▸ Removing Flatpak packages..."
         echo
 
-        if flatpak uninstall --assumeyes "$@"; then
+        if flatpak uninstall --assumeyes $flatpak_pkgs; then
             echo
             gum style --foreground 10 "✓ Flatpak packages removed!"
         else
@@ -393,7 +308,7 @@ remove_packages_new() (
     trap - 0
 
     $success
-)
+}
 
 remove_unused_packages() {
     gum style --foreground 10 "▸ Removing unused (orphan) packages..."
@@ -439,7 +354,7 @@ main() {
             update_packages
             ;;
         remove)
-            remove_packages_new
+            remove_packages
             ;;
         remove-unused)
             remove_unused_packages

@@ -1,5 +1,6 @@
 import decman
 import utils.gpu_vendor
+import utils.mimeapps_list
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman, systemd
@@ -66,8 +67,9 @@ class DesktopModule(decman.Module):
         }
 
         return user_config_directories | {
-            f"/home/{CONFIG['%USER%']}/.local/share/": Directory(
-                source_directory="../dotfiles/root/home/username/local/share/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{CONFIG['%USER%']}/.local/share/nautilus-python": Directory(
+                source_directory="../dotfiles/root/home/username/local/share/nautilus-python",
+                owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/Templates/": Directory(
                 source_directory="../dotfiles/root/home/username/Templates/", owner=f"{CONFIG['%USER%']}"
@@ -76,6 +78,9 @@ class DesktopModule(decman.Module):
 
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {
+            f"/home/{CONFIG['%USER%']}/.local/share/applications/mimeapps.list": File(
+                content=utils.mimeapps_list.get_mimeapps_content(), owner=f"{CONFIG['%USER%']}"
+            ),
             f"/home/{CONFIG['%USER%']}/.config/environment.d/defaults.conf": File(
                 source_file="../dotfiles/root/home/username/config/environment.d/defaults.conf",
                 owner=f"{CONFIG['%USER%']}",
@@ -123,6 +128,7 @@ class DesktopModule(decman.Module):
             "flatpak",
             "flatseal",  # Flatpak permission manager
             "ghostty",
+            "gnome-text-editor",
             "gpu-screen-recorder",  # Used for screen recording
             "grim",  # Screenshot utility
             "hyprcursor",

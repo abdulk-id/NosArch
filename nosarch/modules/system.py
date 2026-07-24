@@ -36,11 +36,6 @@ class SystemModule(decman.Module):
         }
 
         return etc_dirs | {
-            "/usr/local/bin/nosarch/": Directory(
-                source_directory="../dotfiles/root/usr/local/bin/nosarch/",
-                owner="root",
-                permissions=0o755,  # Make executable
-            ),
             "/usr/local/bin/util/": Directory(
                 source_directory="../dotfiles/root/usr/local/bin/util/",
                 owner="root",
@@ -79,17 +74,43 @@ class SystemModule(decman.Module):
                 }
             )
 
-        return etc_files | {
-            f"/home/{CONFIG['%USER%']}/.bash_profile": File(
-                source_file="../dotfiles/root/home/username/dot_bashprofile", owner=f"{CONFIG['%USER%']}"
-            ),
-            f"/home/{CONFIG['%USER%']}/.bashrc": File(
-                source_file="../dotfiles/root/home/username/dot_bashrc", owner=f"{CONFIG['%USER%']}"
-            ),
-            f"/home/{CONFIG['%USER%']}/.gitconfig": File(
-                source_file="../dotfiles/root/home/username/dot_gitconfig", owner=f"{CONFIG['%USER%']}"
-            ),
+        nosarch_script_names: set[str] = {
+            "nosarch-battery",
+            "nosarch-capture",
+            "nosarch-launch-app",
+            "nosarch-launch-tui",
+            "nosarch-launcher",
+            "nosarch-package",
+            "nosarch-record",
+            "nosarch-session",
+            "nosarch-share",
+            "nosarch-toggle",
+            "nosarch-wellbeing",
         }
+
+        nosarch_scripts: dict[str, File] = {}
+        for name in nosarch_script_names:
+            nosarch_scripts[f"/usr/local/bin/nosarch/{name}"] = File(
+                source_file=f"../dotfiles/root/usr/local/bin/nosarch/{name}",
+                owner="root",
+                permissions=0o755,  # Make executable
+            )
+
+        return (
+            etc_files
+            | nosarch_scripts
+            | {
+                f"/home/{CONFIG['%USER%']}/.bash_profile": File(
+                    source_file="../dotfiles/root/home/username/dot_bashprofile", owner=f"{CONFIG['%USER%']}"
+                ),
+                f"/home/{CONFIG['%USER%']}/.bashrc": File(
+                    source_file="../dotfiles/root/home/username/dot_bashrc", owner=f"{CONFIG['%USER%']}"
+                ),
+                f"/home/{CONFIG['%USER%']}/.gitconfig": File(
+                    source_file="../dotfiles/root/home/username/dot_gitconfig", owner=f"{CONFIG['%USER%']}"
+                ),
+            }
+        )
 
     @pacman.packages
     def system_packages(self) -> set[str]:
@@ -192,3 +213,62 @@ class SystemModule(decman.Module):
             systemd_set.add("thermald.service")
 
         return systemd_set
+
+
+# nosarch_scripts: dict[str, File] = {
+#    "/usr/local/bin/nosarch/nosarch-battery": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-battery",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-capture": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-capture",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-launch-app": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-launch-app",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-launch-tui": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-launch-tui",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-launcher": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-launcher",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-package": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-package",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-record": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-record",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-session": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-session",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-share": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-share",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-toggle": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-toggle",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+#    "/usr/local/bin/nosarch/nosarch-wellbeing": File(
+#        source_file="../dotfiles/root/usr/local/bin/nosarch-wellbeing",
+#        owner="root",
+#        permissions=0o755,  # Make executable
+#    ),
+# }

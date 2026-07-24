@@ -24,9 +24,12 @@ class DevModule(decman.Module):
         }
 
         return user_config_directories | {
+            "/usr/local/share/nosarch-dev/": Directory(
+                source_directory="../dotfiles/root/usr/local/share/nosarch-dev/", owner="root"
+            ),
             f"/home/{CONFIG['%USER%']}/Codespace/": Directory(
                 source_directory="../dotfiles/root/home/username/Codespace/", owner=f"{CONFIG['%USER%']}"
-            )
+            ),
         }
 
     def files(self) -> dict[str, File]:
@@ -35,6 +38,7 @@ class DevModule(decman.Module):
         )
 
         return {
+            # /etc files
             "/etc/containers/registries.conf.d/10-unqualified-search-registries.conf": File(
                 source_file="../dotfiles/root/etc/containers/registries.conf.d/10-unqualified-search-registries.conf",
                 owner="root",
@@ -42,6 +46,13 @@ class DevModule(decman.Module):
             "/etc/containers/registries.conf.d/01-registries.conf": File(
                 source_file="../dotfiles/root/etc/containers/registries.conf.d/01-registries.conf", owner="root"
             ),
+            # /usr files
+            "/usr/local/bin/nosarch/nosarch-dev": File(
+                source_file="../dotfiles/root/usr/local/bin/nosarch/nosarch-dev",
+                owner="root",
+                permissions=0o755,  # Make executable
+            ),
+            # User Home file
             f"/home/{CONFIG['%USER%']}/.config/mise/config.toml": mise_config_file,
             f"/home/{CONFIG['%USER%']}/.config/environment.d/dev.conf": File(
                 source_file="../dotfiles/root/home/username/config/environment.d/dev.conf", owner=f"{CONFIG['%USER%']}"

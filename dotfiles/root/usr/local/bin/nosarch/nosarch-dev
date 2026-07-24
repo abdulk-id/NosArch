@@ -1,0 +1,391 @@
+#!/bin/sh
+
+set -eu
+
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-dev <command> [options]
+
+Commands:
+    new try [options]       Create a new try
+    list                    List all tries
+    help                    Show this help message
+
+New Try options:
+    -l|--lang <lang>        Language to use
+    -n|--name <name>        Name of the try
+
+
+Supported language options:
+    java_gradle             Java with Gradle
+    java_maven              Java with Maven
+    nodejs                  Node.js
+    python                  Python
+    rust                    Rust
+EOF
+}
+
+## === Utilities ===
+TRIES_DIR="$HOME/Codespace/Tries"
+TEMPLATES_DIR="/usr/local/share/nosarch-dev/templates"
+
+create_readme() {
+    proj_dir="$1"
+    proj_name="$2"
+    lang="$3"
+    cat > "$proj_dir/README.md" <<EOF
+# $proj_name
+
+EOF
+}
+
+# List of supported languages (space-separated, no spaces in names).
+# Add to this list as needed — each name must have a matching setup_<lang> function below.
+SUPPORTED_LANGUAGES="java_gradle java_maven nodejs python rust"
+
+# --- Per-language setup functions ---
+# Each receives the project directory as $1 and is responsible for:
+#   - copying the language-specific files from the templates directory
+#   - any language-specific project init (venv, npm init, cargo init, etc.)
+# Keep these fully self-contained and independent of each other.
+
+setup_java_gradle() {
+    proj_dir="$1"
+    cp "$TEMPLATES_DIR/java-gradle/mise.toml" "$proj_dir/mise.toml"
+    cp "$TEMPLATES_DIR/java-gradle/dot_gitignore" "$proj_dir/.gitignore"
+}
+
+setup_java_maven() {
+    proj_dir="$1"
+    cp "$TEMPLATES_DIR/java-maven/mise.toml" "$proj_dir/mise.toml"
+    cp "$TEMPLATES_DIR/java-maven/dot_gitignore" "$proj_dir/.gitignore"
+}
+
+setup_nodejs() {
+    proj_dir="$1"
+    cp "$TEMPLATES_DIR/nodejs/mise.toml" "$proj_dir/mise.toml"
+    cp "$TEMPLATES_DIR/nodejs/dot_gitignore" "$proj_dir/.gitignore"
+
+    echo "  -> running npm init"
+    ( cd "$proj_dir" && npm init -y >/dev/null 2>&1 ) || echo "  ! npm init failed" >&2
+}
+
+setup_python() {
+    proj_dir="$1"
+    cp "$TEMPLATES_DIR/python/mise.toml" "$proj_dir/mise.toml"
+    cp "$TEMPLATES_DIR/python/dot_gitignore" "$proj_dir/.gitignore"
+
+    echo "  -> creating venv"
+    ( cd "$proj_dir" && python3 -m venv .venv ) || echo "  ! venv creation failed" >&2
+}
+
+setup_rust() {
+    proj_dir="$1"
+    cp "$TEMPLATES_DIR/rust/mise.toml" "$proj_dir/mise.toml"
+    # cargo init writes its own .gitignore, so none is added here.
+
+    echo "  -> running cargo init"
+    ( cd "$proj_dir" && cargo init -q ) || echo "  ! cargo init failed" >&2
+}
+
+## === Features ===
+select_language() {
+    set -- $SUPPORTED_LANGUAGES
+
+    # Use fzf if available; otherwise use a numbered list
+    if command -v fzf >/dev/null 2>&1; then
+        printf '%s\n' "$@" | fzf --prompt="Language> " --height=20% --reverse
+        return
+    else
+        echo "Select language:" >&2
+        i=1
+        for l in "$@"; do
+            echo "  $i) $l" >&2
+            i=$((i + 1))
+        done
+        printf 'Choice: ' >&2
+        read -r choice
+
+        case "$choice" in
+            ''|*[!0-9]*)
+                return
+                ;;
+            *)
+                if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le "$#" ]; then
+                    shift $((choice - 1))
+                    printf '%s' "$1"
+                fi
+                ;;
+        esac
+    fi
+    # Prints the chosen language to stdout (caller should capture with $()).
+}
+
+new_try_project() {
+    # Parse any options before gathering input.
+    proj_name=""
+    lang=""
+
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -n|--name)
+                if [ "$#" -lt 2 ]; then
+                    echo "$1 requires a value." >&2
+                    return 1
+                fi
+                proj_name="$2"
+                shift 2
+                ;;
+            -l|--language)
+                if [ "$#" -lt 2 ]; then
+                    echo "$1 requires a value." >&2
+                    return 1
+                fi
+                lang="$2"
+                shift 2
+                ;;
+            *)
+                echo "Unknown new try option: $1" >&2
+                show_help
+                return 1
+                ;;
+        esac
+    done
+
+    echo
+    printf '\033[1;34m%s\033[0m\n' "Starting new project setup..."
+
+    # Gather any remaining input up front, validate before touching the filesystem.
+    if [ -z "$proj_name" ]; then
+        printf 'Name: '
+        read -r proj_name
+    fi
+    if [ -z "$proj_name" ]; then
+        echo "No name given, aborting." >&2
+        return 1
+    fi
+
+    date_str=$(date +%Y-%m-%d)
+    proj_dir="$TRIES_DIR/${date_str}-${proj_name}"
+
+    if [ -e "$proj_dir" ]; then
+        echo "Directory already exists: $proj_dir" >&2
+        return 1
+    fi
+
+    if [ -z "$lang" ]; then
+        lang=$(select_language)
+    fi
+    if [ -z "$lang" ]; then
+        echo "No language chosen, aborting." >&2
+        return 1
+    fi
+
+    case " $SUPPORTED_LANGUAGES " in
+        *" $lang "*) ;;
+        *)
+            echo "Unrecognized language: $lang" >&2
+            return 1
+            ;;
+    esac
+
+    echo "Creating project directory: $proj_dir"
+    mkdir -p "$proj_dir" || { echo "Failed to create directory." >&2; return 1; }
+
+    echo "Running $lang setup..."
+    cp "$TEMPLATES_DIR/dot_gitattributes" "$proj_dir/.gitattributes"
+    "setup_$lang" "$proj_dir" || { echo "Language setup failed." >&2; return 1; }
+
+    echo "Writing README.md"
+    create_readme "$proj_dir" "$proj_name" "$lang"
+
+    echo "Initializing git repo"
+    (
+        cd "$proj_dir" || exit 1
+        git init --quiet
+        git add --all
+        git commit --quiet --message "Initial commit"
+    ) || { echo "Git setup failed." >&2; return 1; }
+
+    echo
+    echo "Done: $proj_dir"
+
+    printf 'Open in editor? [y/N] '
+    read -r open_choice
+    case "$open_choice" in
+        y|Y)
+            # "${EDITOR:-code}" "$proj_dir"
+            echo "Opening editor currently not supported"
+            ;;
+    esac
+}
+
+list_tries() {
+    TRY_LIST_CMD='
+        cd "$TRIES_DIR" 2>/dev/null || exit 1
+        for try in */; do
+            [ -d "$try" ] || continue
+            printf "%s\t%s\n" "$(date -r "$try" +%s)" "${try%/}"
+        done | sort -rn | cut -f2-
+    '
+
+    TRY_PREVIEW_CMD='
+        item={}
+        proj_dir="$TRIES_DIR/$item"
+
+        printf "\033[1;34m%s\033[0m\n" "$item"
+
+        if [ ! -d "$proj_dir" ]; then
+            echo "(directory not found)"
+        else
+            printf "Last modified: %s\n" "$(date -r "$proj_dir" "+%Y-%m-%d %H:%M")"
+
+            if [ -f "$proj_dir/README.md" ]; then
+                printf "README: \n\n"
+                cat "$proj_dir/README.md"
+            else
+                echo "No README.md found"
+            fi
+        fi
+    '
+
+    TRY_RENAME_CMD='
+        item={}
+        [ -z "$item" ] && exit 0
+        old_dir="$TRIES_DIR/$item"
+
+        # Extract date prefix (YYYY-MM-DD-) and project name
+        case "$item" in
+            [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*)
+                proj_name="${item#????-??-??-}"
+                date_prefix="${item%"$proj_name"}"
+                ;;
+            *)
+                date_prefix=""
+                proj_name="$item"
+                ;;
+        esac
+
+        printf "Rename \"%s\" to: " "$proj_name" > /dev/tty
+        read -r new_name < /dev/tty
+
+        if [ -z "$new_name" ] || [ "$new_name" = "$proj_name" ]; then
+            echo "Rename cancelled." > /dev/tty
+            sleep 1
+            exit 0
+        fi
+
+        new_item="${date_prefix}${new_name}"
+        new_dir="$TRIES_DIR/$new_item"
+
+        if [ -e "$new_dir" ]; then
+            echo "A directory named \"$new_item\" already exists." > /dev/tty
+            sleep 1.5
+            exit 0
+        fi
+
+        if mv "$old_dir" "$new_dir"; then
+            echo "Renamed to $new_item" > /dev/tty
+            sleep 0.5
+        else
+            echo "Error: Failed to rename directory." > /dev/tty
+            sleep 1.5
+        fi
+    '
+
+    TRY_DELETE_CMD='
+        item={}
+        [ -z "$item" ] && exit 0
+        target="$TRIES_DIR/$item"
+
+        printf "Delete \"%s\"? [y/N] " "$item" > /dev/tty
+        read -r confirm < /dev/tty
+
+        case "$confirm" in
+            (y|Y)
+                if rm -rf "$target"; then
+                    echo "Deleted $item" > /dev/tty
+                    sleep 0.5
+                else
+                    echo "Error: Failed to delete $item" > /dev/tty
+                    sleep 1.5
+                fi
+                ;;
+            (*)
+                echo "Delete cancelled." > /dev/tty
+                sleep 0.5
+                ;;
+        esac
+    '
+
+    if ! command -v fzf >/dev/null 2>&1; then
+        echo "fzf is required for this command." >&2
+        return 1
+    fi
+
+    if [ ! -d "$TRIES_DIR" ]; then
+        echo "Tries directory \"$TRIES_DIR\" does not exist" >&2
+        return 1
+    fi
+
+    # Export TRIES_DIR so the fzf preview subshell environment can read it
+    export TRIES_DIR
+
+    selected=$(
+        sh -c "$TRY_LIST_CMD" | fzf \
+            --prompt="Tries> " \
+            --no-height \
+            --preview="$TRY_PREVIEW_CMD" \
+            --preview-window="down:50%:wrap" \
+            --preview-label="Enter: Select | ^R: rename | ^D: delete | Esc: cancel" \
+            --preview-label-pos='bottom' \
+            --color 'pointer:green,marker:green' \
+            --bind "ctrl-r:execute($TRY_RENAME_CMD)+reload($TRY_LIST_CMD)" \
+            --bind "ctrl-d:execute($TRY_DELETE_CMD)+reload($TRY_LIST_CMD)"
+    ) || true
+
+    if [ -n "$selected" ]; then
+        # TODO: `cd` into the project
+        printf '%s\n' "$TRIES_DIR/$selected"
+    else
+        echo "No project selected." >&2
+    fi
+}
+
+## ===
+main() {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return
+    fi
+
+    case "${1:-}" in
+        new)
+            case "${2:-}" in
+                try)
+                    shift 2
+                    new_try_project "$@"
+                    ;;
+                *)
+                    echo "Unknown action: $2"
+                    show_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+        list)
+            list_tries
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

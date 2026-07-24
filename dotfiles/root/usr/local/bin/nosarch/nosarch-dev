@@ -13,6 +13,7 @@ Commands:
     help                    Show this help message
 
 New Try options:
+    -g|--no-git             Skip making a Git repository
     -l|--lang <lang>        Language to use
     -n|--name <name>        Name of the try
 
@@ -23,6 +24,7 @@ Supported language options:
     nodejs                  Node.js
     python                  Python
     rust                    Rust
+    none                    No language (barebones project)
 EOF
 }
 
@@ -42,7 +44,8 @@ EOF
 
 # List of supported languages (space-separated, no spaces in names).
 # Add to this list as needed — each name must have a matching setup_<lang> function below.
-SUPPORTED_LANGUAGES="java_gradle java_maven nodejs python rust"
+# `none` is for when no language is selected, e.g. a barebones project.
+SUPPORTED_LANGUAGES="java_gradle java_maven nodejs python rust none"
 
 # --- Per-language setup functions ---
 # Each receives the project directory as $1 and is responsible for:
@@ -89,6 +92,10 @@ setup_rust() {
     ( cd "$proj_dir" && cargo init -q ) || echo "  ! cargo init failed" >&2
 }
 
+setup_none() {
+    echo "  -> no setup needed"
+}
+
 ## === Features ===
 select_language() {
     set -- $SUPPORTED_LANGUAGES
@@ -126,6 +133,7 @@ new_try_project() {
     # Parse any options before gathering input.
     proj_name=""
     lang=""
+    make_git_repo=true
 
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -144,6 +152,10 @@ new_try_project() {
                 fi
                 lang="$2"
                 shift 2
+                ;;
+            -g|--no-git)
+                make_git_repo=false
+                shift
                 ;;
             *)
                 echo "Unknown new try option: $1" >&2
@@ -200,13 +212,17 @@ new_try_project() {
     echo "Writing README.md"
     create_readme "$proj_dir" "$proj_name" "$lang"
 
-    echo "Initializing git repo"
-    (
-        cd "$proj_dir" || exit 1
-        git init --quiet
-        git add --all
-        git commit --quiet --message "Initial commit"
-    ) || { echo "Git setup failed." >&2; return 1; }
+    if [ "$make_git_repo" = true ]; then
+        echo "Initializing git repo"
+        (
+            cd "$proj_dir" || exit 1
+            git init --quiet
+            git add --all
+            git commit --quiet --message "Initial commit"
+        ) || { echo "Git setup failed." >&2; return 1; }
+    else
+        echo "Skipping git repo initialization"
+    fi
 
     echo
     echo "Done: $proj_dir"

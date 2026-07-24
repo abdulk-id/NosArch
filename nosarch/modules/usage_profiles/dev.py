@@ -91,7 +91,7 @@ class DevModule(decman.Module):
 
     @aur.packages
     def aur_pkgs(self) -> set[str]:
-        return {"t3code-bin", "try-cli", "ufw-docker"}
+        return {"t3code-bin", "ufw-docker"}
 
     @flatpak.user_packages
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:

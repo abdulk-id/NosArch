@@ -80,6 +80,7 @@ class DevModule(decman.Module):
             "meson",
             "neovim",
             "ninja",
+            "openai-codex",
             "opencode",
             "podman",
             "podman-compose",

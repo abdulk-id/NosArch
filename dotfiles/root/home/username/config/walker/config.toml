@@ -60,7 +60,7 @@ show_actions = ["alt j"]
 
 [providers]
 default = [
-    "desktopapplications",
+    "menus:main",
     "websearch",
 ] # providers to be queried by default
 empty = ["menus:main"] # providers to be queried when query is empty

@@ -23,6 +23,9 @@ class DesktopModule(decman.Module):
             f"/home/{CONFIG['%USER%']}/.config/btop/": Directory(
                 source_directory="../dotfiles/root/home/username/config/btop/", owner=f"{CONFIG['%USER%']}"
             ),
+            f"/home/{CONFIG['%USER%']}/.config/elephant/": Directory(
+                source_directory="../dotfiles/root/home/username/config/elephant/", owner=f"{CONFIG['%USER%']}"
+            ),
             f"/home/{CONFIG['%USER%']}/.config/ghostty/": Directory(
                 source_directory="../dotfiles/root/home/username/config/ghostty/", owner=f"{CONFIG['%USER%']}"
             ),
@@ -54,11 +57,11 @@ class DesktopModule(decman.Module):
             f"/home/{CONFIG['%USER%']}/.config/uwsm/": Directory(
                 source_directory="../dotfiles/root/home/username/config/uwsm/", owner=f"{CONFIG['%USER%']}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/vicinae/": Directory(
-                source_directory="../dotfiles/root/home/username/config/vicinae/", owner=f"{CONFIG['%USER%']}"
-            ),
             f"/home/{CONFIG['%USER%']}/.config/waybar/": Directory(
                 source_directory="../dotfiles/root/home/username/config/waybar/", owner=f"{CONFIG['%USER%']}"
+            ),
+            f"/home/{CONFIG['%USER%']}/.config/walker/": Directory(
+                source_directory="../dotfiles/root/home/username/config/walker/", owner=f"{CONFIG['%USER%']}"
             ),
             f"/home/{CONFIG['%USER%']}/.config/xdg-desktop-portal/": Directory(
                 source_directory="../dotfiles/root/home/username/config/xdg-desktop-portal/",
@@ -229,27 +232,25 @@ class DesktopModule(decman.Module):
     def aur_pkgs(self) -> set[str]:
         # Packages that are no longer used by NosArch.
         # Config files of these packages are still present in the repo.
-        unused_aur_pkgs: set[str] = {
-            "elephant",
-            "elephant-bookmarks",
-            "elephant-calc",
-            "elephant-clipboard",
-            "elephant-desktopapplications",
-            "elephant-files",
-            "elephant-menus",
-            "elephant-providerlist",
-            "elephant-runner",
-            "elephant-snippets",
-            "elephant-websearch",
-            "walker-bin",
-        }
+        unused_aur_pkgs: set[str] = {"vicinae-bin"}
 
         desktop_set: set[str] = {
+            "elephant-bin",
+            "elephant-bookmarks-bin",
+            "elephant-calc-bin",
+            "elephant-clipboard-bin",
+            "elephant-desktopapplications-bin",
+            "elephant-files-bin",
+            "elephant-menus-bin",
+            "elephant-providerlist-bin",
+            "elephant-runner-bin",
+            "elephant-snippets-bin",
+            "elephant-websearch-bin",
             "hyprmoncfg",
             "hyprland-preview-share-picker-git",
             "hyprqt6engine",
-            "vicinae-bin",
             "xdg-terminal-exec",
+            "walker-bin",
         }
 
         if gpu_vendor == "nvidia_non_gsp":
@@ -266,6 +267,7 @@ class DesktopModule(decman.Module):
     @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:
         desktop_user_services: set[str] = {
+            "elephant.service",
             "hyprmoncfgd.service",
             "pipewire.service",
             "pipewire-pulse.service",

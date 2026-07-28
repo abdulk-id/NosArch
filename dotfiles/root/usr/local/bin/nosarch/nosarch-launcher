@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# vicinae toggle
+
+if [ -n "$1" ]; then
+    walker -m "$1"
+else
+    walker
+fi

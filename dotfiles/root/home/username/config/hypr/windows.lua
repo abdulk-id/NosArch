@@ -2,6 +2,20 @@
 -- See https://wiki.hypr.land/Configuring/Window-Rules/ for more
 -- See https://wiki.hypr.land/Configuring/Workspace-Rules/ for workspace rules
 
+hl.config({
+    -- Miscellaneous config related to windows
+    misc = {
+        focus_on_activate = true,
+        on_focus_under_fullscreen = 1,
+
+        enable_anr_dialog = true,
+        anr_missed_pings = 3,
+
+        -- Solve issue of windows opening in workspace 1 when called from other workspaces
+        initial_workspace_tracking = 0
+    }
+})
+
 -- Ignore maximize requests from all apps. You'll probably like this.
 hl.window_rule({
     name = "suppress-maximize-events",
@@ -79,6 +93,17 @@ hl.window_rule({
     center = true,
 })
 
+-- Satty
+hl.window_rule({
+    name = "satty-screenshot-annotation-rule",
+    match = {
+        class = "com.gabm.satty"
+    },
+    -- Static effects
+    float = true,
+    center = true,
+})
+
 -- Define terminal tag to style them uniformly
 -- TODO: Removable?? No window rules tagging windows with 'terminal' tag
 hl.window_rule({
@@ -87,6 +112,23 @@ hl.window_rule({
         class = "(Alacritty|kitty|com.mitchellh.ghostty)"
     },
     tag = "+terminal"
+})
+
+-- Webcam overlay for screen recording
+hl.window_rule({
+    name = "webcam-overlay-rules",
+    match = {
+        title = "WebcamOverlay",
+    },
+    -- Static effects
+    float = true,
+    move = { "(monitor_w - window_w - 40)", "(monitor_h - window_h - 40)" },
+    no_initial_focus = true,
+    pin = true,
+
+    -- Dynamic effects
+    no_dim = true,
+    no_follow_mouse = true,
 })
 
 -- ## App-specific tweaks ##
@@ -302,21 +344,65 @@ hl.window_rule({
     content = "game"
 })
 
--- Webcam overlay for screen recording
+-- Spotify
 hl.window_rule({
-    name = "webcam-overlay-rules",
+    name = "spotify-rules",
     match = {
-        title = "WebcamOverlay",
+        initial_class = "Spotify"
     },
     -- Static effects
     float = true,
-    move = { "(monitor_w - window_w - 40)", "(monitor_h - window_h - 40)" },
-    no_initial_focus = true,
-    pin = true,
+    size = { "1280", "720" },
+    center = true,
 
     -- Dynamic effects
-    no_dim = true,
+    tag = "+spotify-player",
 })
+
+hl.on("window.open", function(window)
+    -- Find the Spotify main window by its dynamic tag.
+    local spotify = nil
+
+    for _, client in pairs(hl.get_windows()) do
+        for _, tag in ipairs(client.tags) do
+            if tag == "spotify-player*" then
+                spotify = client
+                break
+            end
+        end
+    end
+
+    if spotify == nil then
+        return
+    end
+
+    -- The miniplayer is created by the same process as the main Spotify window.
+    if window.pid == spotify.pid
+        and window.class == "Chromium-browser"
+    then
+        hl.dispatch(hl.dsp.window.float({
+            window = window,
+            action = "set",
+        }))
+
+        hl.dispatch(hl.dsp.window.resize({
+            window = window,
+            x = 308,
+            y = 304,
+        }))
+
+        hl.dispatch(hl.dsp.window.move({
+            window = window,
+            x = window.monitor.width - 308 - 25,
+            y = window.monitor.height - 304 - 50,
+        }))
+
+        hl.dispatch(hl.dsp.window.pin({
+            window = window,
+            action = "set",
+        }))
+    end
+end)
 
 -- Localsend
 hl.window_rule({

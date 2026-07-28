@@ -24,6 +24,9 @@ decman.execution_order = [
 
 decman.aur.packages |= {"decman"}
 decman.aur.ignored_packages |= {"yay"}
+
+# Ignored because needed for testing, not for user setups
+decman.pacman.ignored_packages |= {"icon-library", "dconf-editor", "shellcheck"}
 # ---
 
 # User and Group management
@@ -51,30 +54,17 @@ userManager.add_user(
 # ---
 
 # Decman modules
-decman.modules += {
-    SystemModule(),
-    DesktopModule(),
-    ThemingModule(),
-    SetupModule(),
-}
+decman.modules += {SystemModule(), DesktopModule(), ThemingModule(), SetupModule()}
 
 if CONFIG["%FULL_SETUP%"] == "true":
-    decman.modules += {
-        FullSetupModule(),
-    }
+    decman.modules += {FullSetupModule()}
 
 if CONFIG["%CREATIVE_PROFILE%"] == "true":
-    decman.modules += {
-        CreativeModule(),
-    }
+    decman.modules += {CreativeModule()}
 
 if CONFIG["%DEV_PROFILE%"] == "true":
-    decman.modules += {
-        DevModule(),
-    }
+    decman.modules += {DevModule()}
 
 if CONFIG["%GAMING_PROFILE%"] == "true":
-    decman.modules += {
-        GamingModule(),
-    }
+    decman.modules += {GamingModule()}
 # ---

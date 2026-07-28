@@ -157,12 +157,6 @@ hl.config({
         disable_splash_rendering = true, -- If true disables the Hyprland splash rendering.
         font_family = "JetbrainsMono Nerd Font",
         force_default_wallpaper = 1,     -- Set to 0 or 1 to disable the anime mascot wallpapers
-
-        focus_on_activate = true,
-        on_focus_under_fullscreen = 1,
-
-        enable_anr_dialog = true,
-        anr_missed_pings = 3
     }
 })
 

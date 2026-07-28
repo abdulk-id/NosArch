@@ -1,0 +1,120 @@
+#!/bin/sh
+
+set -eu
+
+show_help() {
+    cat <<'EOF'
+Usage:
+    nosarch-share <command>
+
+Commands:
+    file            Share file(s)
+    folder          Share folder(s)
+    text            Share text
+    clipboard       Share clipboard content
+    help            Show this help message
+
+    files           Same as `file`
+    folders         Same as `folder`
+EOF
+}
+
+
+## === Utilities ===
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+
+## === Features ===
+pick_files() {
+    zenity --file-selection --multiple --separator="$(printf '\n')"
+}
+pick_folder() {
+    zenity --file-selection --directory
+}
+input_text() {
+    zenity --text-info \
+        --editable \
+        --title="Share Text" \
+        --icon="document-edit-symbolic" \
+        --width=100 \
+        --height=50 \
+        --font="JetbrainsMono Nerd Font" \
+        --ok-label="Share" \
+        --cancel-label="Cancel"
+}
+
+share_files() {
+    result="$(pick_files)" || return 0
+
+    (
+        IFS='
+'
+        set -f
+        set -- "$result"
+        systemd-run --user --quiet --collect localsend --headless send "$@"
+    )
+}
+
+share_folder() (
+    folder="$(pick_folder)" || return 0
+
+    systemd-run --user --quiet --collect localsend --headless send "$folder"
+)
+
+share_text() (
+    text="$(input_text)" || return 0
+
+    tmpfile="$(mktemp --suffix=.txt)"
+    echo "$text" > "$tmpfile"
+
+    systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
+)
+
+share_clipboard() (
+    tmpfile="$(mktemp --suffix=.txt)"
+    wl-paste > "$tmpfile"
+
+    systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
+)
+
+## ===
+main() {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return
+    fi
+
+    case "${1:-}" in
+        file|files)
+            share_files
+            ;;
+            folder|folders)
+            share_folder
+            ;;
+        text)
+            share_text
+            ;;
+        clipboard)
+            share_clipboard
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+for cmd in localsend fzf xdg-terminal-exec; do
+    _ensure_command "$cmd"
+done
+
+main "$@"

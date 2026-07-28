@@ -12,20 +12,16 @@ class GamingModule(decman.Module):
     def files(self) -> dict[str, File]:
         return {
             "/etc/modprobe.d/blacklist-xpad.conf": File(
-                source_file="../dotfiles/root/etc/modprobe.d/blacklist-xpad.conf",
-                owner="root",
+                source_file="../dotfiles/root/etc/modprobe.d/blacklist-xpad.conf", owner="root"
             ),
             "/etc/modules-load.d/windows-compat.conf": File(
-                source_file="../dotfiles/root/etc/modules-load.d/windows-compat.conf",
-                owner="root",
+                source_file="../dotfiles/root/etc/modules-load.d/windows-compat.conf", owner="root"
             ),
             "/etc/modules-load.d/gaming-controllers.conf": File(
-                source_file="../dotfiles/root/etc/modules-load.d/gaming-controllers.conf",
-                owner="root",
+                source_file="../dotfiles/root/etc/modules-load.d/gaming-controllers.conf", owner="root"
             ),
             "/usr/share/wayland-sessions/steam-big-picture.desktop": File(
-                source_file="../dotfiles/root/usr/share/wayland-sessions/steam-big-picture.desktop",
-                owner="root",
+                source_file="../dotfiles/root/usr/share/wayland-sessions/steam-big-picture.desktop", owner="root"
             ),
             f"/home/{CONFIG['%USER%']}/.local/bin/steamos-session-select": File(
                 source_file="../dotfiles/root/home/username/local/bin/steamos-session-select",

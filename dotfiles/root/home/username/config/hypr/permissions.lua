@@ -16,10 +16,9 @@ hl.permission({
     type = "screencopy",
     mode = "allow",
 })
-
-hl.permission({ binary = "/usr/bin/grim", type = "screencopy", mode = "allow" })
-hl.permission({ binary = "/usr/bin/hyprshot", type = "screencopy", mode = "allow" })
-hl.permission({ binary = "/usr/bin/hyprpicker", type = "screencopy", mode = "allow" })
+hl.permission({ binary = "/usr/bin/hyprlock", type = "screencopy", mode = "allow" })
 hl.permission({ binary = "/usr/bin/hyprland-preview-share-picker", type = "screencopy", mode = "allow" })
 
-hl.permission({ binary = "/usr/bin/hyprlock", type = "screencopy", mode = "allow" })
+hl.permission({ binary = "/usr/bin/grim", type = "screencopy", mode = "allow" })
+hl.permission({ binary = "/usr/bin/still", type = "screencopy", mode = "allow" })
+hl.permission({ binary = "/usr/bin/hyprpicker", type = "screencopy", mode = "allow" })

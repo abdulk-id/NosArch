@@ -1,0 +1,149 @@
+force_keyboard_focus = true     # forces keyboard focus to stay in Walker
+close_when_open = true          # close walker when invoking while already opened
+click_to_close = true           # closes walker if clicking outside of the main content area
+as_window = false               # launch walker as a regular window instead of layer shell application
+single_click_activation = true  # activate items with a single click opposed to a double click
+selection_wrap = true           # wrap list if at bottom or top
+global_argument_delimiter = "#" # query: firefox#https://benz.dev => part after delimiter will be ignored when querying. this should be the same as in the elephant config
+exact_search_prefix = "'"       # disable fuzzy searching
+theme = "nosarch"               # theme to use
+disable_mouse = false           # disable mouse (on input and list only)
+debug = false                   # enables debug printing for some stuff, f.e. keybinds
+page_jump_items = 6             # number of items to skip with Page Up/Down
+hide_quick_activation = true    # globally hide the quick activation buttons
+hide_action_hints = false       # globally hide the action hints
+hide_action_hints_dmenu = false # hide the actions hints for dmenu
+hide_return_action = false      # hide actions that are bound to Return
+resume_last_query = false       # open walker with the last query in place
+actions_as_menu = true          # display all possible actions in a submenu
+autoplay_videos = false         # auto-play video previews
+
+[shell]
+exclusive_zone = -1
+layer = "overlay"
+anchor_top = true
+anchor_bottom = true
+anchor_left = true
+anchor_right = true
+
+[columns]
+"symbols" = 1
+
+[placeholders]
+"default" = { input = "  Search...", list = "No Results" }
+"desktopapplications" = { input = "Launch...", list = "No Applications" }
+"files" = { input = "Browse Files", list = "No Files Found" }
+"websearch" = { input = "Search Web", list = "No Options Found" }
+"clipboard" = { input = "Clipboard", list = "Clipboard Empty" }
+
+"menus:session" = { input = "Manage session", list = "No Options Found" }
+"menus:software" = { input = "Manage software", list = "No Options Found" }
+"menus:capture" = { input = "Capture...", list = "No Options Found" }
+
+"menus:settings" = { input = "Configure", list = "No Settings Found" }
+"menus:power-profiles" = { input = "Select Power profile", list = "No Power Profiles Found" }
+
+[keybinds]
+close = ["Escape"]
+next = ["Down"]
+previous = ["Up"]
+left = ["Left"]
+right = ["Right"]
+down = ["Down"]
+up = ["Up"]
+toggle_exact = ["ctrl e"]
+resume_last_query = ["ctrl r"]
+quick_activate = ["F1", "F2", "F3", "F4"]
+page_down = ["Page_Down"]
+page_up = ["Page_Up"]
+show_actions = ["alt j"]
+
+[providers]
+default = [
+    "menus:main",
+    "websearch",
+] # providers to be queried by default
+empty = ["menus:main"] # providers to be queried when query is empty
+ignore_preview = [] # providers that should not show previews
+max_results = 256 # global max results
+
+[providers.argument_delimiter] # define the argument delimiter per provider
+runner = " "
+
+[providers.sets] # define your own defaults/empty sets of providers
+[providers.max_results_provider] # define max results per provider in here
+
+[[providers.prefixes]]
+prefix = ";"
+provider = "providerlist"
+
+[[providers.prefixes]]
+prefix = "/"
+provider = "files"
+
+[[providers.prefixes]]
+prefix = "@"
+provider = "websearch"
+
+[[providers.prefixes]]
+prefix = ":"
+provider = "clipboard"
+
+[providers.clipboard]
+time_format = "relative" # format for the clipboard item date
+
+[providers.actions]
+dmenu = [{ action = "select", label = "Select", default = true, bind = "Return" }]
+
+providerlist = [
+  { action = "activate", label = "Activate", default = true, bind = "Return", after = "ClearReload" },
+]
+
+websearch = [
+  { action = "search", label = "Search", default = true, bind = "Return" },
+  { action = "open_url", label = "Open URL", default = true, bind = "Return" },
+]
+
+desktopapplications = [
+  { action = "start", label = "Open", default = true, bind = "Return" },
+  { action = "start:keep", label = "Open + Next", bind = "shift Return", after = "KeepOpen" },
+  { action = "new_instance", label = "New Instance", bind = "ctrl Return" },
+  { action = "new_instance:keep", label = "New + Next", bind = "ctrl alt Return", after = "KeepOpen" },
+  { action = "pin", label = "Pin", bind = "ctrl p", after = "AsyncReload" },
+  { action = "unpin", label = "Unpin", bind = "ctrl p", after = "AsyncReload" },
+  { action = "pinup", label = "Move Pin Up", bind = "ctrl n", after = "AsyncReload" },
+  { action = "pindown", label = "Move Pin Down", bind = "ctrl m", after = "AsyncReload" },
+]
+
+files = [
+  { action = "open", label = "Open", default = true, bind = "Return" },
+  { action = "opendir", label = "Open Dir", bind = "ctrl Return" },
+  { action = "copypath", label = "Copy Path", bind = "ctrl shift c" },
+  { action = "copyfile", label = "Copy File", bind = "ctrl c" },
+  { action = "localsend", label = "Localsend", bind = "ctrl l" },
+  { action = "refresh_index", label = "Reload", bind = "ctrl r", after = "AsyncReload" },
+]
+
+clipboard = [
+  { action = "copy", label = "Copy", default = true, bind = "Return" },
+  { action = "remove", label = "Remove", bind = "ctrl d", after = "AsyncClearReload" },
+  { action = "remove_all", label = "Clear", bind = "ctrl shift d", after = "AsyncClearReload" },
+  { action = "show_images_only", label = "Only Images", bind = "ctrl i", after = "AsyncClearReload" },
+  { action = "show_text_only", label = "Only Text", bind = "ctrl i", after = "AsyncClearReload" },
+  { action = "show_combined", label = "Show All", bind = "ctrl i", after = "AsyncClearReload" },
+  { action = "pause", label = "Pause", bind = "ctrl shift p" },
+  { action = "unpause", label = "Unpause", bind = "ctrl shift p" },
+  { action = "unpin", label = "Unpin", bind = "ctrl p", after = "AsyncClearReload" },
+  { action = "pin", label = "Pin", bind = "ctrl p", after = "AsyncClearReload" },
+  { action = "edit", label = "Edit", bind = "ctrl o" },
+  { action = "localsend", label = "Localsend", bind = "ctrl l" },
+]
+
+# Emergency mode entries
+[[emergencies]]
+text = "Open Files"
+command = "uwsm-app -- \"$FILE_MANAGER\" --new-window"
+
+[[emergencies]]
+text = "Open Default Browser"
+command = "nosarch-launch-browser"

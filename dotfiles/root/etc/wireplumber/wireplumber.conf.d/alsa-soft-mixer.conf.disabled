@@ -1,4 +1,5 @@
 # Copied from Omarchy
+# https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf
 
 ## Use software volume control for all ALSA devices.
 ## This prevents hardware mixer quirks (like muffled audio on Realtek codecs)

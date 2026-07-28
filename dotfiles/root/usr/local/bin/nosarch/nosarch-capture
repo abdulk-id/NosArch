@@ -1,0 +1,251 @@
+#!/bin/sh
+
+set -eu
+
+[ -f "$HOME/.config/user-dirs.dirs" ] && . "$HOME/.config/user-dirs.dirs"
+
+show_help() {
+    cat <<'EOF'
+Usage:
+    nosarch-capture [options] <command> [action]
+
+Options:
+    -s, --just-save         Save the screenshot without opening the annotation editor
+
+Commands:
+    screenshot <action>     Take a screenshot
+    extract-text            Extract text from screen and copy to clipboard
+    colorpick               Open Color Picker
+    help                    Show this help message
+
+Screenshot actions:
+    region                  Screenshot a region
+    window [active]         Screenshot a window [`active` to screenshot the active window]
+    monitor [active]        Screenshot a monitor [`active` to screenshot the active monitor]
+    all                     Screenshot all monitors
+EOF
+}
+
+## === Utilities ===
+OUTPUT_DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
+[ ! -d "$OUTPUT_DIR" ] && mkdir --parents "$OUTPUT_DIR"
+
+FILE_NAME="screenshot-$(date +'%d-%m-%Y_%H-%M-%S').png"
+FILE_PATH="$OUTPUT_DIR/$FILE_NAME"
+
+SELECTION_COLOR="#%ACCENT%FF"
+
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found." >&2
+        exit 1
+    fi
+}
+
+send_notification() {
+    notify-send --urgency=low --transient \
+        --app-name="NosArch Capture" \
+        --app-icon="applets-screenshooter-symbolic" \
+        "Screenshot Captured" \
+        "Image saved to \"<i>${FILE_PATH}</i>\""
+}
+
+finish_screenshot() {
+    if [ "$JUST_SAVE" -eq 1 ]; then
+        mv "$1" "$FILE_PATH"
+        send_notification
+    else
+        _ensure_command satty
+        satty --filename "$1" --output-filename "$FILE_PATH"
+        rm --force "$1"
+    fi
+}
+
+## === Features ===
+extract_text() {
+    for cmd in grim slurp still tesseract wl-copy; do
+        _ensure_command "$cmd"
+    done
+
+    SELECTION=$(still -c "slurp -c \"$SELECTION_COLOR\" -w 2")
+    TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem lstm_only --psm single_block -l eng --dpi 300 -c preserve_interword_spaces=1) || return 1
+    printf "%s" "$TEXT" | wl-copy
+
+    notify-send --urgency=low --transient \
+        --app-name="Nosarch Capture" \
+        --app-icon="applets-screenshooter-symbolic" \
+        "Text Extracted" "Copied text from selection to clipboard"
+}
+
+screenshot_active_monitor() {
+    for cmd in grim hyprctl jq; do
+        _ensure_command "$cmd"
+    done
+
+    grim -o "$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name')" - | finish_screenshot -
+}
+screenshot_monitor() {
+    for cmd in grim slurp still; do
+        _ensure_command "$cmd"
+    done
+
+    TMP_FILE=$(mktemp)
+
+    still -c "slurp -or | grim -g - \"$TMP_FILE\""
+
+    finish_screenshot "$TMP_FILE"
+}
+screenshot_all_monitors() {
+    _ensure_command grim
+
+    grim - | finish_screenshot -
+}
+
+### TODO: If there are windows on top of the active window, they also get captured
+screenshot_active_window() {
+    for cmd in grim hyprctl jq; do
+        _ensure_command "$cmd"
+    done
+
+    active_window_geometry="$(hyprctl -j activewindow | jq --raw-output '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' | cut -f1,2 -d' ')"
+
+    TMP_FILE=$(mktemp)
+    grim -g "$active_window_geometry" "$TMP_FILE"
+
+    finish_screenshot "$TMP_FILE"
+}
+screenshot_window() {
+    for cmd in grim hyprctl jq slurp still; do
+        _ensure_command "$cmd"
+    done
+
+    TMP_FILE=$(mktemp)
+    still -c "
+        active_ids=\$(hyprctl -j monitors | jq '[.[].activeWorkspace.id]') &&
+        hyprctl -j clients |
+        jq -r --argjson active_ids \"\$active_ids\" '
+            .[]
+            | select(.visible == true)
+            | select(.workspace.id as \$wid | (\$active_ids | index(\$wid)) != null)
+            | \"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1]) \\(.title)\"
+        ' |
+        slurp -r |
+        grim -g - \"$TMP_FILE\"
+    " || return 1
+
+    finish_screenshot "$TMP_FILE"
+}
+
+screenshot_region() {
+    for cmd in grim slurp still; do
+        _ensure_command "$cmd"
+    done
+
+    TMP_FILE=$(mktemp)
+    still -c "slurp -c \"$SELECTION_COLOR\" -w 2 -d | grim -g - \"$TMP_FILE\""
+
+    finish_screenshot "$TMP_FILE"
+}
+
+## ===
+main() {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return
+    fi
+
+    # Global options
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --just-save|-s)
+                JUST_SAVE=1
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                exit 1
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    # Command actions
+    case "${1:-}" in
+        screenshot)
+            case "${2:-}" in
+                region)
+                    screenshot_region
+                    ;;
+                window)
+                    case "${3:-}" in
+                        active)
+                            screenshot_active_window
+                            ;;
+                        "")
+                            if [ "$#" -ne 2 ]; then
+                                echo "Unknown trailing arguments" >&2
+                                show_help
+                                exit 1
+                            fi
+                            screenshot_window
+                            ;;
+                        *)
+                            echo "Unknown screenshot window action: $3" >&2
+                            show_help
+                            exit 1
+                    esac
+                    ;;
+                monitor)
+                    case "${3:-}" in
+                        active)
+                            screenshot_active_monitor
+                            ;;
+                        "")
+                            if [ "$#" -ne 2 ]; then
+                                echo "Unknown trailing arguments" >&2
+                                show_help
+                                exit 1
+                            fi
+                            screenshot_monitor
+                            ;;
+                        *)
+                            echo "Unknown screenshot monitor action: $3" >&2
+                            show_help
+                            exit 1
+                    esac
+                    ;;
+                all)
+                    screenshot_all_monitors
+                    ;;
+                *)
+                    echo "Unknown screenshot action: $2" >&2
+                    show_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+        extract-text)
+            extract_text
+            ;;
+        colorpick)
+            pkill hyprpicker || hyprpicker --autocopy
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+JUST_SAVE=0
+main "$@"

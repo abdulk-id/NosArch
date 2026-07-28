@@ -1,0 +1,152 @@
+#!/bin/sh
+
+set -eu
+
+show_help() {
+    cat <<EOF
+Usage: nosarch-battery <command>
+
+Commands:
+    power-profile-auto      Automatically set the power profile based on charging state
+EOF
+}
+
+## === Utilities ===
+notify_battery_status() {
+    # Adapted from Omarchy
+    # https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-battery-status
+
+    battery_info=$(upower -i "$(upower -e | grep BAT)")
+
+    capacity=$(echo "$battery_info" | awk '/energy-full:/ {
+        printf "%d", $2
+        exit
+    }')
+
+    state=$(echo "$battery_info" | awk '/state/ { print $2; exit }')
+
+    percentage=$(echo "$battery_info" | awk '/percentage/ {
+        print int($2)
+        exit
+    }')
+
+    power_rate=$(echo "$battery_info" | awk '/energy-rate/ {
+        rounded = sprintf("%.1f", $2)
+        sub(/\.0$/, "", rounded)
+        print rounded
+        exit
+    }')
+
+    time_remaining=$(echo "$battery_info" | awk '/time to (empty|full)/ {
+        value = $4
+        unit = $5
+        if (unit ~ /^minute/) {
+            printf "%dm", int(value)
+        } else {
+            hours = int(value)
+            minutes = int((value - hours) * 60)
+            if (minutes > 0) {
+                printf "%dh %dm", hours, minutes
+            } else {
+                printf "%dh", hours
+            }
+        }
+        exit
+    }')
+
+    if [ "$state" = "charging" ]; then
+        echo "Battery ${percentage}%  ·  ${time_remaining} to full  ·   ${power_rate}W / ${capacity}Wh"
+    elif [ "$state" = "discharging" ]; then
+        echo "Battery ${percentage}%  ·  ${time_remaining} left  ·   ${power_rate}W / ${capacity}Wh"
+    elif [ "$state" = "fully-charged" ]; then
+        echo "Battery ${percentage}%  ·  fully charged  ·   ${power_rate}W / ${capacity}Wh"
+    fi
+}
+
+## === Actions logic ===
+auto_set_power_profile() (
+    # Copied from Omarchy
+    # https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-powerprofiles-set
+
+    notify-send "Auto-setting power profile based on charging state"
+
+    # Auto-detect: treat any Mains or USB power-supply device reporting
+    # online=1 as "on AC". This handles USB-C only laptops where the legacy
+    # AC device may not fire udev events, and also avoids false negatives from
+    # per-port USB-C devices that are present-but-empty (online=0) while
+    # another port supplies power.
+
+    # On plug/unplug, udev fires the rule before sysfs `online` is updated on
+    # some laptops. A short settle delay lets the kernel update before we read state.
+    sleep 0.3
+
+    action=battery
+
+    for power_supply in /sys/class/power_supply/*; do
+        [ -r "$power_supply"/online ] && [ -r "$power_supply"/type ] || continue
+
+        type=$(cat "$power_supply/type")
+        [ "$type" = "Mains" ] || continue
+
+        # TODO: Commented out: only treat "Mains" as AC because "USB" is stuck at online=1 (On Dell XPS 13)
+        # [ "$type" = "Mains" ] || [ "$type" = "USB" ] || continue
+
+        if [ "$(cat "$power_supply/online")" = "1" ]; then
+            action=ac
+            break
+        fi
+    done
+
+    # Check if performance profile is available
+    has_performance=false
+
+    while read -r profile; do
+        if [ "$profile" = "performance" ]; then
+            has_performance=true
+            break
+        fi
+    done << EOF
+$(powerprofilesctl list | awk '/^\s*[* ]\s*[a-zA-Z0-9\-]+:$/ { gsub(/^[*[:space:]]+|:$/,""); print }')
+EOF
+
+    case "$action" in
+        ac)
+            # Prefer performance, fall back to balanced
+            if [ "$has_performance" = true ]; then
+                powerprofilesctl set performance
+                notify-send "Power profile set to performance on AC"
+            else
+                powerprofilesctl set balanced
+                notify-send "Power profile set to balanced on AC"
+            fi
+            ;;
+        battery)
+            notify-send "Power profile set to balanced on battery"
+            powerprofilesctl set balanced
+            ;;
+    esac
+)
+
+## ===
+main() {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return
+    fi
+
+    case "${1:-}" in
+        power-profile-auto)
+            auto_set_power_profile
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

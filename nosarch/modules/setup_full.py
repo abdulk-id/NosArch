@@ -12,18 +12,17 @@ class FullSetupModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{CONFIG['%USER%']}/.config/obsidian/": Directory(
-                source_directory="../dotfiles/root/home/username/config/obsidian/",
-                owner=f"{CONFIG['%USER%']}",
-            ),
+                source_directory="../dotfiles/root/home/username/config/obsidian/", owner=f"{CONFIG['%USER%']}"
+            )
         }
 
     @pacman.packages
     def pkgs(self) -> set[str]:
         apps_set: set[str] = {
             "dua-cli",  # Disk usage analyzer
+            "kdeconnect",
             "libreoffice-fresh",
             "obsidian",
-            "obs-studio",
             "proton-vpn-cli",
             "proton-vpn-gtk-app",  # ProtonVPN GTK app (community-maintained)
             "transmission-gtk",

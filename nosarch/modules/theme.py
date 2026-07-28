@@ -22,7 +22,7 @@ class ThemingModule(decman.Module):
                 bin_files=False,
                 encoding="UTF-8",
                 owner=f"{CONFIG['%USER%']}",
-            ),
+            )
         }
 
     def symlinks(self) -> dict[str, str | Symlink]:
@@ -40,9 +40,7 @@ class ThemingModule(decman.Module):
 
     def choose_first_wallpaper(self) -> str:
         wallpapers: list[str] = [
-            entry.name
-            for entry in os.scandir(f"./themes/{THEME['%FILENAME%']}/wallpapers/")
-            if entry.is_file()
+            entry.name for entry in os.scandir(f"./themes/{THEME['%FILENAME%']}/wallpapers/") if entry.is_file()
         ]
 
         return wallpapers[0]

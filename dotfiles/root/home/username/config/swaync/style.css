@@ -8,7 +8,7 @@
 @define-color text-alt                  #%FOREGROUND_SECONDARY%;
 @define-color selected                  alpha(@text-alt, .4);
 @define-color hover                     alpha(@selected, .4);
-@define-color urgent                    @text-alt;
+@define-color urgent                    #%ALERT_RED%;
 
 * {
     all: unset;
@@ -34,11 +34,16 @@
 }
 
 .notification {
+    border: solid 1.5px @accent-color;
+    border-radius: var(--border-radius);
     padding: 5px;
 }
+.notification.critical {
+    border: 1.5px solid @urgent;
+}
+
 .notification-background {
     background: @notification-bg;
-    border: solid 2px @accent-color;
     border-radius: var(--border-radius);
     margin: 5px;
 }
@@ -52,11 +57,6 @@
 }
 .notification-background .close-button:hover {
     background: @hover;
-}
-
-.notification.critical {
-    border: 2px solid @urgent;
-    border-radius: var(--border-radius);
 }
 
 .notification-content {
@@ -161,10 +161,16 @@
 }
 .notification-group:not(.collapsed) {
     /* Notifications expanded-group extra margin */
-    margin: 10px;
+    margin: 0px;
 }
 
-.notification-group-headers,
+.notification-group-headers {
+    color: @text;
+    background: @background;
+    font-weight: var(--font-weight-primary);
+    border-radius: var(--border-radius);
+    padding: 10px 15px;
+}
 .notification-group-buttons {
     color: @text;
     background: @background;
@@ -185,7 +191,7 @@
     color: @text;
     background: transparent;
     border-radius: var(--border-radius);
-    padding: 4px;
+    padding: 5px;
 }
 .notification-group-buttons .image-button:hover {
     background: @hover;

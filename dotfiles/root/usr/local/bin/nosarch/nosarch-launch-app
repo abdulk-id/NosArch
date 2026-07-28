@@ -1,0 +1,96 @@
+#!/bin/sh
+
+set -eu
+
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-launch-app <command>
+
+Commands:
+    browser                 Launch the default browser
+    browser-private         Launch the default browser in private mode
+    editor                  Launch the default editor
+    files                   Launch the file manager
+    terminal                Launch the default terminal emulator
+    help                    Show this help message
+EOF
+}
+
+## === Features ===
+
+# Browser launching logic adapted from Omarchy
+# https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-launch-browser
+
+get_browser_exec() (
+    desktop=$(xdg-settings get default-web-browser)
+
+    for dir in "$HOME/.local" "$HOME/.nix-profile" "/usr"; do
+        file="$dir/share/applications/$desktop"
+        if [ -f "$file" ]; then
+            sed -n 's/^Exec=\([^ ]*\).*/\1/p' "$file" | head -n 1
+            break
+        fi
+    done
+)
+get_private_flag() (
+    browser="$1"
+
+    if "$browser" --help | grep -q MOZ_LOG; then
+        echo "--private-window"
+    else
+        case "$browser" in
+            *edge*)
+                echo "--inprivate"
+                ;;
+            *)
+                echo "--incognito"
+                ;;
+        esac
+    fi
+)
+launch_browser() {
+    exec setsid uwsm-app -- "$(get_browser_exec)"
+}
+launch_browser_private() {
+    browser=$(get_browser_exec)
+    private_flag=$(get_private_flag "$browser")
+
+    exec setsid uwsm-app -- "$browser" "$private_flag"
+}
+
+## ===
+main() {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return
+    fi
+
+    case "${1:-}" in
+        browser)
+            launch_browser
+            ;;
+        browser-private)
+            launch_browser_private
+            ;;
+        editor)
+            exec setsid uwsm-app -- "$VISUAL"
+            ;;
+        files)
+            exec setsid uwsm-app -- nautilus --new-window
+            ;;
+        terminal)
+            exec setsid uwsm-app -- "$TERMINAL"
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

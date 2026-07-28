@@ -1,0 +1,222 @@
+#!/bin/sh
+
+set -eu
+
+[ -f "$HOME/.config/user-dirs.dirs" ] && . "$HOME/.config/user-dirs.dirs"
+
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-script-name <command> [options]
+
+Commands:
+    start                       Start screen recording
+    stop                        Stop screen recording
+    show-webcam                 Show webcam overlay (without recording screen)
+    help                        Show this help message
+
+Start Options:
+    -i, --record-input          Record input audio
+    -o, --record-output         Record output audio
+    -w, --show-webcam           Show webcam overlay
+EOF
+}
+
+## === Utilities ===
+
+RECORDING_OUTPUT_DIR="${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings"
+[ ! -d "$RECORDING_OUTPUT_DIR" ] && mkdir --parents "$RECORDING_OUTPUT_DIR"
+
+RECORDING_FILE_NAME="recording-$(date +'%d-%m-%Y_%H-%M-%S').mkv"
+RECORDING_FILE_PATH="$RECORDING_OUTPUT_DIR/$RECORDING_FILE_NAME"
+
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+## === Features ===
+
+start_webcam_overlay() {
+    for cmd in ffplay hyprctl jq v4l2-ctl; do
+        _ensure_command "$cmd"
+    done
+
+    echo "Starting webcam overlay..."
+
+    # Get first available webcam device
+    WEBCAM_DEVICE=$(v4l2-ctl --list-devices 2>/dev/null | grep --max-count 1 "^[[:space:]]*/dev/video" | tr --delete '\t')
+    if [ -z "$WEBCAM_DEVICE" ]; then
+        notify-send --urgency critical \
+            --app-name "NosArch Record" \
+            --app-icon "screencast-recorded-symbolic" \
+            "Failed to start webcam" \
+            "No webcam device found"
+        return 1
+    fi
+
+    # Get monitor scale
+    scale=$(hyprctl monitors -j | jq --raw-output '.[] | select(.focused == true) | .scale')
+
+    # Target width (base 240px, scaled to monitor)
+    target_width=$(awk "BEGIN {printf \"%.0f\", 240 * $scale}")
+
+    # Try preferred 16:9 resolutions in order, use first available
+    video_size_arg=""
+    available_formats=$(v4l2-ctl --list-formats-ext --device "$WEBCAM_DEVICE" 2>/dev/null)
+
+    for resolution in 640x360 1280x720 1920x1080; do
+        if echo "$available_formats" | grep --quiet "$resolution"; then
+            video_size_arg="-video_size $resolution"
+            break
+        fi
+    done
+
+    #-video_size "640x360" \
+    ffplay -f v4l2 \
+        -i "$WEBCAM_DEVICE" \
+        $video_size_arg \
+        -framerate 60 \
+        -vf "crop=iw/2:ih,hflip,scale=${target_width}:-1" \
+        -window_title "WebcamOverlay" \
+        -noborder \
+        -fflags nobuffer \
+        -flags low_delay \
+        -probesize 32 \
+        -analyzeduration 0 &
+    sleep 1
+}
+stop_webcam_overlay() {
+    pkill --full "WebcamOverlay" >/dev/null 2>&1 || :
+}
+
+start_screen_recording() {
+    # Setup audio arguments
+    audio_arg="-a"
+
+    if [ "${RECORD_OUTPUT_AUDIO}" -eq 1 ]; then
+        audio_arg=$audio_arg" default_output"
+    fi
+    if [ "${RECORD_INPUT_AUDIO}" -eq 1 ]; then
+        if [ "$audio_arg" = "-a" ]; then
+            audio_arg=$audio_arg" default_input"
+        else
+            audio_arg=$audio_arg"|default_input"
+        fi
+    fi
+
+    # Clean arguments if empty
+    if [ "$audio_arg" = "-a" ]; then
+        audio_arg=""
+    fi
+
+    # Start webcam overlay before recording
+    if [ "${RECORD_CAMERA_VIDEO}" -eq 1 ]; then
+        start_webcam_overlay
+    fi
+
+    # Start recording
+    gpu-screen-recorder \
+        -w portal -restore-portal-session yes \
+        -f 60 \
+        $audio_arg \
+        -o "$RECORDING_FILE_PATH" \
+        -v no  # Stop constantly printing fps
+}
+stop_screen_recording() {
+    if pgrep --full "^gpu-screen-recorder" >/dev/null; then
+        pkill -SIGINT --full "^gpu-screen-recorder"
+        notify-send --urgency normal \
+            --app-name "NosArch Record" \
+            --app-icon "screencast-recorded-symbolic" \
+            "Screen recording stopped" \
+            "Recording saved in \"<i>${RECORDING_OUTPUT_DIR}</i>\""
+
+    # TODO: How to get the actual file name of the recording stopped.
+    # Currently just showing the output directory in the notification.
+    fi
+
+    stop_webcam_overlay
+}
+
+## ===
+main() {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return
+    fi
+    command=${1:-}
+
+    case "$command" in
+        start)
+            shift
+
+            while [ "$#" -gt 0 ]; do
+                case "$1" in
+                    --record-output|-o)
+                        RECORD_OUTPUT_AUDIO=1
+                        ;;
+                    --record-input|-i)
+                        RECORD_INPUT_AUDIO=1
+                        ;;
+                    --show-webcam|-w)
+                        RECORD_CAMERA_VIDEO=1
+                        ;;
+                    --)
+                        shift
+                        break
+                        ;;
+                    -*)
+                        echo "Unknown option for 'start': $1" >&2
+                        exit 1
+                        ;;
+                    *)
+                        echo "Unexpected argument: $1" >&2
+                        exit 1
+                        ;;
+                esac
+                shift
+            done
+
+            start_screen_recording
+            ;;
+        stop)
+            shift
+
+            if [ "$#" -gt 0 ]; then
+                echo "The 'stop' command takes no options" >&2
+                exit 1
+            fi
+
+            stop_screen_recording
+            ;;
+        show-webcam)
+            shift
+
+            if [ "$#" -gt 0 ]; then
+                echo "The 'show-webcam' command takes no options" >&2
+                exit 1
+            fi
+
+            start_webcam_overlay
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        "")
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $command" >&2
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+RECORD_OUTPUT_AUDIO=0
+RECORD_INPUT_AUDIO=0
+RECORD_CAMERA_VIDEO=0
+main "$@"

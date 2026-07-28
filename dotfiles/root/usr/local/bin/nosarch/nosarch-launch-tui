@@ -1,0 +1,95 @@
+#!/bin/sh
+
+set -eu
+
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-launch-tui <command> [args...]
+EOF
+}
+
+## === Utilities ===
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+shell_quote() {
+    printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+## Action
+for cmd in hyprctl jq; do
+    _ensure_command "$cmd"
+done
+
+[ "$#" -eq 0 ] && {
+    show_help
+    return
+}
+
+: "${TERMINAL:=xdg-terminal-exec}"
+
+# --- Command info ---
+FULL_CMD="$*"
+TITLE="TUI.$(printf '%s' "$FULL_CMD" | sed 's/ /_/g')"
+
+# --- Refocus existing window if present ---
+ADDR=$(
+    hyprctl clients -j |
+    jq -r \
+        ".[] | select(.title == \"$TITLE\") | .address" |
+    head -n1
+)
+
+if [ -n "$ADDR" ] && [ "$ADDR" != "null" ]; then
+    hyprctl eval "
+    hl.dispatch(
+        hl.dsp.focus({
+            window = 'address:${ADDR}'
+        })
+    )
+    "
+    hyprctl eval "
+    hl.dispatch(
+        hl.dsp.window.alter_zorder({
+            mode = 'top',
+            window = 'address:${ADDR}'
+        })
+    )
+    "
+    exit 0
+fi
+
+CMD_STRING=
+
+for arg in "$@"; do
+    quoted=$(shell_quote "$arg")
+    CMD_STRING="${CMD_STRING}${CMD_STRING:+ }${quoted}"
+done
+
+INNER_SCRIPT=$(cat <<EOF
+printf '\e]0;%s\a' $(shell_quote "$TITLE")
+
+if ! $CMD_STRING; then
+    echo
+    echo "Process failed."
+fi
+
+echo
+read -n 1 -s -r -p "Press any key to exit..."
+echo
+EOF
+)
+
+ESCAPED_SCRIPT=$(printf '%s' "$INNER_SCRIPT" | sed "s/'/'\\\\''/g")
+FINAL_CMD="$TERMINAL -e sh -lc '$ESCAPED_SCRIPT'"
+
+hyprctl eval "hl.exec_cmd([==[$FINAL_CMD]==], {
+    float = true,
+    size = {1280, 720},
+    center = true
+})"

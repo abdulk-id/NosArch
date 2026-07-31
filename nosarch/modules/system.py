@@ -77,14 +77,17 @@ class SystemModule(decman.Module):
         nosarch_script_names: set[str] = {
             "nosarch-battery",
             "nosarch-capture",
+            "nosarch-display",
             "nosarch-launch-app",
             "nosarch-launch-tui",
             "nosarch-launcher",
+            "nosarch-media",
             "nosarch-package",
             "nosarch-record",
             "nosarch-session",
             "nosarch-share",
             "nosarch-toggle",
+            "nosarch-volume",
             "nosarch-wellbeing",
         }
 

@@ -7,14 +7,10 @@
             "*.env.*": "deny",
             "*.env.example": "allow",
         },
-        "edit": {
-            "*": "ask",
-            "AGENTS.md": "allow",
-        },
+        "edit": "allow",
         "glob": "allow",
         "grep": "allow",
         "bash": {
-            "sudo decman --dry-run": "allow",
             "*": "ask",
             "sudo *": "deny",
         },
@@ -24,7 +20,7 @@
         "question": "allow",
         "webfetch": "ask",
         "websearch": "ask",
-        "external_directory": "deny",
+        "external_directory": "ask",
         "doom_loop": "deny",
     },
 }

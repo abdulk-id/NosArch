@@ -1,5 +1,6 @@
-import decman
 from config import CONFIG
+
+import decman
 from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
 
@@ -57,7 +58,7 @@ class FullSetupModule(decman.Module):
 
     @flatpak.user_packages
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {f"{CONFIG['%USER%']}": {"io.github.alainm23.planify"}}
+        return {f"{CONFIG['%USER%']}": {"io.github.tobagin.karere"}}
 
     @systemd.units
     def systemd_services(self) -> set[str]:

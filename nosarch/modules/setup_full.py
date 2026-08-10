@@ -12,7 +12,8 @@ class FullSetupModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{CONFIG['%USER%']}/.config/obsidian/": Directory(
-                source_directory="../dotfiles/root/home/username/config/obsidian/", owner=f"{CONFIG['%USER%']}"
+                source_directory="../dotfiles/setup-full-root/home/username/config/obsidian/",
+                owner=f"{CONFIG['%USER%']}",
             )
         }
 
@@ -57,7 +58,7 @@ class FullSetupModule(decman.Module):
 
     @flatpak.user_packages
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {f"{CONFIG['%USER%']}": {"io.github.alainm23.planify"}}
+        return {f"{CONFIG['%USER%']}": {"io.github.tobagin.karere"}}
 
     @systemd.units
     def systemd_services(self) -> set[str]:

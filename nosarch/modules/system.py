@@ -1,13 +1,13 @@
 import decman
-import utils.cpu_vendor
+import utils.hardware.chassis_type
+import utils.hardware.cpu_vendor
+import utils.luks_uuid
 import utils.wireless_regdom
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
-from utils.chassis_type import has_battery, is_laptop
-from utils.luks_uuid import get_luks_uuid
 
-cpu_vendor: str = utils.cpu_vendor.get_cpu_vendor()
+cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
 
 
 # Base system module
@@ -16,52 +16,58 @@ class SystemModule(decman.Module):
         super().__init__(name="system")
 
     def file_variables(self) -> dict[str, str]:
-        system_variables: dict[str, str] = {"%LUKS_UUID%": get_luks_uuid()}
+        system_variables: dict[str, str] = {"%LUKS_UUID%": utils.luks_uuid.get_luks_uuid()}
 
         return CONFIG | system_variables
 
     def directories(self) -> dict[str, Directory]:
         etc_dirs: dict[str, Directory] = {
-            "/etc/default/": Directory(source_directory="../dotfiles/root/etc/default/", owner="root"),
-            "/etc/greetd/": Directory(source_directory="../dotfiles/root/etc/greetd/", owner="root"),
-            "/etc/NetworkManager/": Directory(source_directory="../dotfiles/root/etc/NetworkManager/", owner="root"),
-            "/etc/snapper/configs/": Directory(source_directory="../dotfiles/root/etc/snapper/configs/", owner="root"),
-            "/etc/pacman.d/hooks/": Directory(source_directory="../dotfiles/root/etc/pacman.d/hooks/", owner="root"),
-            "/etc/sysctl.d/": Directory(source_directory="../dotfiles/root/etc/sysctl.d/", owner="root"),
-            "/etc/systemd/": Directory(source_directory="../dotfiles/root/etc/systemd/", owner="root"),
-            "/etc/tmpfiles.d/": Directory(source_directory="../dotfiles/root/etc/tmpfiles.d/", owner="root"),
-            "/etc/udev/rules.d/": Directory(source_directory="../dotfiles/root/etc/udev/rules.d/", owner="root"),
-            "/etc/ufw/": Directory(source_directory="../dotfiles/root/etc/ufw/", owner="root"),
-            "/etc/wireplumber/": Directory(source_directory="../dotfiles/root/etc/wireplumber/", owner="root"),
+            "/etc/default/": Directory(source_directory="../dotfiles/system-root/etc/default/", owner="root"),
+            "/etc/greetd/": Directory(source_directory="../dotfiles/system-root/etc/greetd/", owner="root"),
+            "/etc/NetworkManager/": Directory(
+                source_directory="../dotfiles/system-root/etc/NetworkManager/", owner="root"
+            ),
+            "/etc/pacman.d/hooks/": Directory(
+                source_directory="../dotfiles/system-root/etc/pacman.d/hooks/", owner="root"
+            ),
+            "/etc/snapper/configs/": Directory(
+                source_directory="../dotfiles/system-root/etc/snapper/configs/", owner="root"
+            ),
+            "/etc/sysctl.d/": Directory(source_directory="../dotfiles/system-root/etc/sysctl.d/", owner="root"),
+            "/etc/systemd/": Directory(source_directory="../dotfiles/system-root/etc/systemd/", owner="root"),
+            "/etc/tmpfiles.d/": Directory(source_directory="../dotfiles/system-root/etc/tmpfiles.d/", owner="root"),
+            "/etc/udev/rules.d/": Directory(source_directory="../dotfiles/system-root/etc/udev/rules.d/", owner="root"),
+            "/etc/ufw/": Directory(source_directory="../dotfiles/system-root/etc/ufw/", owner="root"),
+            "/etc/wireplumber/": Directory(source_directory="../dotfiles/system-root/etc/wireplumber/", owner="root"),
         }
 
         return etc_dirs | {
-            "/usr/local/bin/util/": Directory(
-                source_directory="../dotfiles/root/usr/local/bin/util/",
-                owner="root",
-                permissions=0o755,  # Make executable
-            ),
             "/usr/lib/nosarch/": Directory(
-                source_directory="../dotfiles/root/usr/lib/nosarch/",
+                source_directory="../dotfiles/system-root/usr/lib/nosarch/",
                 owner="root",
                 permissions=0o755,  # Make executable
             ),
             "/usr/lib/systemd/user/": Directory(
-                source_directory="../dotfiles/root/usr/lib/systemd/user/", owner="root"
+                source_directory="../dotfiles/system-root/usr/lib/systemd/user/", owner="root"
+            ),
+            "/usr/local/bin/util/": Directory(
+                source_directory="../dotfiles/system-root/usr/local/bin/util/",
+                owner="root",
+                permissions=0o755,  # Make executable
             ),
         }
 
     def files(self) -> dict[str, File]:
         etc_files: dict[str, File] = {
             "/etc/modules-load.d/zram.conf": File(
-                source_file="../dotfiles/root/etc/modules-load.d/zram.conf", owner="root"
+                source_file="../dotfiles/system-root/etc/modules-load.d/zram.conf", owner="root"
             ),
-            "/etc/mkinitcpio.conf": File(source_file="../dotfiles/root/etc/mkinitcpio.conf", owner="root"),
             "/etc/profile.d/nosarch.sh": File(
-                source_file="../dotfiles/root/etc/profile.d/nosarch.sh", owner="root", permissions=0o644
+                source_file="../dotfiles/system-root/etc/profile.d/nosarch.sh", owner="root", permissions=0o644
             ),
-            "/etc/pacman.conf": File(source_file="../dotfiles/root/etc/pacman.conf", owner="root"),
-            "/etc/updatedb.conf": File(source_file="../dotfiles/root/etc/updatedb.conf", owner="root"),
+            "/etc/mkinitcpio.conf": File(source_file="../dotfiles/system-root/etc/mkinitcpio.conf", owner="root"),
+            "/etc/pacman.conf": File(source_file="../dotfiles/system-root/etc/pacman.conf", owner="root"),
+            "/etc/updatedb.conf": File(source_file="../dotfiles/system-root/etc/updatedb.conf", owner="root"),
         }
 
         wireless_regdom: str | None = utils.wireless_regdom.get_wireless_regdom_contents()
@@ -94,7 +100,7 @@ class SystemModule(decman.Module):
         nosarch_scripts: dict[str, File] = {}
         for name in nosarch_script_names:
             nosarch_scripts[f"/usr/local/bin/nosarch/{name}"] = File(
-                source_file=f"../dotfiles/root/usr/local/bin/nosarch/{name}",
+                source_file=f"../dotfiles/system-root/usr/local/bin/nosarch/{name}",
                 owner="root",
                 permissions=0o755,  # Make executable
             )
@@ -104,13 +110,13 @@ class SystemModule(decman.Module):
             | nosarch_scripts
             | {
                 f"/home/{CONFIG['%USER%']}/.bash_profile": File(
-                    source_file="../dotfiles/root/home/username/dot_bashprofile", owner=f"{CONFIG['%USER%']}"
+                    source_file="../dotfiles/system-root/home/username/dot_bashprofile", owner=f"{CONFIG['%USER%']}"
                 ),
                 f"/home/{CONFIG['%USER%']}/.bashrc": File(
-                    source_file="../dotfiles/root/home/username/dot_bashrc", owner=f"{CONFIG['%USER%']}"
+                    source_file="../dotfiles/system-root/home/username/dot_bashrc", owner=f"{CONFIG['%USER%']}"
                 ),
                 f"/home/{CONFIG['%USER%']}/.gitconfig": File(
-                    source_file="../dotfiles/root/home/username/dot_gitconfig", owner=f"{CONFIG['%USER%']}"
+                    source_file="../dotfiles/system-root/home/username/dot_gitconfig", owner=f"{CONFIG['%USER%']}"
                 ),
             }
         )
@@ -153,7 +159,7 @@ class SystemModule(decman.Module):
             "zram-generator",
         }
 
-        if is_laptop() or has_battery():
+        if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             system_set.add("power-profiles-daemon")
 
         if cpu_vendor == "GenuineIntel":
@@ -208,7 +214,7 @@ class SystemModule(decman.Module):
             "swap-swapfile.swap",
         }
 
-        if is_laptop() or has_battery():
+        if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             systemd_set.add("power-profiles-daemon.service")
 
         if cpu_vendor == "GenuineIntel":
@@ -216,62 +222,3 @@ class SystemModule(decman.Module):
             systemd_set.add("thermald.service")
 
         return systemd_set
-
-
-# nosarch_scripts: dict[str, File] = {
-#    "/usr/local/bin/nosarch/nosarch-battery": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-battery",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-capture": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-capture",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-launch-app": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-launch-app",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-launch-tui": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-launch-tui",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-launcher": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-launcher",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-package": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-package",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-record": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-record",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-session": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-session",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-share": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-share",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-toggle": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-toggle",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-#    "/usr/local/bin/nosarch/nosarch-wellbeing": File(
-#        source_file="../dotfiles/root/usr/local/bin/nosarch-wellbeing",
-#        owner="root",
-#        permissions=0o755,  # Make executable
-#    ),
-# }

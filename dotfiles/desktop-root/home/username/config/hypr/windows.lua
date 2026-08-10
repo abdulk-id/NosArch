@@ -203,8 +203,8 @@ hl.window_rule({
     },
     -- Static effects
     float = true,
-    move = { "(monitor_w - window_w - 25)", "(monitor_h - window_h - 50)" }, -- Move to bottom-right corner of screen
     size = { "384", "216" },
+    move = { "(monitor_w - window_w - 25)", "(monitor_h - window_h - 50)" }, -- Move to bottom-right corner of screen
     pin = true,
     content = "video",
 
@@ -213,6 +213,62 @@ hl.window_rule({
     opacity = "1.0 override 1.0 override",
     keep_aspect_ratio = true,
 })
+
+-- Google Meet Picture-in-picture window overlays
+hl.window_rule({
+    name = "google-meet-pip-rules",
+    match = {
+        title = "^Meet - .+"
+    },
+    -- Static effects
+    float = true,
+    size = { "600", "338" },
+    move = { "(monitor_w - window_w - 40)", "(monitor_h - window_h - 40)" }, -- Move to bottom-right corner of screen
+    pin = true,
+    content = "video",
+
+    -- Dynamic effects
+    border_size = 2,
+    opacity = "1.0 override 1.0 override",
+    keep_aspect_ratio = true,
+})
+
+-- Firefox-based browser extension windows
+hl.on("window.title", function(w)
+    if w == nil then
+        return
+    end
+
+    if (
+            w.class:match("^[Ff]irefox$")
+            or w.class:match("^[Zz]en$")
+            or w.class:match("^[Ll]ibrewolf$")
+        ) then
+        if w.title:match("^Extension: ") then
+            hl.dispatch(
+                hl.dsp.window.float({
+                    action = "enable",
+                    window = w,
+                })
+            )
+
+            hl.dispatch(
+                hl.dsp.window.resize({
+                    x = 338,
+                    y = 600,
+                    relative = false,
+                    window = w,
+                })
+            )
+
+            hl.dispatch(
+                hl.dsp.window.center({
+                    window = w,
+                })
+            )
+        end
+    end
+end)
 
 -- Media windows
 hl.window_rule({

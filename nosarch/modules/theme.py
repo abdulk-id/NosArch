@@ -3,6 +3,8 @@ import os
 import decman
 from config import CONFIG
 from decman import Directory, Symlink
+
+# Change this import statement to change active theme
 from themes.nosarch_blue_dark.nosarch_blue_dark import THEME
 
 

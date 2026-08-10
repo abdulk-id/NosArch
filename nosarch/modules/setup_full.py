@@ -1,6 +1,5 @@
-from config import CONFIG
-
 import decman
+from config import CONFIG
 from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
 
@@ -13,7 +12,8 @@ class FullSetupModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{CONFIG['%USER%']}/.config/obsidian/": Directory(
-                source_directory="../dotfiles/root/home/username/config/obsidian/", owner=f"{CONFIG['%USER%']}"
+                source_directory="../dotfiles/setup-full-root/home/username/config/obsidian/",
+                owner=f"{CONFIG['%USER%']}",
             )
         }
 

@@ -43,7 +43,8 @@ class DesktopModule(decman.Module):
                 owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.config/quickshell/": Directory(
-                source_directory="../dotfiles/root/home/username/config/quickshell/", owner=f"{CONFIG['%USER%']}"
+                source_directory="../dotfiles/desktop-root/home/username/config/quickshell/",
+                owner=f"{CONFIG['%USER%']}",
             ),
             f"/home/{CONFIG['%USER%']}/.config/satty/": Directory(
                 source_directory="../dotfiles/desktop-root/home/username/config/satty/", owner=f"{CONFIG['%USER%']}"

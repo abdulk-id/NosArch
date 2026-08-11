@@ -28,13 +28,11 @@ Shell scripts in `dotfiles/root/**/bin/` must be POSIX `sh`, start with `#!/bin/
 
 ## Testing Guidelines
 
-There is no dedicated test suite. Validate changes with:
+There is no dedicated test suite.
 
-```sh
-sudo decman --source ~/NosArch/nosarch/source.py --dry-run
-```
+Performing a decman dry-run requires root access.
 
-For utility changes, run targeted commands when possible, such as invoking a script with `help` or testing a Python helper in isolation. Avoid applying system changes until the dry run is clean.
+Validate changes by asking the user to dry-run decman and report back any errors.
 
 ## Commit & Pull Request Guidelines
 

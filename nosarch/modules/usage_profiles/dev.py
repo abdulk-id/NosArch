@@ -30,6 +30,9 @@ class DevModule(decman.Module):
             f"/home/{CONFIG['%USER%']}/Codespace/": Directory(
                 source_directory="../dotfiles/dev-root/home/username/Codespace/", owner=f"{CONFIG['%USER%']}"
             ),
+            f"/home/{CONFIG['%USER%']}/.agents/": Directory(
+                source_directory="../dotfiles/dev-root/home/username/agents/", owner=f"{CONFIG['%USER%']}"
+            ),
         }
 
     def files(self) -> dict[str, File]:

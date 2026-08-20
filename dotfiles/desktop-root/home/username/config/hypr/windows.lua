@@ -464,7 +464,7 @@ end)
 hl.window_rule({
     name = "localsend-rules",
     match = {
-        class = "localsend"
+        class = "org.localsend.localsend_app"
     },
     -- Static effects
     float = true,

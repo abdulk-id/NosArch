@@ -61,6 +61,10 @@ class DevModule(decman.Module):
                 source_file="../dotfiles/dev-root/home/username/config/environment.d/dev.conf",
                 owner=f"{CONFIG['%USER%']}",
             ),
+            f"/home/{CONFIG['%USER%']}/.config/environment.d/languages.conf": File(
+                source_file="../dotfiles/dev-root/home/username/config/environment.d/languages.conf",
+                owner=f"{CONFIG['%USER%']}",
+            ),
             f"/home/{CONFIG['%USER%']}/.bashrc.d/dev.bashrc": File(
                 source_file="../dotfiles/dev-root/home/username/bashrc.d/dev.bashrc", owner=f"{CONFIG['%USER%']}"
             ),

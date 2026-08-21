@@ -85,7 +85,7 @@ class RustConfig(DevLang):
         return 'rust = { version = "stable", components = "rustfmt,clippy" }'
 
     def get_settings_config(self) -> str:
-        return 'rust = { cargo_home = "~/Codespace/Language-Tooling/Rust/cargo", rustup_home = "~/Codespace/Language-Tooling/Rust/rustup" }'
+        return ""
 
 
 class ZigConfig(DevLang):

@@ -47,7 +47,3 @@ def _country_from_zone_tab(timezone: str) -> str | None:
                     return country
     except OSError:
         return None
-
-
-if __name__ == "__main__":
-    print(get_wireless_regdom_contents())

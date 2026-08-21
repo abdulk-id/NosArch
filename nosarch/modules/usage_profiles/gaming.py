@@ -1,3 +1,5 @@
+from typing import override
+
 import decman
 from config import CONFIG
 from decman import File
@@ -9,6 +11,7 @@ class GamingModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="gaming_profile")
 
+    @override
     def files(self) -> dict[str, File]:
         return {
             "/etc/modprobe.d/blacklist-xpad.conf": File(
@@ -30,7 +33,7 @@ class GamingModule(decman.Module):
             ),
         }
 
-    @pacman.packages
+    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
         game_launchers: set[str] = {"lutris", "steam"}
 
@@ -42,7 +45,7 @@ class GamingModule(decman.Module):
 
         return game_launchers.union(gaming_utilities)
 
-    @aur.packages
+    @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
         return {
             "xpadneo-dkms"  # Xbox controller driver

@@ -1,3 +1,5 @@
+from typing import override
+
 import decman
 import utils.hardware.chassis_type
 import utils.hardware.cpu_vendor
@@ -10,16 +12,17 @@ from decman.plugins import aur, pacman, systemd
 cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
 
 
-# Base system module
 class SystemModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="system")
 
+    @override
     def file_variables(self) -> dict[str, str]:
         system_variables: dict[str, str] = {"%LUKS_UUID%": utils.luks_uuid.get_luks_uuid()}
 
         return CONFIG | system_variables
 
+    @override
     def directories(self) -> dict[str, Directory]:
         etc_dirs: dict[str, Directory] = {
             "/etc/default/": Directory(source_directory="../dotfiles/system-root/etc/default/", owner="root"),
@@ -57,6 +60,7 @@ class SystemModule(decman.Module):
             ),
         }
 
+    @override
     def files(self) -> dict[str, File]:
         etc_files: dict[str, File] = {
             "/etc/modules-load.d/zram.conf": File(
@@ -118,7 +122,7 @@ class SystemModule(decman.Module):
             }
         )
 
-    @pacman.packages
+    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def system_packages(self) -> set[str]:
         system_set: set[str] = {
             "base",
@@ -194,11 +198,16 @@ class SystemModule(decman.Module):
     # Packages causing issues when running decman
     decman.pacman.ignored_packages |= {"kernel-modules-hook"}
 
-    @aur.packages
+    @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def system_aur_packages(self) -> set[str]:
-        return {"limine-mkinitcpio-hook", "limine-snapper-sync", "yay-bin"}
+        return {
+            "decman",  # Decman itself
+            "limine-mkinitcpio-hook",
+            "limine-snapper-sync",
+            "yay-bin",
+        }
 
-    @systemd.units
+    @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def system_services(self) -> set[str]:
         systemd_set: set[str] = {
             "apparmor.service",

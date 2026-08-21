@@ -1,14 +1,16 @@
+from typing import override
+
 import decman
 from config import CONFIG
 from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
 
 
-# Full Setup module
 class FullSetupModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="setup_full")
 
+    @override
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{CONFIG['%USER%']}/.config/obsidian/": Directory(
@@ -17,7 +19,7 @@ class FullSetupModule(decman.Module):
             )
         }
 
-    @pacman.packages
+    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
         apps_set: set[str] = {
             "dua-cli",  # Disk usage analyzer
@@ -40,7 +42,7 @@ class FullSetupModule(decman.Module):
         merged_set: set[str] = apps_set.union(virtualization_set)
         return merged_set
 
-    @aur.packages
+    @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
         apps_set: set[str] = {
             "spotify",
@@ -56,10 +58,10 @@ class FullSetupModule(decman.Module):
         merged_set: set[str] = apps_set.union(virtualization_set)
         return merged_set
 
-    @flatpak.user_packages
+    @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
         return {f"{CONFIG['%USER%']}": {"io.github.tobagin.karere"}}
 
-    @systemd.units
+    @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def systemd_services(self) -> set[str]:
         return {"libvirtd.service"}

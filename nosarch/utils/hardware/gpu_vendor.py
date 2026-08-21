@@ -17,14 +17,14 @@ def get_gpu_vendor() -> str:
         if bool(
             re.search(
                 r"GTX 16[0-9]{2}|"
-                r"RTX [2-5][0-9]{3}|"
-                r"RTX PRO [0-9]{4}|"
-                r"Quadro RTX|"
-                r"RTX A[0-9]{4}|"
-                r"A[1-9][0-9]{2}|"
-                r"H[1-9][0-9]{2}|"
-                r"T4|"
-                r"L[0-9]+",
+                + r"RTX [2-5][0-9]{3}|"
+                + r"RTX PRO [0-9]{4}|"
+                + r"Quadro RTX|"
+                + r"RTX A[0-9]{4}|"
+                + r"A[1-9][0-9]{2}|"
+                + r"H[1-9][0-9]{2}|"
+                + r"T4|"
+                + r"L[0-9]+",
                 lspci_nvidia_output,
                 re.IGNORECASE,
             )
@@ -33,12 +33,12 @@ def get_gpu_vendor() -> str:
         elif bool(
             re.search(
                 r"GTX (9[0-9]{2}|10[0-9]{2})|"
-                r"GT 10[0-9]{2}|"
-                r"Quadro [PM][0-9]{3,4}|"
-                r"Quadro GV100|"
-                r"MX *[0-9]+|"
-                r"Titan (X|Xp|V)|"
-                r"Tesla V100",
+                + r"GT 10[0-9]{2}|"
+                + r"Quadro [PM][0-9]{3,4}|"
+                + r"Quadro GV100|"
+                + r"MX *[0-9]+|"
+                + r"Titan (X|Xp|V)|"
+                + r"Tesla V100",
                 lspci_nvidia_output,
                 re.IGNORECASE,
             )

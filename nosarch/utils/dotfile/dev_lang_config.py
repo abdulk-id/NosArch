@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import override
 
 from config import DEV_LANGS_ENABLED
 
@@ -17,81 +18,101 @@ class DevLang(ABC):
 
 
 class BunJSConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'bun = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class DenoJSConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'deno = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class GoConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'go = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class JavaMavenConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'java = "temurin"\nmaven = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class JavaGradleConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'java = "temurin"\ngradle = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class DotNetConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'dotnet = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class NodeJSConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'node = "lts"\nnpm = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class PythonConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'python = "latest"\nuv = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class RustConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'rust = { version = "stable", components = "rustfmt,clippy" }'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 
 
 class ZigConfig(DevLang):
+    @override
     def get_tools_config(self) -> str:
         return 'zig = "latest"\nzls = "latest"'
 
+    @override
     def get_settings_config(self) -> str:
         return ""
 

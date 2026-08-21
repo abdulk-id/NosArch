@@ -1,3 +1,5 @@
+from typing import override
+
 import decman
 import modules.theme
 import utils.dotfile.mimeapps_list
@@ -10,14 +12,15 @@ from decman.plugins import aur, flatpak, pacman, systemd
 gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
 
-# Desktop module
 class DesktopModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="desktop")
 
+    @override
     def file_variables(self) -> dict[str, str]:
         return CONFIG | modules.theme.get_current_theme()
 
+    @override
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
             f"/home/{CONFIG['%USER%']}/.config/btop/": Directory(
@@ -80,6 +83,7 @@ class DesktopModule(decman.Module):
             ),
         }
 
+    @override
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {
             f"/home/{CONFIG['%USER%']}/.local/share/applications/mimeapps.list": File(
@@ -123,7 +127,7 @@ class DesktopModule(decman.Module):
 
         return files
 
-    @pacman.packages
+    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
         desktop_set: set[str] = {
             "fcitx5",
@@ -230,15 +234,14 @@ class DesktopModule(decman.Module):
         merged_set: set[str] = desktop_set.union(config_set, graphics_set, media_set, printer_set, utilities_set)
         return merged_set
 
-    @aur.packages
+    @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
         # Packages that are no longer used by NosArch.
         # Config files of these packages are still present in the repo.
-        unused_aur_pkgs: set[str] = {"vicinae-bin"}
+        # unused_aur_pkgs: set[str] = {"vicinae-bin"}
 
         desktop_set: set[str] = {
             "elephant-bin",
-            "elephant-bookmarks-bin",
             "elephant-calc-bin",
             "elephant-clipboard-bin",
             "elephant-desktopapplications-bin",
@@ -251,6 +254,7 @@ class DesktopModule(decman.Module):
             "hyprmoncfg",
             "hyprland-preview-share-picker-git",
             "hyprqt6engine",
+            "still",
             "xdg-terminal-exec",
             "walker-bin",
         }
@@ -260,13 +264,13 @@ class DesktopModule(decman.Module):
 
         return desktop_set
 
-    @flatpak.packages
+    @flatpak.packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_pkgs(self) -> set[str]:
         return {
             "it.mijorus.gearlever"  # AppImage Manager
         }
 
-    @systemd.user_units
+    @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:
         desktop_user_services: set[str] = {
             "elephant.service",

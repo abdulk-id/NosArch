@@ -22,7 +22,6 @@ decman.execution_order = [
     "systemd",
 ]
 
-decman.aur.packages |= {"decman"}
 decman.aur.ignored_packages |= {"yay"}
 
 # Ignored because needed for testing, not for user setups

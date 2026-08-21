@@ -1,3 +1,5 @@
+from typing import override
+
 import decman
 import utils.dotfile.dev_lang_config
 from config import CONFIG
@@ -10,9 +12,11 @@ class DevModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="dev_profile")
 
+    @override
     def file_variables(self) -> dict[str, str]:
         return CONFIG
 
+    @override
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
             f"/home/{CONFIG['%USER%']}/.config/nvim/": Directory(
@@ -35,6 +39,7 @@ class DevModule(decman.Module):
             ),
         }
 
+    @override
     def files(self) -> dict[str, File]:
         mise_config_file: File = File(
             content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{CONFIG['%USER%']}"
@@ -73,7 +78,7 @@ class DevModule(decman.Module):
             ),
         }
 
-    @pacman.packages
+    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
         return {
             "ast-grep",  # Needed for Neovim
@@ -98,14 +103,14 @@ class DevModule(decman.Module):
             "zed",
         }
 
-    @aur.packages
+    @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        return {"t3code-bin", "ufw-docker"}
+        return {"t3code-bin"}
 
-    @flatpak.user_packages
+    @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
         return {f"{CONFIG['%USER%']}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}}
 
-    @systemd.user_units
+    @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:
         return {f"{CONFIG['%USER%']}": {"podman.socket"}}

@@ -43,7 +43,7 @@ class GamingModule(decman.Module):
             "mangohud",  # Performance statistics overlay
         }
 
-        return game_launchers.union(gaming_utilities)
+        return game_launchers.union(gaming_utilities, {"discord"})
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:

@@ -5,9 +5,9 @@ import utils.dotfile.dev_lang_config
 from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman, systemd
+from plugins import homebrew
 
 
-# Dev Setup module
 class DevModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="dev_profile")
@@ -110,6 +110,9 @@ class DevModule(decman.Module):
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
         return {f"{CONFIG['%USER%']}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}}
+    @homebrew.casks  # pyright: ignore[reportUnknownMemberType]
+    def brew_casks(self) -> set[str]:
+        return {"claude-code"}
 
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:

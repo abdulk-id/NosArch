@@ -2,6 +2,7 @@ import decman.config
 from config import CONFIG
 from decman.extras.users import User, UserManager
 from modules.desktop import DesktopModule
+from modules.homebrew import HomebrewModule
 from modules.setup import SetupModule
 from modules.setup_full import FullSetupModule
 from modules.system import SystemModule
@@ -9,6 +10,7 @@ from modules.theme import ThemingModule
 from modules.usage_profiles.creative import CreativeModule
 from modules.usage_profiles.dev import DevModule
 from modules.usage_profiles.gaming import GamingModule
+from plugins import homebrew
 
 # Decman configuration
 decman.config.arch = "x86_64"
@@ -21,6 +23,12 @@ decman.execution_order = [
     "flatpak",
     "systemd",
 ]
+
+if CONFIG["%ENABLE_HOMEBREW%"] == "true":
+    # Register the local Homebrew plugin if enabled by config.
+    homebrew.plugin.user = CONFIG["%USER%"]  # brew cannot run as root
+    decman.plugins["homebrew"] = homebrew.plugin
+    decman.execution_order.insert(decman.execution_order.index("systemd"), "homebrew")
 
 decman.aur.ignored_packages |= {"yay"}
 
@@ -54,6 +62,9 @@ userManager.add_user(
 
 # Decman modules
 decman.modules += {SystemModule(), DesktopModule(), ThemingModule(), SetupModule()}
+
+if CONFIG["%ENABLE_HOMEBREW%"] == "true":
+    decman.modules += {HomebrewModule()}
 
 if CONFIG["%FULL_SETUP%"] == "true":
     decman.modules += {FullSetupModule()}

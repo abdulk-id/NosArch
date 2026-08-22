@@ -6,6 +6,7 @@ CONFIG: dict[str, str] = {
     "%CREATIVE_PROFILE%": "false",  # Enable to setup NosArch for creative work
     "%DEV_PROFILE%": "false",  # Enable to setup NosArch for development
     "%GAMING_PROFILE%": "false",  # Enable to setup NosArch for gaming
+    "%ENABLE_HOMEBREW%": "false",  # Enable to setup Homebrew
 }
 
 

@@ -24,7 +24,3 @@ There is no dedicated test suite.
 Performing a decman dry-run requires root access.
 
 Validate changes by asking the user to dry-run decman and report back any errors.
-
-## Commit Guidelines
-
-Recent commits use scoped, imperative subjects such as `Scripts: Make all shell scripts POSIX-compliant` and `System: Add vendor-based CPU and GPU setup`. Keep that pattern: `Area: Action summary`.

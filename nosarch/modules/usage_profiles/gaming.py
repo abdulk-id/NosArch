@@ -41,7 +41,7 @@ class GamingModule(decman.Module):
 
         gaming_utilities: set[str] = {
             "gamescope",  # Micro-compositor for gaming (with support for Steam)
-            "lib32-mangohud",  # 32-bit library for mangohud
+            "lib32-mangohud",
             "mangohud",  # Performance statistics overlay
         }
 

@@ -62,8 +62,6 @@ dev_mimes: dict[str, str] = {
     "x-scheme-handler/github-app": "github-handler.desktop",
     "x-scheme-handler/ghapp": "github-handler.desktop",
     "x-scheme-handler/gh": "github-handler.desktop",
-    # OpenCode Handler
-    "x-scheme-handler/opencode": "opencode.desktop",
 }
 
 

@@ -29,16 +29,16 @@ class FullSetupModule(decman.Module):
             "libreoffice-fresh",
             "obsidian",
             "proton-vpn-cli",
-            "proton-vpn-gtk-app",  # ProtonVPN GTK app (community-maintained)
+            "proton-vpn-gtk-app",
             "transmission-gtk",
         }
 
         virtualization_set: set[str] = {
-            "libvirt",  # Virtualization library
-            "qemu-full",  # Full QEMU package
+            "libvirt",
+            "qemu-full",
             "vde2",  # Virtual Distributed Ethernet for emulators like QEMU
-            "virt-manager",  # Virtual machine manager
-            "virt-viewer",  # Virtual machine viewer
+            "virt-manager",
+            "virt-viewer",
         }
 
         merged_set: set[str] = apps_set.union(virtualization_set)
@@ -50,7 +50,6 @@ class FullSetupModule(decman.Module):
             "spotify",
             "spotify-adblock",
             "stacher7",  # yt-dlp frontend
-            "webcord-bin",  # Discord client for Wayland
         }
 
         virtualization_set: set[str] = {

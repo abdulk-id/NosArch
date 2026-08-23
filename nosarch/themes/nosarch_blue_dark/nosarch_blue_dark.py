@@ -30,6 +30,6 @@ THEME: dict[str, str] = {
     "%ANSI_COLOR_14%": "29b8db",
     "%ANSI_COLOR_15%": "ffffff",
     # Text
-    "%NORMAL_FONT%": "JetbrainsMono Nerd Font",  # Replace with Inter
+    "%NORMAL_FONT%": "JetbrainsMono Nerd Font",
     "%MONOSPACE_FONT%": "JetbrainsMono Nerd Font",
 }

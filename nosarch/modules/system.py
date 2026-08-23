@@ -12,7 +12,7 @@ from decman.plugins import aur, pacman, systemd
 userConfig.load()
 _username: str = userConfig.get_str("user.username")
 
-cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
+_cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
 
 
 class SystemModule(decman.Module):
@@ -168,11 +168,11 @@ class SystemModule(decman.Module):
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             system_set.add("power-profiles-daemon")
 
-        if cpu_vendor == "GenuineIntel":
+        if _cpu_vendor == "GenuineIntel":
             system_set.add("intel-ucode")
             system_set.add("intel-lpmd")
             system_set.add("thermald")
-        elif cpu_vendor == "AuthenticAMD":
+        elif _cpu_vendor == "AuthenticAMD":
             system_set.add("amd-ucode")
 
         security_set: set[str] = {"apparmor", "firewalld", "lynis", "ufw"}
@@ -228,7 +228,7 @@ class SystemModule(decman.Module):
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             systemd_set.add("power-profiles-daemon.service")
 
-        if cpu_vendor == "GenuineIntel":
+        if _cpu_vendor == "GenuineIntel":
             systemd_set.add("intel_lpmd.service")
             systemd_set.add("thermald.service")
 

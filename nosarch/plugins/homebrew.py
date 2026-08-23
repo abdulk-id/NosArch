@@ -108,7 +108,7 @@ class Homebrew(Plugin):
     installation. It defaults to the invoking `sudo` user when unset.
     """
 
-    NAME = "homebrew"
+    NAME: str = "homebrew"
 
     def __init__(self) -> None:
         self.formulae: set[str] = set()

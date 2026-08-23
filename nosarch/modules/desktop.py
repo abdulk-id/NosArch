@@ -12,7 +12,7 @@ from decman.plugins import aur, flatpak, pacman, systemd
 userConfig.load()
 _username: str = userConfig.get_str("user.username")
 
-gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
+_gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
 
 class DesktopModule(decman.Module):
@@ -106,14 +106,14 @@ class DesktopModule(decman.Module):
         def get_nvidia_uwsm_user_config() -> str:
             nvidia_env_vars: str = ""
 
-            if gpu_vendor == "nvidia_gsp":
+            if _gpu_vendor == "nvidia_gsp":
                 nvidia_env_vars = "export NVD_BACKEND=direct\nexport LIBVA_DRIVER_NAME=nvidia\nexport __GLX_VENDOR_LIBRARY_NAME=nvidia"
-            elif gpu_vendor == "nvidia_non_gsp":
+            elif _gpu_vendor == "nvidia_non_gsp":
                 nvidia_env_vars = "export NVD_BACKEND=egl\nexport __GLX_VENDOR_LIBRARY_NAME=nvidia"
 
             return nvidia_env_vars
 
-        if gpu_vendor == "nvidia_gsp" or gpu_vendor == "nvidia_non_gsp":
+        if _gpu_vendor == "nvidia_gsp" or _gpu_vendor == "nvidia_non_gsp":
             files |= {
                 "/etc/mkinitcpio.conf.d/nvidia.conf": File(
                     source_file="../dotfiles/desktop-root/etc/mkinitcpio.conf.d/nvidia.conf", owner="root"
@@ -177,7 +177,7 @@ class DesktopModule(decman.Module):
 
         graphics_set: set[str] = set()
 
-        if gpu_vendor == "intel":
+        if _gpu_vendor == "intel":
             graphics_set |= {
                 "intel-media-driver",
                 "lib32-mesa",
@@ -191,7 +191,7 @@ class DesktopModule(decman.Module):
                 "vulkan-intel",
             }
 
-        if gpu_vendor == "amd":
+        if _gpu_vendor == "amd":
             graphics_set |= {
                 "lib32-mesa",
                 "lib32-vulkan-radeon",
@@ -201,7 +201,7 @@ class DesktopModule(decman.Module):
                 "vulkan-radeon",
             }
 
-        if gpu_vendor == "nvidia_gsp":
+        if _gpu_vendor == "nvidia_gsp":
             graphics_set |= {"lib32-nvidia-utils", "libva-nvidia-driver", "nvidia-open-dkms", "nvidia-utils"}
 
         media_set: set[str] = {
@@ -260,7 +260,7 @@ class DesktopModule(decman.Module):
             "walker-bin",
         }
 
-        if gpu_vendor == "nvidia_non_gsp":
+        if _gpu_vendor == "nvidia_non_gsp":
             desktop_set |= {"lib32-nvidia-580xx-utils", "nvidia-580xx-dkms", "nvidia-580xx-utils"}
 
         return desktop_set

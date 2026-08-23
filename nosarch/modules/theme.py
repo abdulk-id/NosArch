@@ -16,11 +16,11 @@ def get_current_theme() -> dict[str, str]:
     return THEME
 
 
-# Theming module
 class ThemingModule(decman.Module):
     def __init__(self):
         super().__init__(name="theming")
 
+    @override
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers": Directory(
@@ -28,6 +28,7 @@ class ThemingModule(decman.Module):
             )
         }
 
+    @override
     def symlinks(self) -> dict[str, str | Symlink]:
         # Would break if symlinks were made BEFORE the directories were created
         return {

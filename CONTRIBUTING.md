@@ -1,6 +1,6 @@
 # Contributing to NosArch
 
-NosArch is still a work in progress. Currently not accepting contributions.
+NosArch is a work in progress.
 
 The project is in the early stages and its conventions are still evolving.
 
@@ -26,7 +26,6 @@ Common areas include:
 - `Dev`: Dev-related changes (made in the Dev module)
 - `Repo`: Repository changes such as codebase documentation, repo config files (`.gitignore`, `.editorconfig` etc.), `opencode.jsonc` etc.
 - `Scripts`: All user-facing shell scripts
-- `System`: TODO: Broad category, needs better explanation
 
 Message style:
 

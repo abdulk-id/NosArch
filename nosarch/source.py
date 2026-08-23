@@ -28,7 +28,6 @@ decman.execution_order = [
 ]
 
 if userConfig.get_bool("enable_homebrew"):
-    # Register the local Homebrew plugin if enabled by config.
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.insert(decman.execution_order.index("systemd"), "homebrew")
@@ -48,16 +47,10 @@ userManager.add_user(
         group=_username,
         home=f"/home/{_username}",
         shell="/usr/bin/bash",
-        groups=tuple(
-            [
-                _username,
-                "wheel",  # To make user an admin
-                "libvirt",  # For virtualization
-            ]
-            + (
-                ["input"] if userConfig.get_bool("profiles.gaming") else []
-                # Allow user access to controller devices (/dev/input)
-            )
+        groups=(_username, "wheel", "libvirt")
+        + (
+            ("input",) if userConfig.get_bool("profiles.gaming") else ()
+            # Allow user access to controller devices (/dev/input)
         ),
         system=False,
     )

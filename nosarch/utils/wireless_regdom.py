@@ -3,8 +3,6 @@ from pathlib import Path
 
 
 def get_wireless_regdom_contents() -> str | None:
-    """Return the wireless-regdom file contents, or None if undeterminable."""
-
     timezone: str | None = _get_timezone()
     if timezone is None:
         return None

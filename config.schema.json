@@ -17,7 +17,8 @@
                 },
                 "git_email": {
                     "type": "string",
-                    "description": "User's Git email"
+                    "description": "User's Git email",
+                    "default": ""
                 }
             },
             "required": ["username", "fullname"]
@@ -46,14 +47,15 @@
         },
         "enable_homebrew": {
             "type": "boolean",
-            "description": "Enable to setup Homebrew"
+            "description": "Enable to setup Homebrew",
+            "default": false
         },
         "dev": {
             "type": "object",
             "properties": {
                 "agents": {
-                    "description": "List of AI agents to install",
                     "type": "array",
+                    "description": "List of AI agents to install",
                     "items": {
                         "type": "string",
                         "enum": ["claude-code", "codex", "opencode", "pi"]
@@ -61,8 +63,8 @@
                     "uniqueItems": true
                 },
                 "editors": {
-                    "description": "List of code editors to install",
                     "type": "array",
+                    "description": "List of code editors to install",
                     "items": {
                         "type": "string",
                         "enum": ["code-oss", "jetbrains", "neovim", "vscode", "zed"]
@@ -73,5 +75,5 @@
             "required": ["agents", "editors"]
         }
     },
-    "required": ["user", "profiles", "enable_homebrew", "dev"]
+    "required": ["user", "profiles"]
 }

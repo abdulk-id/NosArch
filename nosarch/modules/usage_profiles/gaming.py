@@ -1,12 +1,14 @@
 from typing import override
 
 import decman
-from config import CONFIG
+import user_config.config_reader as userConfig
 from decman import File
 from decman.plugins import aur, pacman
 
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
 
-# Gaming Setup module
+
 class GamingModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="gaming_profile")
@@ -26,9 +28,9 @@ class GamingModule(decman.Module):
             "/usr/share/wayland-sessions/steam-big-picture.desktop": File(
                 source_file="../dotfiles/gaming-root/usr/share/wayland-sessions/steam-big-picture.desktop", owner="root"
             ),
-            f"/home/{CONFIG['%USER%']}/.local/bin/steamos-session-select": File(
+            f"/home/{_username}/.local/bin/steamos-session-select": File(
                 source_file="../dotfiles/gaming-root/home/username/local/bin/steamos-session-select",
-                owner=CONFIG["%USER%"],
+                owner=_username,
                 permissions=0o754,  # Make executable
             ),
         }

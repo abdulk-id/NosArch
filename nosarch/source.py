@@ -1,5 +1,5 @@
 import decman.config
-from config import CONFIG
+import user_config.config_reader as userConfig
 from decman.extras.users import User, UserManager
 from modules.desktop import DesktopModule
 from modules.homebrew import HomebrewModule
@@ -11,6 +11,9 @@ from modules.usage_profiles.creative import CreativeModule
 from modules.usage_profiles.dev import DevModule
 from modules.usage_profiles.gaming import GamingModule
 from plugins import homebrew
+
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
 
 # Decman configuration
 decman.config.arch = "x86_64"
@@ -24,9 +27,9 @@ decman.execution_order = [
     "systemd",
 ]
 
-if CONFIG["%ENABLE_HOMEBREW%"] == "true":
+if userConfig.get_bool("enable_homebrew"):
     # Register the local Homebrew plugin if enabled by config.
-    homebrew.plugin.user = CONFIG["%USER%"]  # brew cannot run as root
+    homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.insert(decman.execution_order.index("systemd"), "homebrew")
 
@@ -39,22 +42,23 @@ decman.pacman.ignored_packages |= {"icon-library", "dconf-editor", "shellcheck"}
 # User and Group management
 userManager: UserManager = UserManager()
 
-usergroups: list[str] = [
-    CONFIG["%USER%"],
-    "wheel",  # To make user an admin
-    "libvirt",  # For virtualization
-]
-
-if CONFIG["%GAMING_PROFILE%"] == "true":
-    usergroups.append("input")  # Allow user access to controller devices (/dev/input)
-
 userManager.add_user(
     User(
-        username=CONFIG["%USER%"],
-        group=CONFIG["%USER%"],
-        home=f"/home/{CONFIG['%USER%']}",
+        username=_username,
+        group=_username,
+        home=f"/home/{_username}",
         shell="/usr/bin/bash",
-        groups=tuple(usergroups),
+        groups=tuple(
+            [
+                _username,
+                "wheel",  # To make user an admin
+                "libvirt",  # For virtualization
+            ]
+            + (
+                ["input"] if userConfig.get_bool("profiles.gaming") else []
+                # Allow user access to controller devices (/dev/input)
+            )
+        ),
         system=False,
     )
 )
@@ -63,18 +67,18 @@ userManager.add_user(
 # Decman modules
 decman.modules += {SystemModule(), DesktopModule(), ThemingModule(), SetupModule()}
 
-if CONFIG["%ENABLE_HOMEBREW%"] == "true":
+if userConfig.get_bool("enable_homebrew"):
     decman.modules += {HomebrewModule()}
 
-if CONFIG["%FULL_SETUP%"] == "true":
+if userConfig.get_bool("profiles.full_setup"):
     decman.modules += {FullSetupModule()}
 
-if CONFIG["%CREATIVE_PROFILE%"] == "true":
+if userConfig.get_bool("profiles.creative"):
     decman.modules += {CreativeModule()}
 
-if CONFIG["%DEV_PROFILE%"] == "true":
+if userConfig.get_bool("profiles.dev"):
     decman.modules += {DevModule()}
 
-if CONFIG["%GAMING_PROFILE%"] == "true":
+if userConfig.get_bool("profiles.gaming"):
     decman.modules += {GamingModule()}
 # ---

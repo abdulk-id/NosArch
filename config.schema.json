@@ -1,0 +1,77 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "NosArch Config",
+    "description": "Configuration schema for NosArch",
+    "type": "object",
+    "properties": {
+        "user": {
+            "type": "object",
+            "properties": {
+                "username": {
+                    "type": "string",
+                    "description": "User name"
+                },
+                "fullname": {
+                    "type": "string",
+                    "description": "User's full name"
+                },
+                "git_email": {
+                    "type": "string",
+                    "description": "User's Git email"
+                }
+            },
+            "required": ["username", "fullname"]
+        },
+        "profiles": {
+            "type": "object",
+            "properties": {
+                "full_setup": {
+                    "type": "boolean",
+                    "description": "Enable to install the full setup"
+                },
+                "creative": {
+                    "type": "boolean",
+                    "description": "Enable to setup NosArch for creative work"
+                },
+                "dev": {
+                    "type": "boolean",
+                    "description": "Enable to setup NosArch for development work"
+                },
+                "gaming": {
+                    "type": "boolean",
+                    "description": "Enable to setup NosArch for gaming"
+                }
+            },
+            "required": ["full_setup", "creative", "dev", "gaming"]
+        },
+        "enable_homebrew": {
+            "type": "boolean",
+            "description": "Enable to setup Homebrew"
+        },
+        "dev": {
+            "type": "object",
+            "properties": {
+                "agents": {
+                    "description": "List of AI agents to install",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": ["claude-code", "codex", "opencode", "pi"]
+                    },
+                    "uniqueItems": true
+                },
+                "editors": {
+                    "description": "List of code editors to install",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": ["code-oss", "jetbrains", "neovim", "vscode", "zed"]
+                    },
+                    "uniqueItems": true
+                }
+            },
+            "required": ["agents", "editors"]
+        }
+    },
+    "required": ["user", "profiles", "enable_homebrew", "dev"]
+}

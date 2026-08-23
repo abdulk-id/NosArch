@@ -1,9 +1,12 @@
 from typing import override
 
 import decman
-from config import CONFIG
+import user_config.config_reader as userConfig
 from decman import Directory
 from decman.plugins import aur, flatpak, pacman, systemd
+
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
 
 
 class FullSetupModule(decman.Module):
@@ -13,9 +16,8 @@ class FullSetupModule(decman.Module):
     @override
     def directories(self) -> dict[str, Directory]:
         return {
-            f"/home/{CONFIG['%USER%']}/.config/obsidian/": Directory(
-                source_directory="../dotfiles/setup-full-root/home/username/config/obsidian/",
-                owner=f"{CONFIG['%USER%']}",
+            f"/home/{_username}/.config/obsidian/": Directory(
+                source_directory="../dotfiles/setup-full-root/home/username/config/obsidian/", owner=f"{_username}"
             )
         }
 
@@ -60,7 +62,7 @@ class FullSetupModule(decman.Module):
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {f"{CONFIG['%USER%']}": {"io.github.tobagin.karere"}}
+        return {f"{_username}": {"io.github.tobagin.karere"}}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def systemd_services(self) -> set[str]:

@@ -2,9 +2,13 @@ import os
 from typing import override
 
 import decman
-from config import CONFIG
+import user_config.config_reader as userConfig
 from decman import File
 from decman.plugins import pacman
+
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
+
 
 # Standard Homebrew-on-Linux prefix. Everything the git-clone install creates
 # lives here, so teardown is a single directory removal.
@@ -32,9 +36,7 @@ class HomebrewModule(decman.Module):
         )
 
         return {
-            f"/home/{CONFIG['%USER%']}/.bashrc.d/homebrew.bashrc": File(
-                content=homebrew_bashrc_contents, owner=f"{CONFIG['%USER%']}"
-            )
+            f"/home/{_username}/.bashrc.d/homebrew.bashrc": File(content=homebrew_bashrc_contents, owner=f"{_username}")
         }
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
@@ -47,11 +49,9 @@ class HomebrewModule(decman.Module):
         if os.path.exists(_BREW_BIN):
             return
 
-        user: str = CONFIG["%USER%"]
-
         # Root phase: create the prefix and hand it to the user.
         # (brew refuses to run as root, and owning the prefix up front means the clone needs no privileges.)
-        _ = decman.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {user}:{user} /home/linuxbrew")
+        _ = decman.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {_username}:{_username} /home/linuxbrew")
 
         # User phase: clone brew, link the launcher, prime the formula data.
         _ = decman.sh(
@@ -63,7 +63,7 @@ class HomebrewModule(decman.Module):
             + 'mkdir -p "$prefix/bin"\n'
             + 'ln -sf ../Homebrew/bin/brew "$prefix/bin/brew"\n'
             + '"$prefix/bin/brew" update --force --quiet\n',
-            user=user,
+            user=_username,
             mimic_login=True,
         )
 

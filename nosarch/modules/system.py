@@ -1,13 +1,16 @@
 from typing import override
 
 import decman
+import user_config.config_reader as userConfig
 import utils.hardware.chassis_type
 import utils.hardware.cpu_vendor
 import utils.luks_uuid
 import utils.wireless_regdom
-from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, pacman, systemd
+
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
 
 cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
 
@@ -18,9 +21,11 @@ class SystemModule(decman.Module):
 
     @override
     def file_variables(self) -> dict[str, str]:
-        system_variables: dict[str, str] = {"%LUKS_UUID%": utils.luks_uuid.get_luks_uuid()}
-
-        return CONFIG | system_variables
+        return {
+            "%LUKS_UUID%": utils.luks_uuid.get_luks_uuid(),
+            "%FULLNAME%": userConfig.get_str("user.fullname"),
+            "%GIT_EMAIL%": userConfig.get_str("user.git_email"),
+        }
 
     @override
     def directories(self) -> dict[str, Directory]:
@@ -110,14 +115,14 @@ class SystemModule(decman.Module):
             etc_files
             | nosarch_scripts
             | {
-                f"/home/{CONFIG['%USER%']}/.bash_profile": File(
-                    source_file="../dotfiles/system-root/home/username/dot_bashprofile", owner=f"{CONFIG['%USER%']}"
+                f"/home/{_username}/.bash_profile": File(
+                    source_file="../dotfiles/system-root/home/username/dot_bashprofile", owner=f"{_username}"
                 ),
-                f"/home/{CONFIG['%USER%']}/.bashrc": File(
-                    source_file="../dotfiles/system-root/home/username/dot_bashrc", owner=f"{CONFIG['%USER%']}"
+                f"/home/{_username}/.bashrc": File(
+                    source_file="../dotfiles/system-root/home/username/dot_bashrc", owner=f"{_username}"
                 ),
-                f"/home/{CONFIG['%USER%']}/.gitconfig": File(
-                    source_file="../dotfiles/system-root/home/username/dot_gitconfig", owner=f"{CONFIG['%USER%']}"
+                f"/home/{_username}/.gitconfig": File(
+                    source_file="../dotfiles/system-root/home/username/dot_gitconfig", owner=f"{_username}"
                 ),
             }
         )

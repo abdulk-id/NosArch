@@ -1,4 +1,4 @@
-from config import CONFIG
+import user_config.config_reader as userConfig
 
 desktop_mimes: dict[str, str] = {
     "inode/directory": "org.gnome.Nautilus.desktop",
@@ -73,7 +73,7 @@ def get_mimeapps_content() -> str:
     for mime, app in desktop_mimes.items():
         lines.append(f"{mime}={app}")
 
-    if CONFIG["%DEV_PROFILE%"] == "true":
+    if userConfig.get_bool("profiles.dev"):
         lines.append("\t")
         for mime, app in dev_mimes.items():
             lines.append(f"{mime}={app}")

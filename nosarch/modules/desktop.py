@@ -2,12 +2,15 @@ from typing import override
 
 import decman
 import modules.theme
+import user_config.config_reader as userConfig
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
 import utils.hardware.gpu_vendor
-from config import CONFIG
 from decman import Directory, File
 from decman.plugins import aur, flatpak, pacman, systemd
+
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
 
 gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
@@ -18,87 +21,85 @@ class DesktopModule(decman.Module):
 
     @override
     def file_variables(self) -> dict[str, str]:
-        return CONFIG | modules.theme.get_current_theme()
+        return modules.theme.get_current_theme()
 
     @override
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
-            f"/home/{CONFIG['%USER%']}/.config/btop/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/btop/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/btop/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/btop/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/elephant/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/elephant/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/elephant/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/elephant/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/ghostty/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/ghostty/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/ghostty/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/ghostty/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/gtk-3.0/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/gtk-3.0/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/gtk-3.0/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/gtk-3.0/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/gtk-4.0": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/gtk-4.0/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/gtk-4.0": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/gtk-4.0/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/hypr/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/hypr/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/hypr/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/hypr/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/hyprland-preview-share-picker/": Directory(
+            f"/home/{_username}/.config/hyprland-preview-share-picker/": Directory(
                 source_directory="../dotfiles/desktop-root/home/username/config/hyprland-preview-share-picker/",
-                owner=f"{CONFIG['%USER%']}",
+                owner=f"{_username}",
             ),
-            f"/home/{CONFIG['%USER%']}/.config/satty/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/satty/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/satty/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/satty/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/swaync/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/swaync/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/swaync/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/swaync/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/swayosd/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/swayosd/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/swayosd/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/swayosd/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/systemd/user/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/systemd/user/",
-                owner=f"{CONFIG['%USER%']}",
+            f"/home/{_username}/.config/systemd/user/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/systemd/user/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/uwsm/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/uwsm/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/uwsm/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/uwsm/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/waybar/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/waybar/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/waybar/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/waybar/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/walker/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/walker/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/walker/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/config/walker/", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/xdg-desktop-portal/": Directory(
+            f"/home/{_username}/.config/xdg-desktop-portal/": Directory(
                 source_directory="../dotfiles/desktop-root/home/username/config/xdg-desktop-portal/",
-                owner=f"{CONFIG['%USER%']}",
+                owner=f"{_username}",
             ),
         }
 
         return user_config_directories | {
-            f"/home/{CONFIG['%USER%']}/.local/share/nautilus-python": Directory(
+            f"/home/{_username}/.local/share/nautilus-python": Directory(
                 source_directory="../dotfiles/desktop-root/home/username/local/share/nautilus-python",
-                owner=f"{CONFIG['%USER%']}",
+                owner=f"{_username}",
             ),
-            f"/home/{CONFIG['%USER%']}/Templates/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/Templates/", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/Templates/": Directory(
+                source_directory="../dotfiles/desktop-root/home/username/Templates/", owner=f"{_username}"
             ),
         }
 
     @override
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {
-            f"/home/{CONFIG['%USER%']}/.local/share/applications/mimeapps.list": File(
-                content=utils.dotfile.mimeapps_list.get_mimeapps_content(), owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.local/share/applications/mimeapps.list": File(
+                content=utils.dotfile.mimeapps_list.get_mimeapps_content(), owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/environment.d/defaults.conf": File(
+            f"/home/{_username}/.config/environment.d/defaults.conf": File(
                 source_file="../dotfiles/desktop-root/home/username/config/environment.d/defaults.conf",
-                owner=f"{CONFIG['%USER%']}",
+                owner=f"{_username}",
             ),
-            f"/home/{CONFIG['%USER%']}/.config/user-dirs.dirs": File(
-                source_file="../dotfiles/desktop-root/home/username/config/user-dirs.dirs", owner=f"{CONFIG['%USER%']}"
+            f"/home/{_username}/.config/user-dirs.dirs": File(
+                source_file="../dotfiles/desktop-root/home/username/config/user-dirs.dirs", owner=f"{_username}"
             ),
-            f"/home/{CONFIG['%USER%']}/.config/xdg-terminals.list": File(
-                source_file="../dotfiles/desktop-root/home/username/config/xdg-terminals.list",
-                owner=f"{CONFIG['%USER%']}",
+            f"/home/{_username}/.config/xdg-terminals.list": File(
+                source_file="../dotfiles/desktop-root/home/username/config/xdg-terminals.list", owner=f"{_username}"
             ),
         }
 
@@ -120,8 +121,8 @@ class DesktopModule(decman.Module):
                 "/etc/modprobe.d/nvidia.conf": File(
                     source_file="../dotfiles/desktop-root/etc/modprobe.d/nvidia.conf", owner="root"
                 ),
-                f"/home/{CONFIG['%USER%']}/.config/uwsm/env-nvidia": File(
-                    content=get_nvidia_uwsm_user_config(), owner=f"{CONFIG['%USER%']}"
+                f"/home/{_username}/.config/uwsm/env-nvidia": File(
+                    content=get_nvidia_uwsm_user_config(), owner=f"{_username}"
                 ),
             }
 
@@ -284,4 +285,4 @@ class DesktopModule(decman.Module):
         if utils.hardware.chassis_type.has_battery():
             desktop_user_services.add("nosarch-battery-monitor.service")
 
-        return {f"{CONFIG['%USER%']}": desktop_user_services}
+        return {f"{_username}": desktop_user_services}

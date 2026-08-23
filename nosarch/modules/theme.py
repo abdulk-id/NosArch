@@ -1,11 +1,15 @@
 import os
+from typing import override
 
 import decman
-from config import CONFIG
+import user_config.config_reader as userConfig
 from decman import Directory, Symlink
 
 # Change this import statement to change active theme
 from themes.nosarch_blue_dark.nosarch_blue_dark import THEME
+
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
 
 
 def get_current_theme() -> dict[str, str]:
@@ -19,24 +23,21 @@ class ThemingModule(decman.Module):
 
     def directories(self) -> dict[str, Directory]:
         return {
-            f"/home/{CONFIG['%USER%']}/.local/share/nosarch/current-theme/wallpapers": Directory(
-                source_directory=f"./themes/{THEME['%FILENAME%']}/wallpapers",
-                bin_files=False,
-                encoding="UTF-8",
-                owner=f"{CONFIG['%USER%']}",
+            f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers": Directory(
+                source_directory=f"./themes/{THEME['%FILENAME%']}/wallpapers", owner=f"{_username}"
             )
         }
 
     def symlinks(self) -> dict[str, str | Symlink]:
         # Would break if symlinks were made BEFORE the directories were created
         return {
-            f"/home/{CONFIG['%USER%']}/.local/share/nosarch/current-theme/current-wallpaper": Symlink(
-                target=f"/home/{CONFIG['%USER%']}/.local/share/nosarch/current-theme/wallpapers/{self.choose_first_wallpaper()}",
-                owner=f"{CONFIG['%USER%']}",
+            f"/home/{_username}/.local/share/nosarch/current-theme/current-wallpaper": Symlink(
+                target=f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers/{self.choose_first_wallpaper()}",
+                owner=f"{_username}",
             ),
-            f"/home/{CONFIG['%USER%']}/.local/share/nosarch/current-theme/current-lockscreen-wallpaper": Symlink(
-                target=f"/home/{CONFIG['%USER%']}/.local/share/nosarch/current-theme/wallpapers/{self.choose_first_wallpaper()}",
-                owner=f"{CONFIG['%USER%']}",
+            f"/home/{_username}/.local/share/nosarch/current-theme/current-lockscreen-wallpaper": Symlink(
+                target=f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers/{self.choose_first_wallpaper()}",
+                owner=f"{_username}",
             ),
         }
 

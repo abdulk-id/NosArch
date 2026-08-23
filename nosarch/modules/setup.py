@@ -1,6 +1,9 @@
 import decman
-from config import CONFIG
+import user_config.config_reader as userConfig
 from decman.plugins import aur, pacman, systemd
+
+userConfig.load()
+_username: str = userConfig.get_str("user.username")
 
 
 class SetupModule(decman.Module):
@@ -35,4 +38,4 @@ class SetupModule(decman.Module):
 
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def systemd_user_services(self) -> dict[str, set[str]]:
-        return {f"{CONFIG['%USER%']}": {"nosarch-eyesight-reminder.timer"}}
+        return {f"{_username}": {"nosarch-eyesight-reminder.timer"}}

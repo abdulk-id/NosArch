@@ -9,7 +9,7 @@ Register it as follows, since it is not installed as a Python package:
     import decman
     from plugins import homebrew
 
-    homebrew.plugin.user = CONFIG["%USER%"]
+    homebrew.plugin.user = "username"
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order += ["homebrew"]
 ```

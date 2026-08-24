@@ -10,6 +10,7 @@ from modules.theme import ThemingModule
 from modules.usage_profiles.creative import CreativeModule
 from modules.usage_profiles.dev import DevModule
 from modules.usage_profiles.gaming import GamingModule
+from modules.user_defined import UserDefinedModule
 from plugins import homebrew
 
 userConfig.load()
@@ -25,11 +26,6 @@ if userConfig.get_bool("enable_homebrew"):
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.insert(decman.execution_order.index("systemd"), "homebrew")
-
-decman.aur.ignored_packages |= {"yay"}
-
-# Ignored because needed for testing, not for user setups
-decman.pacman.ignored_packages |= {"icon-library", "dconf-editor", "shellcheck"}
 # ---
 
 # User and Group management
@@ -69,4 +65,6 @@ if userConfig.get_bool("profiles.dev"):
 
 if userConfig.get_bool("profiles.gaming"):
     decman.modules += {GamingModule()}
+
+decman.modules += {UserDefinedModule()}
 # ---

@@ -65,7 +65,7 @@ class FullSetupModule(decman.Module):
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {f"{_username}": {"io.github.tobagin.karere"}}
+        return {_username: {"io.github.tobagin.karere"}}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def systemd_services(self) -> set[str]:

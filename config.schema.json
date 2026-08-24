@@ -103,6 +103,59 @@
                     "default": false
                 }
             }
+        },
+        "user_packages": {
+            "type": "object",
+            "properties": {
+                "arch": {
+                    "type": "array",
+                    "description": "Add any other Arch packages not installed by Decman",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
+                "aur": {
+                    "type": "array",
+                    "description": "Add any other AUR packages not installed by Decman",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
+                "flatpak": {
+                    "type": "array",
+                    "description": "Add any other Flatpak packages not installed by Decman",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
+                "flatpak_user": {
+                    "type": "array",
+                    "description": "Add any other Flatpak (user-level) packages not installed by Decman",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
+                "homebrew_casks": {
+                    "type": "array",
+                    "description": "Add any other Homebrew casks not installed by Decman",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
+                "homebrew_formulae": {
+                    "type": "array",
+                    "description": "Add any other Homebrew formulae not installed by Decman",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                }
+            }
         }
     },
     "required": ["user", "profiles"]

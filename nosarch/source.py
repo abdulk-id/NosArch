@@ -19,13 +19,7 @@ _username: str = userConfig.get_str("user.username")
 decman.config.arch = "x86_64"
 decman.config.debug_output = False
 decman.config.quiet_output = False  # Disable info messages
-decman.execution_order = [
-    "files",
-    "pacman",
-    # "aur",  Disabled due to recent npm supply chain attacks
-    "flatpak",
-    "systemd",
-]
+decman.execution_order = ["files", "pacman", "aur", "flatpak", "systemd"]
 
 if userConfig.get_bool("enable_homebrew"):
     homebrew.plugin.user = _username  # brew cannot run as root

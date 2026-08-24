@@ -28,6 +28,10 @@ class GamingModule(decman.Module):
             "/usr/share/wayland-sessions/steam-big-picture.desktop": File(
                 source_file="../dotfiles/gaming-root/usr/share/wayland-sessions/steam-big-picture.desktop", owner="root"
             ),
+            f"/home/{_username}/.config/hypr/app-windows/steam.lua": File(
+                source_file="../dotfiles/gaming-root/home/username/config/hypr/app-windows/steam.lua",
+                owner=f"{_username}",
+            ),
             f"/home/{_username}/.local/bin/steamos-session-select": File(
                 source_file="../dotfiles/gaming-root/home/username/local/bin/steamos-session-select",
                 owner=_username,

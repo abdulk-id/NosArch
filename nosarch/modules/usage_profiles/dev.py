@@ -75,6 +75,10 @@ class DevModule(decman.Module):
                 permissions=0o755,  # Make executable
             ),
             # User home folder
+            f"/home/{_username}/.config/hypr/app-windows/jetbrains.lua": File(
+                source_file="../dotfiles/dev-root/home/username/config/hypr/app-windows/jetbrains.lua",
+                owner=f"{_username}",
+            ),
             f"/home/{_username}/.config/mise/config.toml": File(
                 content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{_username}"
             ),

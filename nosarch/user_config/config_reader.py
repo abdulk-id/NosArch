@@ -1,29 +1,40 @@
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 # TODO: A lot of `Any` types
 
-_path: Path = Path("config.json")
 _data: dict[str, Any] = {}
 
 
-def load() -> None:
-    """Load config values from disk."""
-    global _data
+def _default_config_path() -> Path:
+    sudo_user: str | None = os.environ.get("SUDO_USER")
+    if sudo_user and sudo_user != "root":
+        home: str = os.path.expanduser(f"~{sudo_user}")
+    else:
+        home = os.path.expanduser("~")
+    return Path(home) / ".nosarch_config.json"
 
-    if not _path.exists():
+
+def load() -> None:
+    global _data
+    config_path: Path = _default_config_path()
+
+    if not config_path.exists():
         _data = {}
         return
 
-    with _path.open("r", encoding="utf-8") as file:
+    with config_path.open("r", encoding="utf-8") as file:
         _data = json.load(file)
 
 
 def save() -> None:
-    _path.parent.mkdir(parents=True, exist_ok=True)
+    config_path: Path = _default_config_path()
 
-    with _path.open("w", encoding="utf-8") as file:
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with config_path.open("w", encoding="utf-8") as file:
         json.dump(_data, file, indent=2)
         _ = file.write("\n")
 

@@ -1,5 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/abdulk-id/NosArch/master/config.schema.json",
     "title": "NosArch Config",
     "description": "Configuration schema for NosArch",
     "type": "object",

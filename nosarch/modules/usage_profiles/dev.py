@@ -23,9 +23,12 @@ class DevModule(decman.Module):
     @override
     @staticmethod
     def on_disable() -> None:
+        import decman
+        import user_config.config_reader as userConfig
+
         # `on_disable` hooks run before everything else (after `before_update` hooks), so mise would still be present.
         # needed to remove all mise installed tools
-        _ = decman.prg(cmd=["mise", "implode"], user=_username, mimic_login=True)
+        _ = decman.prg(cmd=["mise", "implode"], user=userConfig.get_str("user.username"), mimic_login=True)
 
     @override
     def file_variables(self) -> dict[str, str]:

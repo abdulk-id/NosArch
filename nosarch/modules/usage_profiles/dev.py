@@ -3,7 +3,7 @@ from typing import override
 import decman
 import user_config.config_reader as userConfig
 import utils.dotfile.dev_lang_config
-from decman import Directory, File
+from decman import Directory, File, Store
 from decman.plugins import aur, flatpak, pacman, systemd
 from plugins import homebrew
 
@@ -14,6 +14,11 @@ _username: str = userConfig.get_str("user.username")
 class DevModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="dev_profile")
+
+    @override
+    def on_change(self, store: Store) -> None:
+        _ = decman.prg(cmd=["mise", "install"], user=_username, mimic_login=True)
+        _ = decman.prg(cmd=["mise", "prune"], user=_username, mimic_login=True)
 
     @override
     def file_variables(self) -> dict[str, str]:
@@ -59,7 +64,7 @@ class DevModule(decman.Module):
                 owner="root",
                 permissions=0o755,  # Make executable
             ),
-            # User Home file
+            # User home folder
             f"/home/{_username}/.config/mise/config.toml": File(
                 content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{_username}"
             ),

@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import override
 
-from config import DEV_LANGS_ENABLED
+import user_config.config_reader as userConfig
+
+userConfig.load()
 
 
 class DevLang(ABC):
@@ -120,13 +122,13 @@ class ZigConfig(DevLang):
 # Main logic
 
 DEV_LANG_CONFIG: dict[str, DevLang] = {
-    "denojs": DenoJSConfig(),
-    "bunjs": BunJSConfig(),
-    "go": GoConfig(),
-    "java_maven": JavaMavenConfig(),
-    "java_gradle": JavaGradleConfig(),
     ".net": DotNetConfig(),
-    "nodejs": NodeJSConfig(),
+    "go": GoConfig(),
+    "java-maven": JavaMavenConfig(),
+    "java-gradle": JavaGradleConfig(),
+    "javascript-bun": BunJSConfig(),
+    "javascript-deno": DenoJSConfig(),
+    "javascript-node": NodeJSConfig(),
     "python": PythonConfig(),
     "rust": RustConfig(),
     "zig": ZigConfig(),
@@ -139,11 +141,12 @@ def get_mise_config_contents() -> str:
     # Mise tools
     config_contents.append("[tools]\n")
 
-    for lang, enabled in DEV_LANGS_ENABLED.items():
-        if enabled:
-            if DEV_LANG_CONFIG[lang].get_tools_config() != "":
-                config_contents.append(DEV_LANG_CONFIG[lang].get_tools_config())
-                config_contents.append("\n")
+    enabled_languages: list[str] = userConfig.get_str_list("dev.languages")
+
+    for language in enabled_languages:
+        if DEV_LANG_CONFIG[language].get_tools_config() != "":
+            config_contents.append(DEV_LANG_CONFIG[language].get_tools_config())
+            config_contents.append("\n")
 
     # Mise settings
     config_contents.append("\n")
@@ -151,11 +154,11 @@ def get_mise_config_contents() -> str:
     config_contents.append("activate_aggressive = true\n")
     config_contents.append("paranoid = false\n")
     config_contents.append("terminal_progress = true\n")
+    config_contents.append("\n")
 
-    for lang, enabled in DEV_LANGS_ENABLED.items():
-        if enabled:
-            if DEV_LANG_CONFIG[lang].get_settings_config() != "":
-                config_contents.append(DEV_LANG_CONFIG[lang].get_settings_config())
-                config_contents.append("\n")
+    for language in enabled_languages:
+        if DEV_LANG_CONFIG[language].get_settings_config() != "":
+            config_contents.append(DEV_LANG_CONFIG[language].get_settings_config())
+            config_contents.append("\n")
 
     return "".join(config_contents)

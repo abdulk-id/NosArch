@@ -71,9 +71,28 @@
                         "enum": ["code-oss", "jetbrains", "neovim", "vscode", "zed"]
                     },
                     "uniqueItems": true
+                },
+                "languages": {
+                    "type": "array",
+                    "description": "List of programming languages to setup",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            ".net",
+                            "go",
+                            "java-maven",
+                            "java-gradle",
+                            "javascript-bun",
+                            "javascript-deno",
+                            "javascript-node",
+                            "python",
+                            "rust",
+                            "zig"
+                        ]
+                    },
+                    "uniqueItems": true
                 }
-            },
-            "required": ["agents", "editors"]
+            }
         },
         "full_setup": {
             "type": "object",

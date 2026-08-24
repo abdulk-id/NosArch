@@ -59,7 +59,7 @@
                     "description": "List of AI agents to install",
                     "items": {
                         "type": "string",
-                        "enum": ["claude-code", "codex", "opencode", "pi"]
+                        "enum": ["claude-code", "codex", "copilot-cli", "gemini-cli", "kilocode", "omp", "opencode"]
                     },
                     "uniqueItems": true
                 },
@@ -68,7 +68,7 @@
                     "description": "List of code editors to install",
                     "items": {
                         "type": "string",
-                        "enum": ["code-oss", "jetbrains", "neovim", "vscode", "zed"]
+                        "enum": ["code-oss", "codium", "jetbrains", "neovim", "vscode", "zed"]
                     },
                     "uniqueItems": true
                 },

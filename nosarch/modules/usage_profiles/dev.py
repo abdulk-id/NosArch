@@ -9,6 +9,8 @@ from plugins import homebrew
 
 userConfig.load()
 _username: str = userConfig.get_str("user.username")
+_agents: list[str] = userConfig.get_str_list("dev.agents")
+_editors: list[str] = userConfig.get_str_list("dev.editors")
 
 
 class DevModule(decman.Module):
@@ -99,32 +101,59 @@ class DevModule(decman.Module):
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
-        return {
-            "ast-grep",  # Needed for Neovim
+        pkgs: set[str] = {
             "bash-completion",
             "cmake",
-            "fd",  # Faster `find`; Needed for Neovim
             "github-cli",
             "lazygit",
             "llvm",
-            "luarocks",  # Needed for Neovim
             "mise",  # Language tooling manager
             "meson",
-            "neovim",
             "ninja",
-            "openai-codex",
-            "opencode",
             "podman",
             "podman-compose",
             "podman-docker",
             "podman-desktop",
-            "tectonic",  # Needed for Neovim
-            "zed",
         }
+
+        # Agents
+        if _agents.__contains__("codex"):
+            pkgs.add("openai-codex")
+
+        if _agents.__contains__("opencode"):
+            pkgs.add("opencode")
+
+        # Code Editors
+        if _editors.__contains__("neovim"):
+            pkgs.update({"ast-grep", "fd", "luarocks", "neovim", "tectonic"})
+
+        if _editors.__contains__("code-oss"):
+            pkgs.add("code")
+
+        if _editors.__contains__("zed"):
+            pkgs.add("zed")
+
+        return pkgs
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        return {"t3code-bin"}
+        aur_pkgs: set[str] = {"t3code-bin"}
+
+        # Agents
+        if _agents.__contains__("kilocode"):
+            aur_pkgs.add("kilo-bin")
+
+        # Code Editors
+        if _editors.__contains__("codium"):
+            aur_pkgs.add("vscodium-bin")
+
+        if _editors.__contains__("jetbrains"):
+            aur_pkgs.add("jetbrains-toolbox")
+
+        if _editors.__contains__("vscode"):
+            aur_pkgs.add("visual-studio-code-bin")
+
+        return aur_pkgs
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
@@ -132,7 +161,26 @@ class DevModule(decman.Module):
 
     @homebrew.casks  # pyright: ignore[reportUnknownMemberType]
     def brew_casks(self) -> set[str]:
-        return {"claude-code"}
+        if _agents.__contains__("claude-code"):
+            return {"claude-code"}
+        else:
+            return set()
+
+    @homebrew.formulae  # pyright: ignore[reportUnknownMemberType]
+    def brew_formulae(self) -> set[str]:
+        brew_formulae: set[str] = set()
+
+        # Agents
+        if _agents.__contains__("gemini-cli"):
+            brew_formulae.add("gemini-cli")
+
+        if _agents.__contains__("omp"):
+            brew_formulae.add("can1357/tap/omp")
+
+        if _agents.__contains__("copilot-cli"):
+            brew_formulae.add("copilot-cli")
+
+        return brew_formulae
 
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:

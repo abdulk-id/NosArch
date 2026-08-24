@@ -74,6 +74,16 @@
                 }
             },
             "required": ["agents", "editors"]
+        },
+        "full_setup": {
+            "type": "object",
+            "properties": {
+                "enable_virtualization": {
+                    "type": "boolean",
+                    "description": "Enable to setup NosArch for running Virtual Machines",
+                    "default": false
+                }
+            }
         }
     },
     "required": ["user", "profiles"]

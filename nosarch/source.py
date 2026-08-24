@@ -47,7 +47,8 @@ userManager.add_user(
         group=_username,
         home=f"/home/{_username}",
         shell="/usr/bin/bash",
-        groups=(_username, "wheel", "libvirt")
+        groups=(_username, "wheel")
+        + (("libvirt",) if userConfig.get_bool("full_setup.enable_virtualization") else ())
         + (
             ("input",) if userConfig.get_bool("profiles.gaming") else ()
             # Allow user access to controller devices (/dev/input)

@@ -23,7 +23,7 @@ class FullSetupModule(decman.Module):
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
-        apps_set: set[str] = {
+        pkgs_set: set[str] = {
             "dua-cli",  # Disk usage analyzer
             "kdeconnect",
             "libreoffice-fresh",
@@ -33,31 +33,35 @@ class FullSetupModule(decman.Module):
             "transmission-gtk",
         }
 
-        virtualization_set: set[str] = {
-            "libvirt",
-            "qemu-full",
-            "vde2",  # Virtual Distributed Ethernet for emulators like QEMU
-            "virt-manager",
-            "virt-viewer",
-        }
+        if userConfig.get_bool("full_setup.enable_virtualization"):
+            pkgs_set.update(
+                {
+                    "libvirt",
+                    "qemu-full",
+                    "vde2",  # Virtual Distributed Ethernet for emulators like QEMU
+                    "virt-manager",
+                    "virt-viewer",
+                }
+            )
 
-        merged_set: set[str] = apps_set.union(virtualization_set)
-        return merged_set
+        return pkgs_set
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        apps_set: set[str] = {
+        aur_pkgs_set: set[str] = {
             "spotify",
             "spotify-adblock",
             "stacher7",  # yt-dlp frontend
         }
 
-        virtualization_set: set[str] = {
-            "bridge-utils"  # Utils for configuring Linux ethernet bridge
-        }
+        if userConfig.get_bool("full_setup.enable_virtualization"):
+            aur_pkgs_set.update(
+                {
+                    "bridge-utils"  # Utils for configuring Linux ethernet bridge
+                }
+            )
 
-        merged_set: set[str] = apps_set.union(virtualization_set)
-        return merged_set
+        return aur_pkgs_set
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
@@ -65,4 +69,7 @@ class FullSetupModule(decman.Module):
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def systemd_services(self) -> set[str]:
-        return {"libvirtd.service"}
+        if userConfig.get_bool("full_setup.enable_virtualization"):
+            return {"libvirtd.service"}
+        else:
+            return set()

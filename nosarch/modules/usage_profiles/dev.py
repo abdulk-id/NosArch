@@ -91,10 +91,6 @@ class DevModule(decman.Module):
                 source_file="../dotfiles/dev-root/home/username/config/environment.d/languages.conf",
                 owner=f"{_username}",
             ),
-            f"/home/{_username}/.config/systemd/user/t3code.service": File(
-                source_file="../dotfiles/dev-root/home/username/config/systemd/user/t3code.service",
-                owner=f"{_username}",
-            ),
             f"/home/{_username}/.bashrc.d/dev.bashrc": File(
                 source_file="../dotfiles/dev-root/home/username/bashrc.d/dev.bashrc", owner=f"{_username}"
             ),

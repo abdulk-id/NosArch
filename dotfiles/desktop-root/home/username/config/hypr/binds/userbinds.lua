@@ -15,6 +15,8 @@ hl.bind("SUPER + SHIFT + A",
     hl.dsp.exec_cmd("flatpak run --command=io.github.alainm23.planify.quick-add io.github.alainm23.planify"),
     { description = "Quick-Add Task to Planify" })
 
+hl.bind("SUPER + A", hl.dsp.exec_cmd("nosarch-dash"), { description = "Open NosArch Dash" })
+
 -- === Capture Binds ===
 hl.bind("PRINT", hl.dsp.exec_cmd("nosarch-capture screenshot region"), { description = "Screenshow a region" })
 hl.bind("SUPER + PRINT", hl.dsp.exec_cmd("nosarch-capture screenshot window"), { description = "Screenshow a window" })

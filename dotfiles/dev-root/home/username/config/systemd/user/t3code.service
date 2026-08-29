@@ -6,15 +6,15 @@ StartLimitBurst=5
 [Service]
 Type=simple
 WorkingDirectory=%h
-Environment=T3CODE_HOME=/home/&USER&/.t3
+Environment=T3CODE_HOME=/home/%USER%/.t3
 Environment=T3_BOOT_SERVICE_UNIT=t3code.service
-ExecStart=/usr/bin/node /home/&USER&/.t3/runtime/service-launcher.mjs
+ExecStart=/usr/bin/node /home/%USER%/.t3/runtime/service-launcher.mjs
 KillMode=mixed
 OOMPolicy=continue
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/&USER&/.t3/userdata/logs/boot-service.log
-StandardError=append:/home/&USER&/.t3/userdata/logs/boot-service.log
+StandardOutput=append:/home/%USER%/.t3/userdata/logs/boot-service.log
+StandardError=append:/home/%USER%/.t3/userdata/logs/boot-service.log
 
 [Install]
 WantedBy=default.target

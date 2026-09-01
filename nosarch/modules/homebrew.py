@@ -32,7 +32,7 @@ class HomebrewModule(decman.Module):
             + "#\n"
             + "\n"
             + "# Use Homebrew in your user\n"
-            + '[ -x /home/linuxbrew/.linuxbrew/bin/brew ] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
+            + 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
         )
 
         return {

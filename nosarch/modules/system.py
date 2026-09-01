@@ -38,6 +38,7 @@ class SystemModule(decman.Module):
             "/etc/pacman.d/hooks/": Directory(
                 source_directory="../dotfiles/system-root/etc/pacman.d/hooks/", owner="root"
             ),
+            "/etc/plymouth/": Directory(source_directory="../dotfiles/system-root/etc/plymouth/", owner="root"),
             "/etc/snapper/configs/": Directory(
                 source_directory="../dotfiles/system-root/etc/snapper/configs/", owner="root"
             ),
@@ -50,6 +51,11 @@ class SystemModule(decman.Module):
         }
 
         return etc_dirs | {
+            "/usr/share/plymouth/themes/nosarch/": Directory(
+                source_directory="../dotfiles/system-root/usr/share/plymouth/themes/nosarch/",
+                bin_files=True,
+                owner="root",
+            ),
             "/usr/lib/nosarch/": Directory(
                 source_directory="../dotfiles/system-root/usr/lib/nosarch/",
                 owner="root",
@@ -153,6 +159,7 @@ class SystemModule(decman.Module):
             "man-db",
             "nano",
             "memtest86+-efi",
+            "plymouth",
             "python-dbus-fast",  # Installed for battery monitoring `/usr/lib/nosarch/nosarch-battery-monitor.py`
             "snapper",
             "sudo",

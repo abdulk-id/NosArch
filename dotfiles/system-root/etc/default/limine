@@ -48,7 +48,7 @@ ESP_PATH="/boot"
 ### Examples:
 #KERNEL_CMDLINE[fallback]=
 #KERNEL_CMDLINE[linux-zen]=
-KERNEL_CMDLINE[default]+=rd.luks.name=%LUKS_UUID%=cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@ rw resume=/dev/mapper/cryptroot resume_offset=1056000 apparmor=1 security=apparmor zswap.enabled=0 quiet
+KERNEL_CMDLINE[default]+=rd.luks.name=%LUKS_UUID%=cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@ rw resume=/dev/mapper/cryptroot resume_offset=1056000 apparmor=1 security=apparmor zswap.enabled=0 quiet splash
 
 
 ### Formatting Boot Entry

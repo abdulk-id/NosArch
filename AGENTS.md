@@ -11,11 +11,13 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by Decman
     - `setup.py` and `setup_full.py` install common and full-profile apps;
     - `theme.py` deploys wallpapers;
     - `homebrew.py` prepares the system to use homebrew;
+    - `user_defined.py` manages packages manually listed by users in their JSON config;
     - Optional profiles live under `nosarch/modules/usage_profiles/`.
 - Reusable helpers are in `nosarch/utils/`.
 - Theme data and wallpapers are under `nosarch/themes/`.
 - Managed files live under `dotfiles/`, with a separate mirrored root per module (e.g. `dotfiles/system-root/`, `dotfiles/desktop-root/`, `dotfiles/dev-root/`, `dotfiles/gaming-root/`, `dotfiles/setup-full-root/`); inside each, `etc/`, `usr/`, and `home/username/` map to `/etc/`, `/usr/`, and `/home/<user>/`.
     - `dotfiles/unused-config/` is not deployed.
+- User config reader is in `nosarch/user_config/config_reader.py`
 
 ## Testing Guidelines
 

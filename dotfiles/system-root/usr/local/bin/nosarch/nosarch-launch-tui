@@ -1,4 +1,5 @@
 #!/bin/sh
+# Managed by NosArch
 
 set -eu
 

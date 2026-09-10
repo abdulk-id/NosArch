@@ -1,4 +1,5 @@
 #!/bin/sh
+# Managed by NosArch
 
 # Use this script for locking and running post-unlock steps
 # Vicinae does not work with commands that keep running in the foreground (hyprlock)

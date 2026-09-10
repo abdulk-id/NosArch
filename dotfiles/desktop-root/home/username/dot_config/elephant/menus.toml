@@ -1,2 +1,4 @@
+# Managed by NosArch
+
 min_score = 50
 paths = ["~/.config/elephant/menus"]

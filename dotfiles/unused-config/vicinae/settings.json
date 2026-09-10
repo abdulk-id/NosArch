@@ -1,3 +1,5 @@
+// Managed by NosArch
+
 // This configuration is merged with the default vicinae configuration file, which you can obtain by running the `vicinae config default` command.
 // Every item defined in this file takes precedence over the values defined in the default config or any other imported file.
 //

@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "session"
 NamePretty = "session"
---Icon = "system-shutdown-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

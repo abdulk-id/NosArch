@@ -1,2 +1,4 @@
+# Managed by NosArch
+
 source ~/.config/uwsm/fcitx
 source ~/.config/uwsm/wayland

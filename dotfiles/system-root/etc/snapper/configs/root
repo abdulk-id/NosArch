@@ -1,3 +1,5 @@
+# Managed by NosArch
+
 SUBVOLUME="/"
 FSTYPE="btrfs"
 

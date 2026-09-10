@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "packages"
 NamePretty = "Packages"
---Icon = "system-software-install-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

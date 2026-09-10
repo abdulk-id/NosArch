@@ -1,4 +1,5 @@
 #!/bin/sh
+# Managed by NosArch
 
 battery_percentage="$1"
 

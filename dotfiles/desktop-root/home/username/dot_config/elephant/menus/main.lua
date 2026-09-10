@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "main"
 NamePretty = "Main Menu"
---Icon = "view-grid-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

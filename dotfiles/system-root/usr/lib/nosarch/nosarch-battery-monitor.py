@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Managed by NosArch
 
 import asyncio
 import logging
@@ -12,10 +13,7 @@ from dbus_fast.constants import BusType
 from dbus_fast.introspection import Node
 from dbus_fast.signature import Variant
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(levelname)s] %(message)s",
-)
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 log: logging.Logger = logging.getLogger("nosarch-battery-monitor")
 
@@ -36,7 +34,7 @@ class BatteryState(IntEnum):
 
 
 THRESHOLDS: list[tuple[int, str]] = [
-    (15, "/usr/lib/nosarch/battery-low.sh"),
+    (15, "/usr/lib/nosarch/battery-low.sh")
     # (5, "/usr/lib/nosarch/battery-critical.sh"),
 ]
 
@@ -56,12 +54,7 @@ def run_script(script: str, percentage: int) -> None:
     log.info("Executing: %s", script)
 
     try:
-        subprocess.run(
-            [script, str(percentage)],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        subprocess.run([script, str(percentage)], check=True, capture_output=True, text=True)
     except FileNotFoundError:
         log.error("Script not found: %s", script)
     except subprocess.CalledProcessError as e:
@@ -88,25 +81,16 @@ def evaluate() -> None:
     for threshold, script in THRESHOLDS:
         if percentage <= threshold:
             if threshold in triggered:
-                log.debug(
-                    "Threshold %d%% already triggered",
-                    threshold,
-                )
+                log.debug("Threshold %d%% already triggered", threshold)
                 continue
 
-            log.info(
-                "Crossed %d%% threshold",
-                threshold,
-            )
+            log.info("Crossed %d%% threshold", threshold)
 
             run_script(script, percentage)
             triggered.add(threshold)
         else:
             if threshold in triggered:
-                log.info(
-                    "Battery above %d%% again. Resetting trigger",
-                    threshold,
-                )
+                log.info("Battery above %d%% again. Resetting trigger", threshold)
                 triggered.remove(threshold)
 
 
@@ -117,49 +101,22 @@ async def main() -> None:
 
     log.debug("Connected to system bus")
 
-    introspection: Node = await bus.introspect(
-        UPOWER_BUS,
-        DISPLAY_DEVICE,
-    )
+    introspection: Node = await bus.introspect(UPOWER_BUS, DISPLAY_DEVICE)
 
-    proxy_obj: ProxyObject = bus.get_proxy_object(
-        UPOWER_BUS,
-        DISPLAY_DEVICE,
-        introspection,
-    )
+    proxy_obj: ProxyObject = bus.get_proxy_object(UPOWER_BUS, DISPLAY_DEVICE, introspection)
 
     proxy_interface: ProxyInterface = proxy_obj.get_interface(PROPERTIES_INTERFACE)
 
     # Populate initial cache
-    battery.percentage = int(
-        (
-            await proxy_interface.call_get(
-                DEVICE_INTERFACE,
-                "Percentage",
-            )
-        ).value
-    )
+    battery.percentage = int((await proxy_interface.call_get(DEVICE_INTERFACE, "Percentage")).value)
 
-    battery.state = BatteryState(
-        (
-            await proxy_interface.call_get(
-                DEVICE_INTERFACE,
-                "State",
-            )
-        ).value
-    )
+    battery.state = BatteryState((await proxy_interface.call_get(DEVICE_INTERFACE, "State")).value)
 
-    log.debug(
-        "Initial state: %d%% (state: %s)",
-        battery.percentage,
-        battery.state.name,
-    )
+    log.debug("Initial state: %d%% (state: %s)", battery.percentage, battery.state.name)
 
     evaluate()
 
-    def properties_changed(
-        interface_name: str, changed: dict[str, Variant], invalidated: list[str]
-    ) -> None:
+    def properties_changed(interface_name: str, changed: dict[str, Variant], invalidated: list[str]) -> None:
         if interface_name != DEVICE_INTERFACE:
             return
 

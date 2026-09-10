@@ -1,3 +1,5 @@
+-- Managed by NosArch
+
 hl.window_rule({
     name = "chromium-based-browser-rules",
     match = {

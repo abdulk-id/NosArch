@@ -1,5 +1,6 @@
--- For XWayland IDEs only, not needed in Wayland IDEs.
+-- Managed by NosArch
 
+-- For XWayland IDEs only, not needed in Wayland IDEs.
 hl.window_rule({
     -- Fix splash screen showing in weird places and prevent annoying focus takeovers
     name = "jetbrains-splash-rules",

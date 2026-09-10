@@ -1,3 +1,5 @@
+-- Managed by NosArch
+
 require("looknfeel")
 require("autostart")
 require("input")

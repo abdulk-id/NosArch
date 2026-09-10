@@ -1,3 +1,5 @@
+# Managed by NosArch
+
 [terminal]
 # The VT to run the greeter on. Can be "next", "current" or a number designating the VT.
 vt = next

@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "record"
 NamePretty = "Record"
---Icon = "applets-screenshooter-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

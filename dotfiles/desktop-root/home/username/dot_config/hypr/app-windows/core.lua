@@ -1,3 +1,5 @@
+-- Managed by NosArch
+
 -- File-picker windows
 hl.window_rule({
     name = "file-picker-windows-rules",

@@ -1,3 +1,4 @@
+# Managed by NosArch
 #
 # .bashrc for Dev module
 #

@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "power-profiles"
 NamePretty = "Power profiles"
---Icon = "gnome-power-manager-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

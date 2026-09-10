@@ -1,3 +1,5 @@
+/* Managed by NosArch */
+
 @define-color background     #%BACKGROUND_PRIMARY%;
 @define-color foreground     #%FOREGROUND_PRIMARY%;
 @define-color border         #%ACCENT%;
@@ -107,7 +109,7 @@ child:selected {
 }
 
 .item-subtext {
-    font-size: 12px;
+    font-size: 0px;
     opacity: 0.5;
 }
 
@@ -133,10 +135,6 @@ child:selected {
     color: @foreground;
 }
 
-/* */
-/* */
-/* */
-
 .elephant-hint,
 .placeholder {
     color: @foreground;
@@ -147,9 +145,11 @@ child:selected {
 }
 
 .item-quick-activation {
-    background: alpha(@background, 0.25);
+    color: darker(@foreground);
+    background: transparent;
     border-radius: 5px;
     padding: 10px;
+    font-size: 12px;
 }
 
 /* child:hover .item-box, */
@@ -184,7 +184,7 @@ child:selected .item-box {
 .keybinds {
     padding-top: 10px;
     border-top: 1px solid lighter(@background);
-    font-size: 12px;
+    font-size: 8px;
     color: @foreground;
 }
 
@@ -212,7 +212,7 @@ child:selected .item-box {
 }
 
 .keybind-label {
-    padding: 2px;
+    padding: 5px;
     border-radius: 4px;
     border: 1px solid @foreground;
 }

@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "settings"
 NamePretty = "Settings"
---Icon = "preferences-system-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

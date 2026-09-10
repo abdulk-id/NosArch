@@ -1,3 +1,5 @@
+# Managed by NosArch
+
 [Trigger]
 Operation = Install
 Operation = Upgrade

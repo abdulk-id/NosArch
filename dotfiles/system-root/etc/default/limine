@@ -1,3 +1,6 @@
+# Managed by NosArch
+
+
 ### OS Entry Targeting
 ### If TARGET_OS_NAME is not set, or if the default distro name is not found in $ESP_PATH/limine.conf,
 ### the tool will create a new OS entry using the default distro name (PRETTY_NAME or NAME from /etc/os-release) and machine-ID.

@@ -1,3 +1,5 @@
+-- Managed by NosArch
+
 -- === USER BINDS ===
 -- See https://wiki.hypr.land/Configuring/Basics/Binds/
 

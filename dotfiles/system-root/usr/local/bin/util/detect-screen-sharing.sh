@@ -1,4 +1,5 @@
 #!/bin/sh
+# Managed by NosArch
 
 is_screen_shared() {
     pw-dump | jq -e '

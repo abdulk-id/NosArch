@@ -1,4 +1,5 @@
 #!/bin/sh
+# Managed by NosArch
 
 start_sudo_keepalive() {
     sudo -v || return 1

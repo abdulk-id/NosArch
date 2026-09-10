@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "capture"
 NamePretty = "Capture"
---Icon = "applets-screenshooter-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

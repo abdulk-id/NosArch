@@ -1,6 +1,7 @@
+-- Managed by NosArch
+
 Name = "share"
 NamePretty = "share"
---Icon = "preferences-system-symbolic"
 Cache = false
 HideFromProviderlist = true
 FixedOrder = true

@@ -1,4 +1,5 @@
 # NosArch Plymouth Theme Script (yoinked from Omarchy)
+# Managed by NosArch
 
 Window.SetBackgroundTopColor(0.101, 0.105, 0.149);
 Window.SetBackgroundBottomColor(0.101, 0.105, 0.149);

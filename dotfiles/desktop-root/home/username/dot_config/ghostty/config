@@ -1,3 +1,5 @@
+# Managed by NosArch
+
 # Dynamic theme colors
 config-file = ?"~/.config/ghostty/theme.conf"
 

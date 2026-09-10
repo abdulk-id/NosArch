@@ -1,4 +1,5 @@
-import os
+# Managed by NosArch
+
 import shutil
 
 from gi import require_version
@@ -28,20 +29,13 @@ class SendViaLocalSendAction(GObject.GObject, Nautilus.MenuProvider):
 
         flatpak = shutil.which("flatpak")
         if flatpak and self._has_flatpak_app(flatpak, "org.localsend.localsend_app"):
-            return [
-                flatpak,
-                "run",
-                "--file-forwarding",
-                "org.localsend.localsend_app",
-                "@@",
-            ]
+            return [flatpak, "run", "--file-forwarding", "org.localsend.localsend_app", "@@"]
 
         return None
 
     def _has_flatpak_app(self, flatpak, app_id):
         process = Gio.Subprocess.new(
-            [flatpak, "info", app_id],
-            Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
+            [flatpak, "info", app_id], Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE
         )
         return process.wait_check()
 
@@ -60,14 +54,8 @@ class SendViaLocalSendAction(GObject.GObject, Nautilus.MenuProvider):
         return paths
 
     def _make_item(self, paths):
-        label = (
-            "Send via LocalSend" if len(paths) == 1 else "Send selected via LocalSend"
-        )
-        item = Nautilus.MenuItem(
-            name="LocalSendNautilus::send_via_localsend",
-            label=label,
-            icon="localsend",
-        )
+        label = "Send via LocalSend" if len(paths) == 1 else "Send selected via LocalSend"
+        item = Nautilus.MenuItem(name="LocalSendNautilus::send_via_localsend", label=label, icon="localsend")
         item.connect("activate", self._on_activate, paths)
         return item
 

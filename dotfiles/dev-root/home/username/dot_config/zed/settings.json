@@ -1,11 +1,7 @@
+// Managed by NosArch
+
 // Zed settings
-//
-// For information on how to configure Zed, see the Zed
-// documentation: https://zed.dev/docs/configuring-zed
-//
-// To see all of Zed's default settings without changing your
-// custom settings, run `zed: open default settings` from the
-// command palette (cmd-shift-p / ctrl-shift-p)
+// For information on how to configure Zed, see the Zed documentation: https://zed.dev/docs/configuring-zed
 {
     // General
     "outline_panel": {
@@ -142,7 +138,7 @@
         "dock": "left",
         "tree_view": true,
         "fallback_branch_name": "master",
-        "sort_by_path": true,
+        "sort_by": "path",
     },
     // Terminal
     "terminal": {
@@ -159,15 +155,17 @@
         "sidebar_side": "right",
         "default_profile": "ask",
         "default_model": {
-            "provider": "opencode",
-            "model": "minimax-m2.5-free",
-            "enable_thinking": false,
+            "effort": "low",
+            "provider": "zed.dev",
+            "model": "claude-opus-5",
+            "enable_thinking": true,
         },
         "favorite_models": [
             {
-                "provider": "opencode",
-                "model": "minimax-m2.5-free",
-                "enable_thinking": false,
+                "provider": "zed.dev",
+                "model": "claude-opus-5",
+                "enable_thinking": true,
+                "effort": "low",
             },
         ],
         "model_parameters": [],

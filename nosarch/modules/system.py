@@ -23,6 +23,7 @@ class SystemModule(decman.Module):
     def file_variables(self) -> dict[str, str]:
         return {
             "%LUKS_UUID%": utils.luks_uuid.get_luks_uuid(),
+            "%USER%": _username,
             "%FULLNAME%": userConfig.get_str("user.fullname"),
             "%GIT_EMAIL%": userConfig.get_str("user.git_email"),
         }
@@ -121,6 +122,9 @@ class SystemModule(decman.Module):
             etc_files
             | nosarch_scripts
             | {
+                f"/home/{_username}/.config/yay/config.json": File(
+                    source_file="../dotfiles/system-root/home/username/config/yay/config.json", owner=f"{_username}"
+                ),
                 f"/home/{_username}/.bash_profile": File(
                     source_file="../dotfiles/system-root/home/username/dot_bashprofile", owner=f"{_username}"
                 ),

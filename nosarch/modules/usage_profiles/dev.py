@@ -30,6 +30,7 @@ class DevModule(decman.Module):
 
         # `on_disable` hooks run before everything else (after `before_update` hooks), so mise would still be present.
         # needed to remove all mise installed tools
+        # TODO: If this runs after mise has been removed, this command will fail.
         _ = decman.prg(cmd=["mise", "implode"], user=userConfig.get_str("user.username"), mimic_login=True)
 
     @override
@@ -40,10 +41,10 @@ class DevModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
             f"/home/{_username}/.config/nvim/": Directory(
-                source_directory="../dotfiles/dev-root/home/username/config/nvim/", owner=f"{_username}"
+                source_directory="../dotfiles/dev-root/home/username/dot_config/nvim/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/zed/": Directory(
-                source_directory="../dotfiles/dev-root/home/username/config/zed/", owner=f"{_username}"
+                source_directory="../dotfiles/dev-root/home/username/dot_config/zed/", owner=f"{_username}"
             ),
         }
 
@@ -78,17 +79,17 @@ class DevModule(decman.Module):
             ),
             # User home folder
             f"/home/{_username}/.config/hypr/app-windows/jetbrains.lua": File(
-                source_file="../dotfiles/dev-root/home/username/config/hypr/app-windows/jetbrains.lua",
+                source_file="../dotfiles/dev-root/home/username/dot_config/hypr/app-windows/jetbrains.lua",
                 owner=f"{_username}",
             ),
             f"/home/{_username}/.config/mise/config.toml": File(
                 content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{_username}"
             ),
             f"/home/{_username}/.config/environment.d/dev.conf": File(
-                source_file="../dotfiles/dev-root/home/username/config/environment.d/dev.conf", owner=f"{_username}"
+                source_file="../dotfiles/dev-root/home/username/dot_config/environment.d/dev.conf", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/environment.d/languages.conf": File(
-                source_file="../dotfiles/dev-root/home/username/config/environment.d/languages.conf",
+                source_file="../dotfiles/dev-root/home/username/dot_config/environment.d/languages.conf",
                 owner=f"{_username}",
             ),
             f"/home/{_username}/.bashrc.d/dev.bashrc": File(

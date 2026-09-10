@@ -17,7 +17,7 @@ class CreativeModule(decman.Module):
     def files(self) -> dict[str, File]:
         return {
             f"/home/{_username}/.config/hypr/app-windows/davinci.lua": File(
-                source_file="../dotfiles/creative-root/home/username/config/hypr/app-windows/davinci.lua",
+                source_file="../dotfiles/creative-root/home/username/dot_config/hypr/app-windows/davinci.lua",
                 owner=f"{_username}",
             )
         }

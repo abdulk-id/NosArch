@@ -123,7 +123,7 @@ class SystemModule(decman.Module):
             | nosarch_scripts
             | {
                 f"/home/{_username}/.config/yay/config.json": File(
-                    source_file="../dotfiles/system-root/home/username/config/yay/config.json", owner=f"{_username}"
+                    source_file="../dotfiles/system-root/home/username/dot_config/yay/config.json", owner=f"{_username}"
                 ),
                 f"/home/{_username}/.bash_profile": File(
                     source_file="../dotfiles/system-root/home/username/dot_bashprofile", owner=f"{_username}"

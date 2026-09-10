@@ -17,7 +17,7 @@ class FullSetupModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{_username}/.config/obsidian/": Directory(
-                source_directory="../dotfiles/setup-full-root/home/username/config/obsidian/", owner=f"{_username}"
+                source_directory="../dotfiles/setup-full-root/home/username/dot_config/obsidian/", owner=f"{_username}"
             )
         }
 

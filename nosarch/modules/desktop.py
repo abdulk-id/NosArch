@@ -27,57 +27,57 @@ class DesktopModule(decman.Module):
     def directories(self) -> dict[str, Directory]:
         user_config_directories: dict[str, Directory] = {
             f"/home/{_username}/.config/btop/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/btop/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/btop/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/elephant/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/elephant/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/elephant/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/ghostty/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/ghostty/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/ghostty/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/gtk-3.0/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/gtk-3.0/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/gtk-3.0/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/gtk-4.0": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/gtk-4.0/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/gtk-4.0/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/hypr/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/hypr/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/hypr/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/hyprland-preview-share-picker/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/hyprland-preview-share-picker/",
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/hyprland-preview-share-picker/",
                 owner=f"{_username}",
             ),
             f"/home/{_username}/.config/satty/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/satty/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/satty/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/swaync/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/swaync/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/swaync/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/swayosd/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/swayosd/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/swayosd/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/systemd/user/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/systemd/user/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/systemd/user/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/uwsm/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/uwsm/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/uwsm/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/waybar/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/waybar/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/waybar/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/walker/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/walker/", owner=f"{_username}"
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/walker/", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/xdg-desktop-portal/": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/config/xdg-desktop-portal/",
+                source_directory="../dotfiles/desktop-root/home/username/dot_config/xdg-desktop-portal/",
                 owner=f"{_username}",
             ),
         }
 
         return user_config_directories | {
             f"/home/{_username}/.local/share/nautilus-python": Directory(
-                source_directory="../dotfiles/desktop-root/home/username/local/share/nautilus-python",
+                source_directory="../dotfiles/desktop-root/home/username/dot_local/share/nautilus-python",
                 owner=f"{_username}",
             ),
             f"/home/{_username}/Templates/": Directory(
@@ -92,14 +92,14 @@ class DesktopModule(decman.Module):
                 content=utils.dotfile.mimeapps_list.get_mimeapps_content(), owner=f"{_username}"
             ),
             f"/home/{_username}/.config/environment.d/defaults.conf": File(
-                source_file="../dotfiles/desktop-root/home/username/config/environment.d/defaults.conf",
+                source_file="../dotfiles/desktop-root/home/username/dot_config/environment.d/defaults.conf",
                 owner=f"{_username}",
             ),
             f"/home/{_username}/.config/user-dirs.dirs": File(
-                source_file="../dotfiles/desktop-root/home/username/config/user-dirs.dirs", owner=f"{_username}"
+                source_file="../dotfiles/desktop-root/home/username/dot_config/user-dirs.dirs", owner=f"{_username}"
             ),
             f"/home/{_username}/.config/xdg-terminals.list": File(
-                source_file="../dotfiles/desktop-root/home/username/config/xdg-terminals.list", owner=f"{_username}"
+                source_file="../dotfiles/desktop-root/home/username/dot_config/xdg-terminals.list", owner=f"{_username}"
             ),
         }
 

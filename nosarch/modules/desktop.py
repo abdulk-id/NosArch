@@ -152,6 +152,9 @@ class DesktopModule(decman.Module):
             "hyprshutdown",
             "hyprsunset",
             "imagemagick",  # TODO: Installed why?
+            "noto-fonts",
+            "noto-fonts-cjk",
+            "noto-fonts-emoji",
             "qt5-wayland",
             "qt6-wayland",
             "quickshell",

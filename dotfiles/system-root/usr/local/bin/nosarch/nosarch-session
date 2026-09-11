@@ -21,6 +21,7 @@ Idle-Lock actions:
     enable                  Enable Idle-Lock
     disable                 Disable idle-lock
     status                  Check idle-lock state (outputs "true" if enabled, "false" otherwise)
+        status-waybar           Check idle-lock state (outputs JSON for waybar)
 EOF
 }
 
@@ -42,11 +43,19 @@ enable_idle_lock() {
         --description="NosArch Idle Inhibition (Manual Toggle)" \
         /usr/bin/systemd-inhibit --what=idle --who="Manual Toggle" --why="User requested" sleep infinity
 
-    notify-send --app-name "NosArch Power" --urgency low "󱫖  Enabled Idle-Lock" "Stop locking computer when idle"
+    notify-send --urgency=low --transient \
+      --app-name="NosArch Power" \
+      "󰅶  Enabled Idle-Lock" "Stop locking computer when idle"
+
+    pkill -RTMIN+8 waybar # Update the waybar idlelock module
 }
 disable_idle_lock() {
     systemctl --user stop "$IDLE_LOCK_UNIT"
-    notify-send --app-name "NosArch Power" --urgency low "󱫖  Disabled Idle-Lock" "Now locking computer when idle"
+    notify-send --urgency=low --transient \
+      --app-name="NosArch Power" \
+      "󰾪  Disabled Idle-Lock" "Now locking computer when idle"
+
+    pkill -RTMIN+8 waybar # Update the waybar idlelock module
 }
 toggle_idle_lock() {
     if systemctl --user is-active --quiet "$IDLE_LOCK_UNIT"; then
@@ -56,12 +65,19 @@ toggle_idle_lock() {
     fi
 }
 
-# Helper function to get idle-lock state. Outputs "true" if enabled, "false" otherwise
+# Helper functions to get idle-lock state.
 idle_lock_status() {
     if systemctl --user is-active --quiet "$IDLE_LOCK_UNIT"; then
         echo "true"
     else
         echo "false"
+    fi
+}
+idle_lock_status_waybar() {
+    if systemctl --user is-active --quiet "$IDLE_LOCK_UNIT"; then
+        echo '{"alt": "enabled", "tooltip": "Disable Idle Lock", "class": "enabled"}'
+    else
+        echo '{"alt": "disabled", "tooltip": "Enable Idle Lock", "class": "disabled"}'
     fi
 }
 
@@ -160,6 +176,9 @@ main() {
                     ;;
                 status)
                     idle_lock_status
+                    ;;
+                status-waybar)
+                    idle_lock_status_waybar
                     ;;
                 *)
                     echo "Unknown idle-lock action: $2"

@@ -9,8 +9,7 @@
     "fixed-center": true,
     "modules-left": ["custom/archicon", "hyprland/workspaces", "group/group-usage"],
     "modules-center": ["mpris", "clock", "privacy"],
-    "modules-right": ["tray", "group/group-system"],
-    // Change "tray" to "group/tray-expander" if you want to only show the tray when needed
+    "modules-right": ["tray", "custom/idlelock", "group/group-system"], // Change "tray" to "group/tray-expander" for expanding tray
     // Left modules
     "custom/archicon": {
         "format": "",
@@ -137,6 +136,19 @@
         "icon-size": 14,
         "spacing": 17,
         "reverse-direction": true,
+    },
+
+    "custom/idlelock": {
+        "format": "{icon}",
+        "format-icons": {
+            "enabled": "󰅶",
+            "disabled": "󰾪", // Opacity set to 0.5 in style.css
+        },
+        "exec": "nosarch-session idle-lock status-waybar",
+        "on-click": "nosarch-session idle-lock toggle",
+        "return-type": "json",
+        "signal": 8,
+        "tooltip": true,
     },
     "group/group-system": {
         "orientation": "inherit",

@@ -62,12 +62,16 @@ tooltip {
 #privacy {
     padding: 0 6px;
 }
-#mpris {
-    font-size: 18px;
+
+#custom-idlelock.enabled {
+    opacity: 1;
+}
+#custom-idlelock.disabled {
+    opacity: 0.5;
 }
 
-#privacy {
-    padding: 0 6px;
+#mpris {
+    font-size: 18px;
 }
 
 /* Right modules */
@@ -88,8 +92,19 @@ tooltip {
 #custom-airpods,
 #battery,
 #custom-notifications {
-    padding: 0 4px;
-    margin: 0 10px;
+    padding: 0 14px;
+    /* Why so much padding needed here when other modules work with 6px padding */
+}
+
+#custom-idlelock {
+    padding: 0 6px;
+}
+
+#custom-idlelock.enabled {
+    opacity: 1;
+}
+#custom-idlelock.disabled {
+    opacity: 0.5;
 }
 
 #bluetooth.no-controller {

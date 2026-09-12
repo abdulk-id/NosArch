@@ -182,7 +182,6 @@ class DesktopModule(decman.Module):
             "hyprpolkitagent",
             "hyprshutdown",
             "hyprsunset",
-            "imagemagick",  # TODO: Installed why?
             "noto-fonts",
             "noto-fonts-cjk",
             "noto-fonts-emoji",

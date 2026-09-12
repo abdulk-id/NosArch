@@ -213,7 +213,7 @@
         "tooltip-format-charging": "Battery {capacity}%  ·  {timeTo}  ·  ↑ {power:>1.0f}W",
         "tooltip-format-full": "Battery Full  ·  ↑ {power:>1.0f}W",
         "interval": 5,
-        "on-click": "vicinae vicinae://launch/@botkooper/store.vicinae.power-profile/power-profile",
+        "on-click": "nosarch-launcher menus:power-profiles",
         "states": {
             "good": 80,
             "warning": 20,

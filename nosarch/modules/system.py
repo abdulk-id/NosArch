@@ -74,7 +74,7 @@ class SystemModule(decman.Module):
 
     @override
     def files(self) -> dict[str, File]:
-        etc_files: dict[str, File] = {
+        files: dict[str, File] = {
             "/etc/modules-load.d/zram.conf": File(
                 source_file="../dotfiles/system-root/etc/modules-load.d/zram.conf", owner="root"
             ),
@@ -88,7 +88,7 @@ class SystemModule(decman.Module):
 
         wireless_regdom: str | None = utils.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
-            etc_files.update(
+            files.update(
                 {
                     "/etc/conf.d/wireless-regdom": File(
                         content="# Wireless regulatory domain configuration\n\n" + wireless_regdom, owner="root"
@@ -96,32 +96,40 @@ class SystemModule(decman.Module):
                 }
             )
 
-        nosarch_script_names: set[str] = {
-            "nosarch-battery",
-            "nosarch-capture",
-            "nosarch-launch-app",
-            "nosarch-launch-tui",
-            "nosarch-launcher",
-            "nosarch-package",
-            "nosarch-record",
-            "nosarch-session",
-            "nosarch-share",
-            "nosarch-toggle",
-            "nosarch-wellbeing",
-        }
+        # NosArch scripts
+        files.update(
+            {
+                "/usr/local/bin/nosarch/nosarch-battery": File(
+                    source_file="../dotfiles/system-root/usr/local/bin/nosarch/nosarch-battery",
+                    owner="root",
+                    permissions=0o755,  # Make executable
+                ),
+                "/usr/local/bin/nosarch/nosarch-package": File(
+                    source_file="../dotfiles/system-root/usr/local/bin/nosarch/nosarch-package",
+                    owner="root",
+                    permissions=0o755,  # Make executable
+                ),
+                "/usr/local/bin/nosarch/nosarch-session": File(
+                    source_file="../dotfiles/system-root/usr/local/bin/nosarch/nosarch-session",
+                    owner="root",
+                    permissions=0o755,  # Make executable
+                ),
+                "/usr/local/bin/util/nosarch-lock-helper.sh": File(
+                    source_file="../dotfiles/system-root/usr/local/bin/util/nosarch-lock-helper.sh",
+                    owner="root",
+                    permissions=0o755,  # Make executable
+                ),
+                "/usr/local/bin/util/sudo-keepalive.sh": File(
+                    source_file="../dotfiles/system-root/usr/local/bin/util/sudo-keepalive.sh",
+                    owner="root",
+                    permissions=0o755,  # Make executable
+                ),
+            }
+        )
 
-        nosarch_scripts: dict[str, File] = {}
-        for name in nosarch_script_names:
-            nosarch_scripts[f"/usr/local/bin/nosarch/{name}"] = File(
-                source_file=f"../dotfiles/system-root/usr/local/bin/nosarch/{name}",
-                owner="root",
-                permissions=0o755,  # Make executable
-            )
-
-        return (
-            etc_files
-            | nosarch_scripts
-            | {
+        # User home files
+        files.update(
+            {
                 f"/home/{_username}/.config/yay/config.json": File(
                     source_file="../dotfiles/system-root/home/username/dot_config/yay/config.json", owner=f"{_username}"
                 ),
@@ -136,6 +144,8 @@ class SystemModule(decman.Module):
                 ),
             }
         )
+
+        return files
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def system_packages(self) -> set[str]:

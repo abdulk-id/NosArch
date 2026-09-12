@@ -103,6 +103,35 @@ class DesktopModule(decman.Module):
             ),
         }
 
+        # NosArch scripts
+        nosarch_script_names: set[str] = {
+            "nosarch-capture",
+            "nosarch-launch-app",
+            "nosarch-launch-tui",
+            "nosarch-launcher",
+            "nosarch-record",
+            "nosarch-share",
+            "nosarch-toggle",
+            "nosarch-wellbeing",
+        }
+        for name in nosarch_script_names:
+            files[f"/usr/local/bin/nosarch/{name}"] = File(
+                source_file=f"../dotfiles/desktop-root/usr/local/bin/nosarch/{name}",
+                owner="root",
+                permissions=0o755,  # Make executable
+            )
+
+        files.update(
+            {
+                "/usr/local/bin/util/detect-screen-sharing.sh": File(
+                    source_file="../dotfiles/desktop-root/usr/local/bin/util/detect-screen-sharing.sh",
+                    owner="root",
+                    permissions=0o755,  # Make executable
+                )
+            }
+        )
+
+        # Nvidia config
         def get_nvidia_uwsm_user_config() -> str:
             nvidia_env_vars: str = ""
 
@@ -114,17 +143,19 @@ class DesktopModule(decman.Module):
             return nvidia_env_vars
 
         if _gpu_vendor == "nvidia_gsp" or _gpu_vendor == "nvidia_non_gsp":
-            files |= {
-                "/etc/mkinitcpio.conf.d/nvidia.conf": File(
-                    source_file="../dotfiles/desktop-root/etc/mkinitcpio.conf.d/nvidia.conf", owner="root"
-                ),
-                "/etc/modprobe.d/nvidia.conf": File(
-                    source_file="../dotfiles/desktop-root/etc/modprobe.d/nvidia.conf", owner="root"
-                ),
-                f"/home/{_username}/.config/uwsm/env-nvidia": File(
-                    content=get_nvidia_uwsm_user_config(), owner=f"{_username}"
-                ),
-            }
+            files.update(
+                {
+                    "/etc/mkinitcpio.conf.d/nvidia.conf": File(
+                        source_file="../dotfiles/desktop-root/etc/mkinitcpio.conf.d/nvidia.conf", owner="root"
+                    ),
+                    "/etc/modprobe.d/nvidia.conf": File(
+                        source_file="../dotfiles/desktop-root/etc/modprobe.d/nvidia.conf", owner="root"
+                    ),
+                    f"/home/{_username}/.config/uwsm/env-nvidia": File(
+                        content=get_nvidia_uwsm_user_config(), owner=f"{_username}"
+                    ),
+                }
+            )
 
         return files
 

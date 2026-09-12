@@ -157,8 +157,6 @@ class SystemModule(decman.Module):
             "limine",
             "linux",
             "linux-headers",
-            "linux-lts",
-            "linux-lts-headers",
             "linux-firmware",
             "man-db",
             "nano",
@@ -175,6 +173,10 @@ class SystemModule(decman.Module):
             "xfsprogs",
             "zram-generator",
         }
+
+        if userConfig.get_bool("system.enable_lts_kernel"):
+            system_set.add("linux-lts")
+            system_set.add("linux-lts-headers")
 
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             system_set.add("power-profiles-daemon")

@@ -94,6 +94,16 @@
                 }
             }
         },
+        "system": {
+            "type": "object",
+            "properties": {
+                "enable_lts_kernel": {
+                    "type": "boolean",
+                    "description": "Enable to setup Linux LTS kernel",
+                    "default": false
+                }
+            }
+        },
         "full_setup": {
             "type": "object",
             "properties": {

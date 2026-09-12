@@ -8,4 +8,4 @@ ConditionEnvironment=!XDG_CURRENT_DESKTOP=gamescope
 
 [Service]
 Type=oneshot
-ExecStart=%h/.local/bin/nosarch-wellbeing eyesight remind
+ExecStart=/usr/local/bin/nosarch/nosarch-wellbeing eyesight remind

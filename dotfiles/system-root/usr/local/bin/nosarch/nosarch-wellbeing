@@ -25,7 +25,7 @@ EOF
 
 ## === Actions logic ===
 send_eyesight_reminder() {
-    if bash ~/.local/bin/util/detect-screen-sharing.sh; then
+    if bash /usr/local/bin/util/detect-screen-sharing.sh; then
         return
     fi
 

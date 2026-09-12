@@ -33,6 +33,14 @@ _ensure_command() {
     fi
 }
 
+_check_display() {
+    if [ "${XDG_SESSION_TYPE:-}" = "wayland" ] || [ "${XDG_SESSION_TYPE:-}" = "x11" ] || [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
 ## === Features ===
 IDLE_LOCK_UNIT="nosarch-idle-inhibit.service"
 
@@ -64,8 +72,6 @@ toggle_idle_lock() {
         enable_idle_lock
     fi
 }
-
-# Helper functions to get idle-lock state.
 idle_lock_status() {
     if systemctl --user is-active --quiet "$IDLE_LOCK_UNIT"; then
         echo "true"
@@ -98,7 +104,6 @@ session_lock() {
         setsid bash /usr/local/bin/util/nosarch-lock-helper.sh >/dev/null 2>&1 &
     fi
 }
-
 session_after_unlock() {
     # Start the eyesight reminder timer if enabled
 
@@ -108,50 +113,101 @@ session_after_unlock() {
 }
 
 session_logout() {
-    _ensure_command "hyprshutdown"
+    uwsm stop
+}
+session_logout_prompt() {
+    if [ "$(_check_display)" = "true" ]; then
+        _ensure_command "hyprshutdown"
+        _ensure_command "zenity"
 
-    if zenity --question \
-        --title="Logout" \
-        --text="Are you sure you want to quit all applications and log out now?" \
-        --icon="system-log-out-symbolic" \
-        --ok-label="Logout" \
-        --cancel-label="Cancel" \
-        --default-cancel
-    then
-        CMD="hyprshutdown --top-label 'Logging out...' --post-cmd 'uwsm stop'"
-        hyprctl eval "hl.exec_cmd([==[$CMD]==])"
+        if zenity --question \
+            --title="Logout" \
+            --text="Are you sure you want to quit all applications and log out now?" \
+            --icon="system-log-out-symbolic" \
+            --ok-label="Logout" \
+            --cancel-label="Cancel" \
+            --default-cancel
+        then
+            CMD="hyprshutdown --top-label 'Logging out...' --post-cmd 'session_logout'"
+            hyprctl eval "hl.exec_cmd([==[$CMD]==])"
+        fi
+    else
+        printf "Are you sure you want to log out now? [y/N]: "
+        read -r response
+        case "$response" in
+            [yY])
+                session_logout
+                ;;
+            *)
+                return
+                ;;
+        esac
     fi
 }
 
 system_shutdown() {
-    _ensure_command "hyprshutdown"
+    systemctl poweroff --no-wall
+}
+system_shutdown_prompt() {
+    if [ "$(_check_display)" = "true" ]; then
+        _ensure_command "hyprshutdown"
+        _ensure_command "zenity"
 
-    if zenity --question \
-        --title="Shutdown" \
-        --text="Are you sure you want to shutdown your computer now?" \
-        --icon="system-shutdown-symbolic" \
-        --ok-label="Shutdown" \
-        --cancel-label="Cancel" \
-        --default-cancel
-    then
-        CMD="hyprshutdown --top-label 'Shutting down...' --post-cmd 'systemctl poweroff --no-wall'"
-        hyprctl eval "hl.exec_cmd([==[$CMD]==])"
+        if zenity --question \
+            --title="Shutdown" \
+            --text="Are you sure you want to shutdown your computer now?" \
+            --icon="system-shutdown-symbolic" \
+            --ok-label="Shutdown" \
+            --cancel-label="Cancel" \
+            --default-cancel
+        then
+            CMD="hyprshutdown --top-label 'Shutting down...' --post-cmd 'system_shutdown'"
+            hyprctl eval "hl.exec_cmd([==[$CMD]==])"
+        fi
+    else
+        printf "Are you sure you want to shutdown your computer now? [y/N]: "
+        read -r response
+        case "$response" in
+            [yY])
+                system_shutdown
+                ;;
+            *)
+                return
+                ;;
+        esac
     fi
 }
 
 system_restart() {
-    _ensure_command "hyprshutdown"
+    systemctl reboot --no-wall
+}
+system_restart_prompt() {
+    if [ "$(_check_display)" = "true" ]; then
+        _ensure_command "hyprshutdown"
+        _ensure_command "zenity"
 
-    if zenity --question \
-        --title="Restart" \
-        --text="Are you sure you want to restart your computer now?" \
-        --icon="system-reboot-symbolic" \
-        --ok-label="Restart" \
-        --cancel-label="Cancel" \
-        --default-cancel
-    then
-        CMD="hyprshutdown --top-label 'Restarting...' --post-cmd 'systemctl reboot --no-wall'"
-        hyprctl eval "hl.exec_cmd([==[$CMD]==])"
+        if zenity --question \
+            --title="Restart" \
+            --text="Are you sure you want to restart your computer now?" \
+            --icon="system-reboot-symbolic" \
+            --ok-label="Restart" \
+            --cancel-label="Cancel" \
+            --default-cancel
+        then
+            CMD="hyprshutdown --top-label 'Restarting...' --post-cmd 'system_restart'"
+            hyprctl eval "hl.exec_cmd([==[$CMD]==])"
+        fi
+    else
+        printf "Are you sure you want to restart your computer now? [y/N]: "
+        read -r response
+        case "$response" in
+            [yY])
+                system_restart
+                ;;
+            *)
+                return
+                ;;
+        esac
     fi
 }
 
@@ -191,13 +247,13 @@ main() {
             session_lock
             ;;
         logout)
-            session_logout
+            session_logout_prompt
             ;;
         restart)
-            system_restart
+            system_restart_prompt
             ;;
         shutdown)
-            system_shutdown
+            system_shutdown_prompt
             ;;
         help|-h|--help)
             show_help

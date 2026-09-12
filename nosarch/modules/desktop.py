@@ -250,7 +250,6 @@ class DesktopModule(decman.Module):
 
         printer_set: set[str] = {
             "cups",  # CUPS daemon
-            "cups-browsed",  # Helper daemon for browsing CUPS printers
             "cups-filters",  # Filters for CUPS printing
             "cups-pdf",  # PDF printing support for CUPS
             "system-config-printer",  # System configuration tool for printers
@@ -307,6 +306,7 @@ class DesktopModule(decman.Module):
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:
         desktop_user_services: set[str] = {
+            "cups.socket",
             "elephant.service",
             "hyprmoncfgd.service",
             "pipewire.service",

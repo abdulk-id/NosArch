@@ -202,7 +202,7 @@ class SystemModule(decman.Module):
         elif _cpu_vendor == "AuthenticAMD":
             system_set.add("amd-ucode")
 
-        security_set: set[str] = {"apparmor", "firewalld", "lynis", "ufw"}
+        security_set: set[str] = {"apparmor", "firewalld", "ufw"}
 
         connectivity_set: set[str] = {
             "bluez",

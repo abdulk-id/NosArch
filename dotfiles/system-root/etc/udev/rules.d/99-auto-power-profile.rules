@@ -1,4 +1,4 @@
 # Managed by NosArch
 
-SUBSYSTEM=="power_supply", ATTR{type}=="Mains", RUN+="/usr/bin/systemd-run --no-block --collect --unit=nosarch-auto-power-profile-mains /usr/local/bin/nosarch-auto-power-profile"
-SUBSYSTEM=="power_supply", ATTR{type}=="USB", RUN+="/usr/bin/systemd-run --no-block --collect --unit=nosarch-auto-power-profile-usb /usr/local/bin/nosarch-auto-power-profile"
+SUBSYSTEM=="power_supply", ATTR{type}=="Mains", RUN+="/usr/bin/systemd-run --no-block --collect --unit=nosarch-auto-power-profile-mains /usr/local/bin/nosarch/nosarch-battery power-profile-auto"
+SUBSYSTEM=="power_supply", ATTR{type}=="USB", RUN+="/usr/bin/systemd-run --no-block --collect --unit=nosarch-auto-power-profile-usb /usr/local/bin/nosarch/nosarch-battery power-profile-auto"

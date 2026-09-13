@@ -59,18 +59,8 @@ class SystemModule(decman.Module):
                 bin_files=True,
                 owner="root",
             ),
-            "/usr/lib/nosarch/": Directory(
-                source_directory="../dotfiles/system-root/usr/lib/nosarch/",
-                owner="root",
-                permissions=0o755,  # Make executable
-            ),
             "/usr/lib/systemd/user/": Directory(
                 source_directory="../dotfiles/system-root/usr/lib/systemd/user/", owner="root"
-            ),
-            "/usr/local/bin/util/": Directory(
-                source_directory="../dotfiles/system-root/usr/local/bin/util/",
-                owner="root",
-                permissions=0o755,  # Make executable
             ),
         }
 

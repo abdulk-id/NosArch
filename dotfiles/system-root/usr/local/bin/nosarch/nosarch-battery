@@ -8,125 +8,158 @@ show_help() {
 Usage: nosarch-battery <command>
 
 Commands:
-    power-profile-auto      Automatically set the power profile based on charging state
+    power-profile-auto      Set the power profile from the current power state
+    help                    Show this help message
 EOF
 }
 
 ## === Utilities ===
-notify_battery_status() {
-    # Adapted from Omarchy
-    # https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-battery-status
 
-    battery_info=$(upower -i "$(upower -e | grep BAT)")
+# Battery percentage at or below which the system drops to power-saver and warns
+# the user once per discharge cycle.
+LOW_BATTERY_PERCENTAGE=20
 
-    capacity=$(echo "$battery_info" | awk '/energy-full:/ {
-        printf "%d", $2
-        exit
-    }')
+# Records that the low-battery warning has already been shown, so it fires once
+# per discharge cycle rather than on every timer tick.
+#
+# This lives in the user runtime directory. When invoked from udev the script
+# runs as root with no session, so warning state is skipped there and the
+# two-minute timer picks it up instead.
+LOW_BATTERY_FLAG="${XDG_RUNTIME_DIR:-}/nosarch-battery-warned"
 
-    state=$(echo "$battery_info" | awk '/state/ { print $2; exit }')
+# Sends a desktop notification, and never fails the caller.
+#
+# udev `RUN+=` executes as root with no session bus, so a bare `notify-send`
+# exits non-zero there. Under `set -eu` that would abort the caller before it
+# sets the power profile, so notifications are routed to the active graphical
+# session when running as root, and are best-effort either way.
+_notify() {
+    if [ "$(id -u)" -eq 0 ]; then
+        session_uid=$(loginctl list-sessions --no-legend 2>/dev/null | while read -r session_id uid _; do
+            state=$(loginctl show-session "$session_id" --property=State --value 2>/dev/null)
+            type=$(loginctl show-session "$session_id" --property=Type --value 2>/dev/null)
 
-    percentage=$(echo "$battery_info" | awk '/percentage/ {
-        print int($2)
-        exit
-    }')
+            if [ "$state" = "active" ] && { [ "$type" = "wayland" ] || [ "$type" = "x11" ]; }; then
+                echo "$uid"
+                break
+            fi
+        done)
 
-    power_rate=$(echo "$battery_info" | awk '/energy-rate/ {
-        rounded = sprintf("%.1f", $2)
-        sub(/\.0$/, "", rounded)
-        print rounded
-        exit
-    }')
+        [ -n "${session_uid:-}" ] || return 0
 
-    time_remaining=$(echo "$battery_info" | awk '/time to (empty|full)/ {
-        value = $4
-        unit = $5
-        if (unit ~ /^minute/) {
-            printf "%dm", int(value)
-        } else {
-            hours = int(value)
-            minutes = int((value - hours) * 60)
-            if (minutes > 0) {
-                printf "%dh %dm", hours, minutes
-            } else {
-                printf "%dh", hours
-            }
-        }
-        exit
-    }')
-
-    if [ "$state" = "charging" ]; then
-        echo "Battery ${percentage}%  ·  ${time_remaining} to full  ·   ${power_rate}W / ${capacity}Wh"
-    elif [ "$state" = "discharging" ]; then
-        echo "Battery ${percentage}%  ·  ${time_remaining} left  ·   ${power_rate}W / ${capacity}Wh"
-    elif [ "$state" = "fully-charged" ]; then
-        echo "Battery ${percentage}%  ·  fully charged  ·   ${power_rate}W / ${capacity}Wh"
+        runuser --user "#$session_uid" -- \
+            env "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$session_uid/bus" \
+            notify-send "$@" >/dev/null 2>&1 || true
+    else
+        notify-send "$@" >/dev/null 2>&1 || true
     fi
+
+    return 0
 }
 
-## === Actions logic ===
-auto_set_power_profile() (
-    # Copied from Omarchy
-    # https://github.com/basecamp/omarchy/blob/9cf1852525a5f7de26d3162db9d61e2f5c1d5523/bin/omarchy-powerprofiles-set
-
-    notify-send "Auto-setting power profile based on charging state"
-
-    # Auto-detect: treat any Mains or USB power-supply device reporting
-    # online=1 as "on AC". This handles USB-C only laptops where the legacy
-    # AC device may not fire udev events, and also avoids false negatives from
-    # per-port USB-C devices that are present-but-empty (online=0) while
-    # another port supplies power.
-
-    # On plug/unplug, udev fires the rule before sysfs `online` is updated on
-    # some laptops. A short settle delay lets the kernel update before we read state.
-    sleep 0.3
-
-    action=battery
-
+# Echoes "on-ac" or "on-battery".
+#
+# Only "Mains" devices are consulted. "USB" is deliberately ignored: on some
+# laptops (Dell XPS 13) a USB-C port reports online=1 permanently, which would
+# pin the machine to the AC profile on battery.
+_power_source() {
     for power_supply in /sys/class/power_supply/*; do
-        [ -r "$power_supply"/online ] && [ -r "$power_supply"/type ] || continue
-
-        type=$(cat "$power_supply/type")
-        [ "$type" = "Mains" ] || continue
-
-        # TODO: Commented out: only treat "Mains" as AC because "USB" is stuck at online=1 (On Dell XPS 13)
-        # [ "$type" = "Mains" ] || [ "$type" = "USB" ] || continue
+        [ -r "$power_supply/type" ] && [ -r "$power_supply/online" ] || continue
+        [ "$(cat "$power_supply/type")" = "Mains" ] || continue
 
         if [ "$(cat "$power_supply/online")" = "1" ]; then
-            action=ac
-            break
+            echo "on-ac"
+            return 0
         fi
     done
 
-    # Check if performance profile is available
-    has_performance=false
+    echo "on-battery"
+}
 
-    while read -r profile; do
-        if [ "$profile" = "performance" ]; then
-            has_performance=true
-            break
-        fi
-    done << EOF
-$(powerprofilesctl list | awk '/^\s*[* ]\s*[a-zA-Z0-9\-]+:$/ { gsub(/^[*[:space:]]+|:$/,""); print }')
-EOF
+# Echoes the first battery's charge percentage, or nothing if there is no battery.
+_battery_percentage() {
+    for power_supply in /sys/class/power_supply/*; do
+        [ -r "$power_supply/type" ] && [ -r "$power_supply/capacity" ] || continue
+        [ "$(cat "$power_supply/type")" = "Battery" ] || continue
 
-    case "$action" in
-        ac)
-            # Prefer performance, fall back to balanced
-            if [ "$has_performance" = true ]; then
-                powerprofilesctl set performance
-                notify-send "Power profile set to performance on AC"
-            else
-                powerprofilesctl set balanced
-                notify-send "Power profile set to balanced on AC"
-            fi
-            ;;
-        battery)
-            notify-send "Power profile set to balanced on battery"
-            powerprofilesctl set balanced
-            ;;
-    esac
-)
+        cat "$power_supply/capacity"
+        return 0
+    done
+}
+
+# Echoes "performance" when power-profiles-daemon offers it, "balanced" otherwise.
+# Not every platform exposes a performance profile.
+_ac_profile() {
+    if powerprofilesctl list 2>/dev/null | grep --quiet '^\s*[* ]\s*performance:'; then
+        echo "performance"
+    else
+        echo "balanced"
+    fi
+}
+
+# Applies a profile, skipping the call when it is already active so plug/unplug
+# events do not spam power-profiles-daemon.
+_set_power_profile() {
+    target_profile="$1"
+
+    if [ "$(powerprofilesctl get 2>/dev/null)" = "$target_profile" ]; then
+        return 0
+    fi
+
+    powerprofilesctl set "$target_profile"
+}
+
+_clear_low_battery_warning() {
+    [ -n "${XDG_RUNTIME_DIR:-}" ] || return 0
+
+    rm --force "$LOW_BATTERY_FLAG"
+}
+
+_warn_low_battery_once() {
+    percentage="$1"
+
+    [ -n "${XDG_RUNTIME_DIR:-}" ] || return 0
+    [ -e "$LOW_BATTERY_FLAG" ] && return 0
+
+    _notify --urgency=critical --transient \
+        --icon=battery-level-10-symbolic \
+        "Low Battery (${percentage}%)" \
+        "Plug in soon to recharge"
+
+    touch "$LOW_BATTERY_FLAG"
+}
+
+## === Features ===
+
+# Selects the power profile from the current power state:
+#
+#   on AC                              -> performance
+#   on battery, above the low mark     -> balanced
+#   on battery, at or below the mark   -> power-saver, and warn once
+#
+# Run both by the udev rule (on plug/unplug) and by the battery monitor timer
+# (so percentage changes are picked up without a power event).
+auto_set_power_profile() {
+    # udev fires the rule before sysfs `online` is updated on some laptops.
+    # A short settle delay lets the kernel catch up before it is read.
+    sleep 0.3
+
+    if [ "$(_power_source)" = "on-ac" ]; then
+        _clear_low_battery_warning
+        _set_power_profile "$(_ac_profile)"
+        return 0
+    fi
+
+    percentage=$(_battery_percentage)
+
+    if [ -n "$percentage" ] && [ "$percentage" -le "$LOW_BATTERY_PERCENTAGE" ]; then
+        _set_power_profile "power-saver"
+        _warn_low_battery_once "$percentage"
+    else
+        _clear_low_battery_warning
+        _set_power_profile "balanced"
+    fi
+}
 
 ## ===
 main() {

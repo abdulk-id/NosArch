@@ -1,0 +1,16 @@
+# Managed by NosArch
+
+[Unit]
+Description=NosArch battery monitor timer
+ConditionPathExistsGlob=/sys/class/power_supply/BAT*
+
+[Timer]
+OnStartupSec=2min
+OnUnitActiveSec=2min
+
+# Lets systemd coalesce this with other timers instead of waking the CPU on its
+# own. Battery percentage does not change meaningfully inside a minute.
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

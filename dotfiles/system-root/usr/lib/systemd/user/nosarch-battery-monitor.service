@@ -2,12 +2,8 @@
 
 [Unit]
 Description=NosArch battery monitor
+ConditionPathExistsGlob=/sys/class/power_supply/BAT*
 
 [Service]
-Type=simple
-ExecStart=/usr/lib/nosarch/nosarch-battery-monitor.py
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=default.target
+Type=oneshot
+ExecStart=/usr/local/bin/nosarch/nosarch-battery power-profile-auto

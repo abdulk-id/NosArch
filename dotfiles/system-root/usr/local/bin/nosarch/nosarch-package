@@ -419,7 +419,7 @@ remove_unused_packages() {
         gum style --foreground 10 "▸ Removing unused Flatpak packages..."
         echo
 
-        if flatpak uninstall --system --unused; then
+        if flatpak uninstall --system --unused --assumeyes; then
             echo
             gum style --foreground 10 "✓ Unused Flatpak packages removed!"
         else
@@ -427,7 +427,7 @@ remove_unused_packages() {
             gum style --foreground 9 "x Removing unused Flatpak packages failed."
         fi
 
-        if flatpak uninstall --user --unused; then
+        if flatpak uninstall --user --unused --assumeyes; then
             echo
             gum style --foreground 10 "✓ Unused Flatpak user packages removed!"
         else

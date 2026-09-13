@@ -4,6 +4,8 @@ import decman
 import user_config.config_reader as userConfig
 import utils.hardware.chassis_type
 import utils.hardware.cpu_vendor
+import utils.hardware.firmware_vendors
+import utils.hardware.thunderbolt
 import utils.luks_uuid
 import utils.wireless_regdom
 from decman import Directory, File
@@ -167,12 +169,10 @@ class SystemModule(decman.Module):
             "limine",
             "linux",
             "linux-headers",
-            "linux-firmware",
             "man-db",
             "nano",
             "memtest86+-efi",
             "plymouth",
-            "python-dbus-fast",  # Installed for battery monitoring `/usr/lib/nosarch/nosarch-battery-monitor.py`
             "snapper",
             "sudo",
             "systemd-resolvconf",
@@ -187,6 +187,10 @@ class SystemModule(decman.Module):
         if userConfig.get_bool("system.enable_lts_kernel"):
             system_set.add("linux-lts")
             system_set.add("linux-lts-headers")
+
+        # Only the `linux-firmware-*` splits this machine's hardware needs.
+        # The `linux-firmware` meta package pulls every vendor split (~410 MiB).
+        system_set |= utils.hardware.firmware_vendors.get_firmware_packages()
 
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             system_set.add("power-profiles-daemon")
@@ -203,7 +207,6 @@ class SystemModule(decman.Module):
         connectivity_set: set[str] = {
             "bluez",
             "bluez-utils",
-            "bolt",
             "dnsmasq",
             "gvfs",
             "gvfs-afc",
@@ -219,6 +222,9 @@ class SystemModule(decman.Module):
             "wget",
             "wireless-regdb",
         }
+
+        if utils.hardware.thunderbolt.is_thunderbolt_present():
+            connectivity_set.add("bolt")  # Thunderbolt device authorization
 
         merged_set: set[str] = system_set.union(security_set, connectivity_set)
         return merged_set

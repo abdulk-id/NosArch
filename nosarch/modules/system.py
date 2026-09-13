@@ -75,7 +75,6 @@ class SystemModule(decman.Module):
             ),
             "/etc/mkinitcpio.conf": File(source_file="../dotfiles/system-root/etc/mkinitcpio.conf", owner="root"),
             "/etc/pacman.conf": File(source_file="../dotfiles/system-root/etc/pacman.conf", owner="root"),
-            "/etc/updatedb.conf": File(source_file="../dotfiles/system-root/etc/updatedb.conf", owner="root"),
         }
 
         wireless_regdom: str | None = utils.wireless_regdom.get_wireless_regdom_contents()

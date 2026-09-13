@@ -403,15 +403,51 @@ remove_packages() {
 }
 
 remove_unused_packages() {
-    gum style --foreground 10 "▸ Removing unused (orphan) packages..."
+    gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
     echo
 
     if pacman -Qdtq | sudo pacman -Rns --noconfirm -; then
         echo
-        gum style --foreground 10 "✓ Unused packages removed!"
+        gum style --foreground 10 "✓ Unused Arch/AUR packages removed!"
     else
         echo
-        gum style --foreground 9 "x Removal failed."
+        gum style --foreground 9 "x Removing unused Arch/AUR packages failed."
+    fi
+
+    if command -v flatpak >/dev/null 2>&1; then
+        echo
+        gum style --foreground 10 "▸ Removing unused Flatpak packages..."
+        echo
+
+        if flatpak uninstall --system --unused; then
+            echo
+            gum style --foreground 10 "✓ Unused Flatpak packages removed!"
+        else
+            echo
+            gum style --foreground 9 "x Removing unused Flatpak packages failed."
+        fi
+
+        if flatpak uninstall --user --unused; then
+            echo
+            gum style --foreground 10 "✓ Unused Flatpak user packages removed!"
+        else
+            echo
+            gum style --foreground 9 "x Removing unused Flatpak user packages failed."
+        fi
+    fi
+
+    if command -v brew >/dev/null 2>&1; then
+        echo
+        gum style --foreground 10 "▸ Removing unused Homebrew packages..."
+        echo
+
+        if brew cleanup; then
+            echo
+            gum style --foreground 10 "✓ Unused Homebrew packages removed!"
+        else
+            echo
+            gum style --foreground 9 "x Removing unused Homebrew packages failed."
+        fi
     fi
 }
 

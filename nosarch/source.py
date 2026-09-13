@@ -1,3 +1,6 @@
+import subprocess
+import sys
+
 import decman.config
 import user_config.config_reader as userConfig
 from decman.extras.users import User, UserManager
@@ -12,6 +15,16 @@ from modules.usage_profiles.dev import DevModule
 from modules.usage_profiles.gaming import GamingModule
 from modules.user_defined import UserDefinedModule
 from plugins import homebrew
+
+# Checks
+
+# decman does not import this file, it reads it as text and `exec()`s it after `os.chdir`-ing into its directory,
+# so `__file__` here would resolve to decman's own module rather than this one.
+_path_check: subprocess.CompletedProcess[bytes] = subprocess.run([sys.executable, "../tools/check_paths.py"])
+
+if _path_check.returncode != 0:
+    raise SystemExit("[CHECKS] ABORT: Dangling path references found in dotfiles.")
+# ---
 
 userConfig.load()
 _username: str = userConfig.get_str("user.username")

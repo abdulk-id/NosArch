@@ -310,10 +310,13 @@ class DesktopModule(decman.Module):
             "it.mijorus.gearlever"  # AppImage Manager
         }
 
+    @systemd.units  # pyright: ignore[reportUnknownMemberType]
+    def desktop_services(self) -> set[str]:
+        return {"cups.socket"}
+
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:
         desktop_user_services: set[str] = {
-            "cups.socket",
             "elephant.service",
             "hyprmoncfgd.service",
             "pipewire.service",

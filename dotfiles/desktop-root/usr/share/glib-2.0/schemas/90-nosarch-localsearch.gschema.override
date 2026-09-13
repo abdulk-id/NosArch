@@ -1,0 +1,21 @@
+# Managed by NosArch
+
+# localsearch (Tracker 3) is pulled in as a Nautilus dependency and indexes all
+# of $HOME with an ignore list that predates modern build tooling, so it walks
+# and content-extracts dependency and artifact directories.
+#
+# Indexing stays on: search in Nautilus is expected behaviour for a desktop.
+# Only the scope is corrected.
+
+[org.freedesktop.Tracker3.Miner.Files]
+ignored-directories=['po', 'CVS', 'core-dumps', 'lost+found', 'node_modules', '__pycache__', '.venv', 'venv', '.tox', '.mypy_cache', '.pytest_cache', '.ruff_cache', 'target', '.gradle', '.m2', '.cargo', '.rustup', '.stack-work', 'vendor', 'dist', 'build', '.next', '.nuxt', '.svelte-kit', '.cache', '.var', '.steam', 'Steam', 'AppImages']
+
+# Upstream default is true. Content extraction is CPU and IO heavy, and this is
+# the single largest avoidable battery cost the indexer has.
+index-on-battery=false
+
+# Re-indexing removable media on every insert is slow and rarely what a user
+# wants; both are already false upstream but are pinned here so a schema
+# default change cannot silently turn them on.
+index-removable-devices=false
+index-optical-discs=false

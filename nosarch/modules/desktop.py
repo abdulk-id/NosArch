@@ -20,12 +20,20 @@ class DesktopModule(decman.Module):
         super().__init__(name="desktop")
 
     @override
+    def on_change(self, store: decman.Store) -> None:
+        # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
+        _ = decman.prg(cmd=["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
+
+    @override
     def file_variables(self) -> dict[str, str]:
         return modules.theme.get_current_theme()
 
     @override
     def directories(self) -> dict[str, Directory]:
-        user_config_directories: dict[str, Directory] = {
+        directories: dict[str, Directory] = {
+            "/usr/share/glib-2.0/schemas/": Directory(
+                source_directory="../dotfiles/desktop-root/usr/share/glib-2.0/schemas/", owner="root"
+            ),
             f"/home/{_username}/.config/btop/": Directory(
                 source_directory="../dotfiles/desktop-root/home/username/dot_config/btop/", owner=f"{_username}"
             ),
@@ -73,9 +81,6 @@ class DesktopModule(decman.Module):
                 source_directory="../dotfiles/desktop-root/home/username/dot_config/xdg-desktop-portal/",
                 owner=f"{_username}",
             ),
-        }
-
-        return user_config_directories | {
             f"/home/{_username}/.local/share/nautilus-python": Directory(
                 source_directory="../dotfiles/desktop-root/home/username/dot_local/share/nautilus-python",
                 owner=f"{_username}",
@@ -84,6 +89,8 @@ class DesktopModule(decman.Module):
                 source_directory="../dotfiles/desktop-root/home/username/Templates/", owner=f"{_username}"
             ),
         }
+
+        return directories
 
     @override
     def files(self) -> dict[str, File]:
@@ -316,6 +323,6 @@ class DesktopModule(decman.Module):
         }
 
         if utils.hardware.chassis_type.has_battery():
-            desktop_user_services.add("nosarch-battery-monitor.service")
+            desktop_user_services.add("nosarch-battery-monitor.timer")
 
         return {f"{_username}": desktop_user_services}

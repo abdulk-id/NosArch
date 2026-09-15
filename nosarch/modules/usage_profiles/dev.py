@@ -163,7 +163,7 @@ class DevModule(decman.Module):
     @homebrew.casks  # pyright: ignore[reportUnknownMemberType]
     def brew_casks(self) -> set[str]:
         if _agents.__contains__("claude-code"):
-            return {"claude-code"}
+            return {"claude-code@latest"}
         else:
             return set()
 

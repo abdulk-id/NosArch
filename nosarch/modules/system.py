@@ -155,6 +155,7 @@ class SystemModule(decman.Module):
             "git",
             "greetd",
             "greetd-tuigreet",
+            "kernel-modules-hook",
             "limine",
             "linux",
             "linux-headers",
@@ -215,9 +216,6 @@ class SystemModule(decman.Module):
 
         merged_set: set[str] = system_set.union(security_set, connectivity_set)
         return merged_set
-
-    # Packages causing issues when running decman
-    decman.pacman.ignored_packages |= {"kernel-modules-hook"}
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def system_aur_packages(self) -> set[str]:

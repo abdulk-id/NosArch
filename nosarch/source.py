@@ -16,7 +16,7 @@ from modules.usage_profiles.gaming import GamingModule
 from modules.user_defined import UserDefinedModule
 from plugins import homebrew
 
-# Checks
+# Checks ===
 
 # decman does not import this file, it reads it as text and `exec()`s it after `os.chdir`-ing into its directory,
 # so `__file__` here would resolve to decman's own module rather than this one.
@@ -24,12 +24,12 @@ _path_check: subprocess.CompletedProcess[bytes] = subprocess.run([sys.executable
 
 if _path_check.returncode != 0:
     raise SystemExit("[CHECKS] ABORT: Dangling path references found in dotfiles.")
-# ---
+# ===
 
 userConfig.load()
 _username: str = userConfig.get_str("user.username")
 
-# Decman configuration
+# Decman configuration ===
 decman.config.arch = "x86_64"
 decman.config.debug_output = False
 decman.config.quiet_output = False  # Disable info messages
@@ -39,9 +39,9 @@ if userConfig.get_bool("enable_homebrew"):
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.insert(decman.execution_order.index("systemd"), "homebrew")
-# ---
+# ===
 
-# User and Group management
+# User and Group management ===
 userManager: UserManager = UserManager()
 
 userManager.add_user(
@@ -59,25 +59,41 @@ userManager.add_user(
         system=False,
     )
 )
-# ---
 
-# Decman modules
+# ===
+
+# Decman modules ===
 decman.modules += {SystemModule(), DesktopModule(), ThemingModule(), SetupModule()}
 
 if userConfig.get_bool("enable_homebrew"):
     decman.modules += {HomebrewModule()}
 
+desktop_enabled: bool = any(module.name == "desktop" for module in decman.modules)
+
 if userConfig.get_bool("profiles.full_setup"):
-    decman.modules += {FullSetupModule()}
+    if desktop_enabled:
+        decman.modules += {FullSetupModule()}
+    else:
+        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
 
 if userConfig.get_bool("profiles.creative"):
-    decman.modules += {CreativeModule()}
+    if desktop_enabled:
+        decman.modules += {CreativeModule()}
+    else:
+        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
 
 if userConfig.get_bool("profiles.dev"):
-    decman.modules += {DevModule()}
+    if desktop_enabled:
+        decman.modules += {DevModule()}
+    else:
+        # Task for later: Make dev module workable without desktop
+        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
 
 if userConfig.get_bool("profiles.gaming"):
-    decman.modules += {GamingModule()}
+    if desktop_enabled:
+        decman.modules += {GamingModule()}
+    else:
+        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
 
 decman.modules += {UserDefinedModule()}
-# ---
+# ===

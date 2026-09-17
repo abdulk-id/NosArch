@@ -65,33 +65,46 @@ class DevModule(decman.Module):
                 "/.config/environment.d/dev.conf",
                 "/.config/environment.d/languages.conf",
                 "/.config/hypr/app-windows/jetbrains.lua",
-                "/.config/zed/settings.json",
-                # Neovim - Lazyvim Config
-                "/.config/nvim/lua/config/autocmds.lua",
-                "/.config/nvim/lua/config/keymaps.lua",
-                "/.config/nvim/lua/config/lazy.lua",
-                "/.config/nvim/lua/config/options.lua",
-                "/.config/nvim/lua/plugins/example.lua",
-                "/.config/nvim/init.lua",
-                "/.config/nvim/lazy-lock.json",
-                "/.config/nvim/lazyvim.json",
-                "/.config/nvim/LICENSE",
-                "/.config/nvim/README.md",
-                "/.config/nvim/stylua.toml",
             )
         )
         files.update(
             {
                 f"/home/{_username}/.config/mise/config.toml": File(
                     content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{_username}"
-                ),
-                f"/home/{_username}/.config/nvim/.neoconf.json": File(
-                    source_file="../dotfiles/dev-root/home/username/dot_config/nvim/.neoconf.json", owner=f"{_username}"
-                ),  # This file is handled separately because using `self._userhome_dotfiles.files()` requires that
-                # hidden files start with the `dot_` prefix. This file is part of lazyvim and should not modified by
-                # NosArch, so therefore, cannot be prefixed with `dot_`.
+                )
             }
         )
+
+        if _editors.__contains__("neovim"):
+            files.update(
+                self._userhome_dotfiles.files(
+                    # Neovim - Lazyvim Config
+                    "/.config/nvim/lua/config/autocmds.lua",
+                    "/.config/nvim/lua/config/keymaps.lua",
+                    "/.config/nvim/lua/config/lazy.lua",
+                    "/.config/nvim/lua/config/options.lua",
+                    "/.config/nvim/lua/plugins/example.lua",
+                    "/.config/nvim/init.lua",
+                    "/.config/nvim/lazy-lock.json",
+                    "/.config/nvim/lazyvim.json",
+                    "/.config/nvim/LICENSE",
+                    "/.config/nvim/README.md",
+                    "/.config/nvim/stylua.toml",
+                )
+            )
+            files.update(
+                {
+                    f"/home/{_username}/.config/nvim/.neoconf.json": File(
+                        source_file="../dotfiles/dev-root/home/username/dot_config/nvim/.neoconf.json",
+                        owner=f"{_username}",
+                    )  # This file is handled separately because using `self._userhome_dotfiles.files()` requires that
+                    # hidden files start with the `dot_` prefix. This file is part of lazyvim and should not modified by
+                    # NosArch, so therefore, cannot be prefixed with `dot_`.
+                }
+            )
+
+        if _editors.__contains__("zed"):
+            files.update(self._userhome_dotfiles.files("/.config/zed/settings.json"))
 
         # /etc files
         files.update(

@@ -173,11 +173,15 @@ class DevModule(decman.Module):
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        aur_pkgs: set[str] = {"t3code-bin"}
+        aur_pkgs: set[str] = set()
 
         # Agents
         if _agents.__contains__("kilocode"):
             aur_pkgs.add("kilo-bin")
+
+        if _agents.__contains__("codex") or _agents.__contains__("opencode") or _agents.__contains__("claude-code"):
+            # Only install T3-Code if the providers it supports are installed
+            aur_pkgs.add("t3code-bin")
 
         # Code Editors
         if _editors.__contains__("codium"):

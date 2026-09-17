@@ -68,7 +68,7 @@
                     "description": "List of code editors to install",
                     "items": {
                         "type": "string",
-                        "enum": ["code-oss", "codium", "jetbrains", "neovim", "vscode", "zed"]
+                        "enum": ["code-oss", "codium", "cursor", "jetbrains", "neovim", "vscode", "zed"]
                     },
                     "uniqueItems": true
                 },

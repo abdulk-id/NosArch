@@ -13,6 +13,10 @@ _username: str = userConfig.get_str("user.username")
 _agents: list[str] = userConfig.get_str_list("dev.agents")
 _editors: list[str] = userConfig.get_str_list("dev.editors")
 
+# decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its directory,
+# so package paths are resolved relative to `nosarch/`, not to this file.
+_PACKAGES_DIR: str = os.path.abspath("packages")
+
 
 class DevModule(decman.Module):
     def __init__(self) -> None:
@@ -194,6 +198,19 @@ class DevModule(decman.Module):
             aur_pkgs.add("visual-studio-code-bin")
 
         return aur_pkgs
+
+    @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
+    def custom_pkgs(self) -> set[aur.CustomPackage]:
+        custom_pkgs: set[aur.CustomPackage] = set()
+
+        if _editors.__contains__("cursor"):
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="cursor-appimage", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-appimage")
+                )
+            )
+
+        return custom_pkgs
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:

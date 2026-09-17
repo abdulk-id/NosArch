@@ -1,0 +1,45 @@
+# Maintainer: NosArch
+#
+# nosarch-upstream: json https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable version
+
+pkgname=cursor-appimage
+pkgdesc="AI-First Coding environment"
+pkgver=3.20.21
+pkgrel=1
+url="https://cursor.com"
+license=('LicenseRef-Cursor-EULA')
+
+arch=('x86_64')
+depends=('fuse2' 'hicolor-icon-theme')
+provides=('cursor')
+conflicts=('cursor' 'cursor-bin')
+options=('!strip' '!debug')
+_commit=f09fca384ceca23f7bf21f9c23655b162641d747
+source=("$pkgname-$pkgver.AppImage::https://downloads.cursor.com/production/$_commit/linux/x64/Cursor-$pkgver-x86_64.AppImage")
+sha256sums=('b9ec1e26de767323da056ad6b1b2fba3a4233213a1752de0ebf575afff063bc9')
+
+prepare() {
+    chmod +x "$srcdir/$pkgname-$pkgver.AppImage"
+    "$srcdir/$pkgname-$pkgver.AppImage" --appimage-extract >/dev/null
+}
+
+package() {
+    install -Dm755 "$srcdir/$pkgname-$pkgver.AppImage" "$pkgdir/opt/$pkgname/cursor.AppImage"
+
+    install -d "$pkgdir/usr/bin"
+    ln -s "/opt/$pkgname/cursor.AppImage" "$pkgdir/usr/bin/cursor"
+
+    install -Dm644 "$srcdir/squashfs-root/cursor.desktop" "$pkgdir/usr/share/applications/cursor.desktop"
+
+    # The shipped entry points at `co.anysphere.cursor`, but the icons it
+    # installs are named `cursor`, so the desktop entry would find no icon.
+    sed --in-place 's/^Icon=co\.anysphere\.cursor$/Icon=cursor/' "$pkgdir/usr/share/applications/cursor.desktop"
+
+    install -Dm644 "$srcdir/squashfs-root/usr/share/cursor/resources/app/LICENSE.txt" "$pkgdir/usr/share/licenses/$pkgname/LICENSE.txt"
+
+    local icon size
+    for icon in "$srcdir"/squashfs-root/usr/share/icons/hicolor/*/apps/cursor.png; do
+        size="$(basename "$(dirname "$(dirname "$icon")")")"
+        install -Dm644 "$icon" "$pkgdir/usr/share/icons/hicolor/$size/apps/cursor.png"
+    done
+}

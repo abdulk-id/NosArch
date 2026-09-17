@@ -1,6 +1,6 @@
-// Managed by NosArch
-
 {
+    "_comment": "Managed by NosArch",
+
     "aururl": "https://aur.archlinux.org",
     "aurrpcurl": "https://aur.archlinux.org/rpc?",
     "buildDir": "/home/%USER%/.cache/yay",

@@ -2,7 +2,8 @@ from typing import override
 
 import decman
 import user_config.config_reader as userConfig
-from decman import Directory
+import utils.paths
+from decman import File
 from decman.plugins import aur, flatpak, pacman, systemd
 
 userConfig.load()
@@ -12,14 +13,13 @@ _username: str = userConfig.get_str("user.username")
 class FullSetupModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="setup_full")
+        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
+            "../dotfiles/setup-full-root", _username
+        )
 
     @override
-    def directories(self) -> dict[str, Directory]:
-        return {
-            f"/home/{_username}/.config/obsidian/": Directory(
-                source_directory="../dotfiles/setup-full-root/home/username/dot_config/obsidian/", owner=f"{_username}"
-            )
-        }
+    def files(self) -> dict[str, File]:
+        return self._userhome_dotfiles.files("/.config/obsidian/user-flags.conf")
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

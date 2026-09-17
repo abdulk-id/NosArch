@@ -7,8 +7,9 @@ import utils.hardware.cpu_vendor
 import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.luks_uuid
+import utils.paths
 import utils.wireless_regdom
-from decman import Directory, File
+from decman import File
 from decman.plugins import aur, pacman, systemd
 
 userConfig.load()
@@ -20,6 +21,10 @@ _cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
 class SystemModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="system")
+        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
+        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
+            "../dotfiles/system-root", _username
+        )
 
     @override
     def file_variables(self) -> dict[str, str]:
@@ -31,51 +36,40 @@ class SystemModule(decman.Module):
         }
 
     @override
-    def directories(self) -> dict[str, Directory]:
-        etc_dirs: dict[str, Directory] = {
-            "/etc/default/": Directory(source_directory="../dotfiles/system-root/etc/default/", owner="root"),
-            "/etc/greetd/": Directory(source_directory="../dotfiles/system-root/etc/greetd/", owner="root"),
-            "/etc/NetworkManager/": Directory(
-                source_directory="../dotfiles/system-root/etc/NetworkManager/", owner="root"
-            ),
-            "/etc/pacman.d/hooks/": Directory(
-                source_directory="../dotfiles/system-root/etc/pacman.d/hooks/", owner="root"
-            ),
-            "/etc/plymouth/": Directory(source_directory="../dotfiles/system-root/etc/plymouth/", owner="root"),
-            "/etc/snapper/configs/": Directory(
-                source_directory="../dotfiles/system-root/etc/snapper/configs/", owner="root"
-            ),
-            "/etc/sysctl.d/": Directory(source_directory="../dotfiles/system-root/etc/sysctl.d/", owner="root"),
-            "/etc/systemd/": Directory(source_directory="../dotfiles/system-root/etc/systemd/", owner="root"),
-            "/etc/tmpfiles.d/": Directory(source_directory="../dotfiles/system-root/etc/tmpfiles.d/", owner="root"),
-            "/etc/udev/rules.d/": Directory(source_directory="../dotfiles/system-root/etc/udev/rules.d/", owner="root"),
-            "/etc/ufw/": Directory(source_directory="../dotfiles/system-root/etc/ufw/", owner="root"),
-            "/etc/wireplumber/": Directory(source_directory="../dotfiles/system-root/etc/wireplumber/", owner="root"),
-        }
-
-        return etc_dirs | {
-            "/usr/share/plymouth/themes/nosarch/": Directory(
-                source_directory="../dotfiles/system-root/usr/share/plymouth/themes/nosarch/",
-                bin_files=True,
-                owner="root",
-            ),
-            "/usr/lib/systemd/user/": Directory(
-                source_directory="../dotfiles/system-root/usr/lib/systemd/user/", owner="root"
-            ),
-        }
-
-    @override
     def files(self) -> dict[str, File]:
-        files: dict[str, File] = {
-            "/etc/modules-load.d/zram.conf": File(
-                source_file="../dotfiles/system-root/etc/modules-load.d/zram.conf", owner="root"
-            ),
-            "/etc/profile.d/nosarch.sh": File(
-                source_file="../dotfiles/system-root/etc/profile.d/nosarch.sh", owner="root", permissions=0o644
-            ),
-            "/etc/mkinitcpio.conf": File(source_file="../dotfiles/system-root/etc/mkinitcpio.conf", owner="root"),
-            "/etc/pacman.conf": File(source_file="../dotfiles/system-root/etc/pacman.conf", owner="root"),
-        }
+        files: dict[str, File] = {}
+
+        # /etc files
+        files.update(
+            self._dotfiles.files(
+                "/etc/default/limine",
+                "/etc/greetd/config.toml",
+                "/etc/modules-load.d/zram.conf",
+                "/etc/NetworkManager/conf.d/wifi-powersave.conf",
+                "/etc/pacman.d/hooks/05-nosarch-package-backup.hook",
+                "/etc/plymouth/plymouthd.conf",
+                "/etc/snapper/configs/root",
+                "/etc/sysctl.d/90-sysctl.conf",
+                "/etc/sysctl.d/99-memory-parameters.conf",
+                "/etc/systemd/journald.conf.d/00-journal-size.conf",
+                "/etc/systemd/logind.conf.d/10-ignore-power-button.conf",
+                "/etc/systemd/system/swap-swapfile.swap",
+                "/etc/systemd/system.conf.d/00-service-timeouts.conf",
+                "/etc/systemd/system.conf.d/10-open-file-limit.conf",
+                "/etc/systemd/user.conf.d/10-open-file-limit.conf",
+                "/etc/systemd/zram-generator.conf",
+                "/etc/tmpfiles.d/coredump.conf",
+                "/etc/udev/rules.d/20-intel-audio-powersave.rules",
+                "/etc/udev/rules.d/99-auto-power-profile.rules",
+                "/etc/ufw/applications.d/localsend",
+                "/etc/ufw/user.rules",
+                "/etc/ufw/user6.rules",
+                "/etc/wireplumber/wireplumber.conf.d/bluetooth-a2dp-autoconnect.conf",
+                "/etc/mkinitcpio.conf",
+                "/etc/pacman.conf",
+            )
+        )
+        files.update(self._dotfiles.files("/etc/profile.d/nosarch.sh", permissions=0o644))
 
         wireless_regdom: str | None = utils.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
@@ -87,53 +81,48 @@ class SystemModule(decman.Module):
                 }
             )
 
-        # NosArch scripts
+        # /usr files
         files.update(
-            {
-                "/usr/local/bin/nosarch/nosarch-battery": File(
-                    source_file="../dotfiles/system-root/usr/local/bin/nosarch/nosarch-battery",
-                    owner="root",
-                    permissions=0o755,  # Make executable
-                ),
-                "/usr/local/bin/nosarch/nosarch-package": File(
-                    source_file="../dotfiles/system-root/usr/local/bin/nosarch/nosarch-package",
-                    owner="root",
-                    permissions=0o755,  # Make executable
-                ),
-                "/usr/local/bin/nosarch/nosarch-session": File(
-                    source_file="../dotfiles/system-root/usr/local/bin/nosarch/nosarch-session",
-                    owner="root",
-                    permissions=0o755,  # Make executable
-                ),
-                "/usr/local/bin/util/nosarch-lock-helper.sh": File(
-                    source_file="../dotfiles/system-root/usr/local/bin/util/nosarch-lock-helper.sh",
-                    owner="root",
-                    permissions=0o755,  # Make executable
-                ),
-                "/usr/local/bin/util/sudo-keepalive.sh": File(
-                    source_file="../dotfiles/system-root/usr/local/bin/util/sudo-keepalive.sh",
-                    owner="root",
-                    permissions=0o755,  # Make executable
-                ),
-            }
+            self._dotfiles.files(
+                "/usr/lib/systemd/user/nosarch-battery-monitor.service",
+                "/usr/lib/systemd/user/nosarch-battery-monitor.timer",
+            )
         )
 
-        # User home files
+        ## Plymouth theme files
         files.update(
-            {
-                f"/home/{_username}/.config/yay/config.json": File(
-                    source_file="../dotfiles/system-root/home/username/dot_config/yay/config.json", owner=f"{_username}"
-                ),
-                f"/home/{_username}/.bash_profile": File(
-                    source_file="../dotfiles/system-root/home/username/dot_bashprofile", owner=f"{_username}"
-                ),
-                f"/home/{_username}/.bashrc": File(
-                    source_file="../dotfiles/system-root/home/username/dot_bashrc", owner=f"{_username}"
-                ),
-                f"/home/{_username}/.gitconfig": File(
-                    source_file="../dotfiles/system-root/home/username/dot_gitconfig", owner=f"{_username}"
-                ),
-            }
+            self._dotfiles.files(
+                "/usr/share/plymouth/themes/nosarch/bullet.png",
+                "/usr/share/plymouth/themes/nosarch/entry.png",
+                "/usr/share/plymouth/themes/nosarch/lock.png",
+                "/usr/share/plymouth/themes/nosarch/logo.png",
+                "/usr/share/plymouth/themes/nosarch/progress_bar.png",
+                "/usr/share/plymouth/themes/nosarch/progress_box.png",
+                bin_file=True,
+            )
+        )
+        files.update(
+            self._dotfiles.files(
+                "/usr/share/plymouth/themes/nosarch/nosarch.plymouth",
+                "/usr/share/plymouth/themes/nosarch/nosarch.script",
+            )
+        )
+
+        ## NosArch scripts
+        files.update(
+            self._dotfiles.files(
+                "/usr/local/bin/nosarch/nosarch-battery",
+                "/usr/local/bin/nosarch/nosarch-package",
+                "/usr/local/bin/nosarch/nosarch-session",
+                "/usr/local/bin/util/nosarch-lock-helper.sh",
+                "/usr/local/bin/util/sudo-keepalive.sh",
+                permissions=0o755,  # Make executable
+            )
+        )
+
+        # ~/ files
+        files.update(
+            self._userhome_dotfiles.files("/.config/yay/config.json", "/.bash_profile", "/.bashrc", "/.gitconfig")
         )
 
         return files

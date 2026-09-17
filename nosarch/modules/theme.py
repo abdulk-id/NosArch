@@ -17,7 +17,7 @@ def get_current_theme() -> dict[str, str]:
 
 
 class ThemingModule(decman.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(name="theming")
 
     @override
@@ -33,16 +33,16 @@ class ThemingModule(decman.Module):
         # Would break if symlinks were made BEFORE the directories were created
         return {
             f"/home/{_username}/.local/share/nosarch/current-theme/current-wallpaper": Symlink(
-                target=f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers/{self.choose_first_wallpaper()}",
+                target=f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers/{self._choose_first_wallpaper()}",
                 owner=f"{_username}",
             ),
             f"/home/{_username}/.local/share/nosarch/current-theme/current-lockscreen-wallpaper": Symlink(
-                target=f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers/{self.choose_first_wallpaper()}",
+                target=f"/home/{_username}/.local/share/nosarch/current-theme/wallpapers/{self._choose_first_wallpaper()}",
                 owner=f"{_username}",
             ),
         }
 
-    def choose_first_wallpaper(self) -> str:
+    def _choose_first_wallpaper(self) -> str:
         wallpapers: list[str] = [
             entry.name for entry in os.scandir(f"./themes/{THEME['%FILENAME%']}/wallpapers/") if entry.is_file()
         ]

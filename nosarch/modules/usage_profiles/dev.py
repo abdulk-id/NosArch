@@ -3,7 +3,8 @@ from typing import override
 import decman
 import user_config.config_reader as userConfig
 import utils.dotfile.dev_lang_config
-from decman import Directory, File, Store
+import utils.paths
+from decman import File, Store
 from decman.plugins import aur, flatpak, pacman, systemd
 from plugins import homebrew
 
@@ -16,6 +17,10 @@ _editors: list[str] = userConfig.get_str_list("dev.editors")
 class DevModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="dev_profile")
+        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/dev-root")
+        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
+            "../dotfiles/dev-root", _username
+        )
 
     @override
     def on_change(self, store: Store) -> None:
@@ -38,67 +43,84 @@ class DevModule(decman.Module):
         return {"%USER%": _username}
 
     @override
-    def directories(self) -> dict[str, Directory]:
-        user_config_directories: dict[str, Directory] = {
-            f"/home/{_username}/.config/nvim/": Directory(
-                source_directory="../dotfiles/dev-root/home/username/dot_config/nvim/", owner=f"{_username}"
-            ),
-            f"/home/{_username}/.config/zed/": Directory(
-                source_directory="../dotfiles/dev-root/home/username/dot_config/zed/", owner=f"{_username}"
-            ),
-        }
-
-        return user_config_directories | {
-            "/usr/local/share/nosarch-dev/": Directory(
-                source_directory="../dotfiles/dev-root/usr/local/share/nosarch-dev/", owner="root"
-            ),
-            f"/home/{_username}/Codespace/": Directory(
-                source_directory="../dotfiles/dev-root/home/username/Codespace/", owner=f"{_username}"
-            ),
-            f"/home/{_username}/.agents/": Directory(
-                source_directory="../dotfiles/dev-root/home/username/agents/", owner=f"{_username}"
-            ),
-        }
-
-    @override
     def files(self) -> dict[str, File]:
-        return {
-            # /etc files
-            "/etc/containers/registries.conf.d/10-unqualified-search-registries.conf": File(
-                source_file="../dotfiles/dev-root/etc/containers/registries.conf.d/10-unqualified-search-registries.conf",
-                owner="root",
-            ),
-            "/etc/containers/registries.conf.d/01-registries.conf": File(
-                source_file="../dotfiles/dev-root/etc/containers/registries.conf.d/01-registries.conf", owner="root"
-            ),
-            # /usr files
-            "/usr/local/bin/nosarch/nosarch-dev": File(
-                source_file="../dotfiles/dev-root/usr/local/bin/nosarch/nosarch-dev",
-                owner="root",
-                permissions=0o755,  # Make executable
-            ),
-            # User home folder
-            f"/home/{_username}/.config/hypr/app-windows/jetbrains.lua": File(
-                source_file="../dotfiles/dev-root/home/username/dot_config/hypr/app-windows/jetbrains.lua",
-                owner=f"{_username}",
-            ),
-            f"/home/{_username}/.config/mise/config.toml": File(
-                content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{_username}"
-            ),
-            f"/home/{_username}/.config/environment.d/dev.conf": File(
-                source_file="../dotfiles/dev-root/home/username/dot_config/environment.d/dev.conf", owner=f"{_username}"
-            ),
-            f"/home/{_username}/.config/environment.d/languages.conf": File(
-                source_file="../dotfiles/dev-root/home/username/dot_config/environment.d/languages.conf",
-                owner=f"{_username}",
-            ),
-            f"/home/{_username}/.bashrc.d/dev.bashrc": File(
-                source_file="../dotfiles/dev-root/home/username/bashrc.d/dev.bashrc", owner=f"{_username}"
-            ),
-            f"/home/{_username}/.ideavimrc": File(
-                source_file="../dotfiles/dev-root/home/username/dot_ideavimrc", owner=f"{_username}"
-            ),
-        }
+        files: dict[str, File] = {}
+
+        # ~/ files
+        files.update(
+            self._userhome_dotfiles.files(
+                "/.agents/skills/bro/SKILL.md",
+                "/.agents/skills/unslop/SKILL.md",
+                "/.bashrc.d/dev.bashrc",
+                "/Codespace/Language-Tooling/.npmrc",
+                "/Codespace/Language-Tooling/.trackerignore",
+                "/Codespace/Tries/.trackerignore",
+                "/.ideavimrc",
+            )
+        )
+
+        ## ~/.config files
+        files.update(
+            self._userhome_dotfiles.files(
+                "/.config/environment.d/dev.conf",
+                "/.config/environment.d/languages.conf",
+                "/.config/hypr/app-windows/jetbrains.lua",
+                "/.config/zed/settings.json",
+                # Neovim - Lazyvim Config
+                "/.config/nvim/lua/config/autocmds.lua",
+                "/.config/nvim/lua/config/keymaps.lua",
+                "/.config/nvim/lua/config/lazy.lua",
+                "/.config/nvim/lua/config/options.lua",
+                "/.config/nvim/lua/plugins/example.lua",
+                "/.config/nvim/init.lua",
+                "/.config/nvim/lazy-lock.json",
+                "/.config/nvim/lazyvim.json",
+                "/.config/nvim/LICENSE",
+                "/.config/nvim/README.md",
+                "/.config/nvim/stylua.toml",
+            )
+        )
+        files.update(
+            {
+                f"/home/{_username}/.config/mise/config.toml": File(
+                    content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{_username}"
+                ),
+                f"/home/{_username}/.config/nvim/.neoconf.json": File(
+                    source_file="../dotfiles/dev-root/home/username/dot_config/nvim/.neoconf.json", owner=f"{_username}"
+                ),  # This file is handled separately because using `self._userhome_dotfiles.files()` requires that
+                # hidden files start with the `dot_` prefix. This file is part of lazyvim and should not modified by
+                # NosArch, so therefore, cannot be prefixed with `dot_`.
+            }
+        )
+
+        # /etc files
+        files.update(
+            self._dotfiles.files(
+                "/etc/containers/registries.conf.d/10-unqualified-search-registries.conf",
+                "/etc/containers/registries.conf.d/01-registries.conf",
+            )
+        )
+
+        # /usr files
+        ## NosArch Dev files
+        files.update(self._dotfiles.files("/usr/local/bin/nosarch/nosarch-dev", permissions=0o755))
+        files.update(
+            self._dotfiles.files(
+                "/usr/local/share/nosarch-dev/templates/java-gradle/dot_gitignore",
+                "/usr/local/share/nosarch-dev/templates/java-gradle/gradle.properties",
+                "/usr/local/share/nosarch-dev/templates/java-gradle/mise.toml",
+                "/usr/local/share/nosarch-dev/templates/java-maven/dot_gitignore",
+                "/usr/local/share/nosarch-dev/templates/java-maven/mise.toml",
+                "/usr/local/share/nosarch-dev/templates/nodejs/dot_gitignore",
+                "/usr/local/share/nosarch-dev/templates/nodejs/mise.toml",
+                "/usr/local/share/nosarch-dev/templates/python/dot_gitignore",
+                "/usr/local/share/nosarch-dev/templates/python/mise.toml",
+                "/usr/local/share/nosarch-dev/templates/rust/mise.toml",
+                "/usr/local/share/nosarch-dev/templates/dot_gitattributes",
+            )
+        )
+
+        return files
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

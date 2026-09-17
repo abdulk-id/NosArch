@@ -2,6 +2,7 @@ from typing import override
 
 import decman
 import user_config.config_reader as userConfig
+import utils.paths
 from decman import File
 from decman.plugins import aur, pacman
 
@@ -12,32 +13,28 @@ _username: str = userConfig.get_str("user.username")
 class GamingModule(decman.Module):
     def __init__(self) -> None:
         super().__init__(name="gaming_profile")
+        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/gaming-root")
+        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
+            "../dotfiles/gaming-root", _username
+        )
 
     @override
     def files(self) -> dict[str, File]:
-        return {
-            "/etc/modprobe.d/blacklist-xpad.conf": File(
-                source_file="../dotfiles/gaming-root/etc/modprobe.d/blacklist-xpad.conf", owner="root"
-            ),
-            "/etc/modules-load.d/windows-compat.conf": File(
-                source_file="../dotfiles/gaming-root/etc/modules-load.d/windows-compat.conf", owner="root"
-            ),
-            "/etc/modules-load.d/gaming-controllers.conf": File(
-                source_file="../dotfiles/gaming-root/etc/modules-load.d/gaming-controllers.conf", owner="root"
-            ),
-            "/usr/share/wayland-sessions/steam-big-picture.desktop": File(
-                source_file="../dotfiles/gaming-root/usr/share/wayland-sessions/steam-big-picture.desktop", owner="root"
-            ),
-            f"/home/{_username}/.config/hypr/app-windows/steam.lua": File(
-                source_file="../dotfiles/gaming-root/home/username/dot_config/hypr/app-windows/steam.lua",
-                owner=f"{_username}",
-            ),
-            f"/home/{_username}/.local/bin/steamos-session-select": File(
-                source_file="../dotfiles/gaming-root/home/username/dot_local/bin/steamos-session-select",
-                owner=_username,
-                permissions=0o754,  # Make executable
-            ),
-        }
+        files: dict[str, File] = {}
+
+        files.update(
+            self._dotfiles.files(
+                "/etc/modprobe.d/blacklist-xpad.conf",
+                "/etc/modules-load.d/gaming-controllers.conf",
+                "/etc/modules-load.d/windows-compat.conf",
+                "/usr/share/wayland-sessions/steam-big-picture.desktop",
+            )
+        )
+        files.update(self._userhome_dotfiles.files("/.config/hypr/app-windows/steam.lua"))
+        files.update(self._userhome_dotfiles.files("/.local/bin/steamos-session-select", permissions=0o754))
+        # 0o754 - Make executable
+
+        return files
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

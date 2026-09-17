@@ -60,6 +60,7 @@ userManager.add_user(
     )
 )
 
+decman.modules += {userManager}
 # ===
 
 # Decman modules ===

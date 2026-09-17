@@ -3,6 +3,7 @@ import sys
 
 import decman.config
 import user_config.config_reader as userConfig
+import utils.aur_chroot
 from decman.extras.users import User, UserManager
 from modules.desktop import DesktopModule
 from modules.homebrew import HomebrewModule
@@ -35,6 +36,15 @@ decman.config.debug_output = False
 decman.config.quiet_output = False  # Disable info messages
 decman.execution_order = ["files", "pacman", "aur", "flatpak", "systemd"]
 
+# decman builds in /tmp by default, which is a tmpfs. Build on disk instead
+decman.aur.build_dir = "/var/cache/decman/build"
+
+if utils.aur_chroot.is_available():
+    # NosArch's own pacman hooks must not apply to the AUR build chroot: `mkarchroot`
+    # evaluates host hooks against an empty root, where no `Depends =` can be
+    # satisfied, which aborts the build before anything is installed.
+    decman.aur.commands = utils.aur_chroot.NoHostHooksAurCommands()
+
 if userConfig.get_bool("enable_homebrew"):
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
@@ -59,6 +69,9 @@ userManager.add_user(
         system=False,
     )
 )
+
+userManager.add_user(User(username="aurbuilduser", home="/var/lib/aurbuilduser", system=True))
+decman.aur.makepkg_user = "aurbuilduser"
 
 decman.modules += {userManager}
 # ===

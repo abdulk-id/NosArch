@@ -13,9 +13,7 @@ hl.bind("SUPER + SHIFT + ALT + B", hl.dsp.exec_cmd("nosarch-launch-app browser-p
 hl.bind("SUPER + SHIFT + E", hl.dsp.exec_cmd("nosarch-launch-app editor"), { description = "Open Editor" })
 
 -- === Shortcut binds ===
-hl.bind("SUPER + SHIFT + A",
-    hl.dsp.exec_cmd("flatpak run --command=io.github.alainm23.planify.quick-add io.github.alainm23.planify"),
-    { description = "Quick-Add Task to Planify" })
+hl.bind("CTRL + SHIFT + 2", hl.dsp.global("com.t3tools.T3Code:capture-window"))
 
 hl.bind("SUPER + A", hl.dsp.exec_cmd("nosarch-dash"), { description = "Open NosArch Dash" })
 

@@ -52,6 +52,7 @@ class FullSetupModule(decman.Module):
             "spotify",
             "spotify-adblock",
             "stacher7",  # yt-dlp frontend
+            "whatsie",
         }
 
         if userConfig.get_bool("full_setup.enable_virtualization"):
@@ -62,10 +63,6 @@ class FullSetupModule(decman.Module):
             )
 
         return aur_pkgs_set
-
-    @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
-    def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {_username: {"io.github.tobagin.karere"}}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def systemd_services(self) -> set[str]:

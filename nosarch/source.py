@@ -34,8 +34,10 @@ if userConfig.get_bool("advanced.enable_nosarch_works"):
     _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
         [sys.executable, "../tools/check_custom_packages.py"]
     )
-    if _custom_package_check.returncode != 0:
-        print("[CHECKS] WARNING: Custom package check ")
+    if _custom_package_check.returncode == 2:
+        raise SystemExit("[CHECKS] ABORT: Custom package check failed with error(s).")
+    elif _custom_package_check.returncode == 1:
+        print("[CHECKS] WARNING: Custom package check has unresolved warnings.")
 # ===
 
 userConfig.load()

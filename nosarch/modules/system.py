@@ -2,13 +2,14 @@ from typing import override
 
 import decman
 import user_config.config_reader as userConfig
+import utils.change_tracker
+import utils.dotfile.luks_uuid
+import utils.dotfile.wireless_regdom
 import utils.hardware.chassis_type
 import utils.hardware.cpu_vendor
 import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
-import utils.luks_uuid
 import utils.paths
-import utils.wireless_regdom
 from decman import File
 from decman.plugins import aur, pacman, systemd
 
@@ -25,11 +26,12 @@ class SystemModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/system-root", _username
         )
+        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
     def file_variables(self) -> dict[str, str]:
         return {
-            "%LUKS_UUID%": utils.luks_uuid.get_luks_uuid(),
+            "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
             "%USER%": _username,
             "%FULLNAME%": userConfig.get_str("user.fullname"),
             "%GIT_EMAIL%": userConfig.get_str("user.git_email"),
@@ -71,7 +73,7 @@ class SystemModule(decman.Module):
         )
         files.update(self._dotfiles.files("/etc/profile.d/nosarch.sh", permissions=0o644))
 
-        wireless_regdom: str | None = utils.wireless_regdom.get_wireless_regdom_contents()
+        wireless_regdom: str | None = utils.dotfile.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
             files.update(
                 {

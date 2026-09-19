@@ -53,16 +53,16 @@ at install time.
 Add one directive comment so the checker can tell when the package falls behind:
 
 ```bash
-# nosarch-upstream: json https://example.com/api/latest version
 # nosarch-upstream: github <owner>/<repo>
+# nosarch-upstream: json https://example.com/api/latest version
 # nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'
 ```
 
-| Form | Use when | Notes |
-| --- | --- | --- |
-| `github <owner>/<repo>` | The app has GitHub releases | Reads `tag_name`, strips a leading `v`. Try this first. |
+| Form                      | Use when                          | Notes                                                                             |
+| ------------------------- | --------------------------------- | --------------------------------------------------------------------------------- |
+| `github <owner>/<repo>`   | The app has GitHub releases       | Reads `tag_name`, strips a leading `v`. Try this first.                           |
 | `json <url> <dotted.key>` | The vendor has an update endpoint | Find it with DevTools' Network tab on their download page, filtered to XHR/Fetch. |
-| `regex <url> <pattern>` | Neither of the above | One capture group. Brittle — vendors restyle pages. |
+| `regex <url> <pattern>`   | Neither of the above              | One capture group. Brittle — vendors restyle pages.                               |
 
 The directive is optional. Without it the package is still validated, just never
 version-checked, and the checker warns once per run.
@@ -118,11 +118,11 @@ is installed).
 It exits with a tiered status so a caller can distinguish "this will break the run" from
 "this is merely stale":
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Every package is valid and current. |
-| `1` | At least one package has an **error**: it does not parse, fails validation, or trips namcap. decman will fail to build it. |
-| `2` | No errors, but at least one **warning**: behind upstream, no upstream declared, or the lookup failed. Everything still builds. |
+| Code | Meaning                                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `0`  | Every package is valid and current.                                                                                            |
+| `1`  | At least one package has an **error**: it does not parse, fails validation, or trips namcap. decman will fail to build it.     |
+| `2`  | No errors, but at least one **warning**: behind upstream, no upstream declared, or the lookup failed. Everything still builds. |
 
 Errors outrank warnings; a run with both exits `1`. `nosarch/source.py` runs it on every
 decman invocation and aborts only on `1`.
@@ -140,12 +140,6 @@ something to report, and `--package NAME` narrows to one.
 ## Gotchas
 
 These are real failures this repo has hit, not hypotheticals.
-
-**Define variables before the array that uses them.** A PKGBUILD is a shell script executed
-top-to-bottom, so `source=()` expands `$_commit` at the point the array is written. A
-`_commit=` assignment placed *below* `source=()` silently expands to an empty string, and the
-first sign of trouble is a 403 with a doubled slash in the URL. `makepkg --printsrcinfo` does
-not always catch this; a real build does.
 
 **Pin every remote source.** `SKIP` in `sha256sums` is legitimate only for files shipped
 alongside the PKGBUILD. The checker treats `SKIP` on an `http(s)`/`git+` source as an error.

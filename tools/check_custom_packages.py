@@ -25,8 +25,19 @@ Options:
     -p, --package    Check only the named package. May be repeated.
     -o, --offline    Skip upstream version checks.
     -b, --build      Build each package so namcap can audit `depends`. Slow.
+    -q, --quiet      Only print packages that have something to report.
 
-Exit status is nonzero if any package is out of date or fails validation.
+Exit status separates "this will break a decman run" from "this is merely
+stale", so a caller can abort on one and carry on past the other:
+
+    0   Every package is valid and current.
+    1   At least one package has an error: a PKGBUILD that does not parse,
+        fails validation, or trips namcap. decman will fail to build it.
+    2   No errors, but at least one warning: a package is behind upstream,
+        declares no upstream to check, or could not be looked up. Everything
+        still builds.
+
+Errors outrank warnings: a run with both exits 1.
 
 Note: reading a PKGBUILD's metadata runs `makepkg --printsrcinfo`, which
 sources the file. Only ever point this at PKGBUILDs from this repo.
@@ -44,6 +55,12 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+# Exit codes. Callers such as `nosarch/source.py` use these to decide whether a
+# finding is worth aborting a decman run over.
+EXIT_OK: int = 0
+EXIT_ERROR: int = 1
+EXIT_WARNING: int = 2
 
 REPO_ROOT: Path = Path(__file__).resolve().parent.parent
 PACKAGES_DIR: Path = REPO_ROOT / "nosarch" / "packages"
@@ -105,8 +122,14 @@ class Result:
         return vercmp(self.current_version, self.upstream_version) < 0
 
     @property
-    def failed(self) -> bool:
-        return bool(self.problems) or self.outdated
+    def has_errors(self) -> bool:
+        """Whether this package would break a decman run."""
+        return bool(self.problems)
+
+    @property
+    def has_warnings(self) -> bool:
+        """Whether this package still builds but wants attention."""
+        return bool(self.warnings) or self.outdated
 
 
 def vercmp(left: str, right: str) -> int:
@@ -400,9 +423,12 @@ def check(package_dir: Path, offline: bool, build: bool, have_namcap: bool) -> R
     return result
 
 
-def report(results: list[Result]) -> None:
-    """Prints one block per package."""
+def report(results: list[Result], quiet: bool) -> None:
+    """Prints one block per package. When `quiet`, clean packages are omitted."""
     for result in results:
+        if quiet and not (result.has_errors or result.has_warnings):
+            continue
+
         if result.outdated:
             status: str = f"OUTDATED  {result.current_version} -> {result.upstream_version}"
         elif result.problems:
@@ -430,34 +456,48 @@ def main() -> int:
     _ = parser.add_argument("-p", "--package", action="append", default=[], help="check only this package")
     _ = parser.add_argument("-o", "--offline", action="store_true", help="skip upstream version checks")
     _ = parser.add_argument("-b", "--build", action="store_true", help="build each package so namcap can audit depends")
+    _ = parser.add_argument(
+        "-q", "--quiet", action="store_true", help="only print packages that have something to report"
+    )
     args: argparse.Namespace = parser.parse_args()
 
     directories: list[Path] = package_dirs(args.package)
 
     if not directories:
-        print("[PACKAGES] No custom packages found.")
-        return 0
+        if not args.quiet:
+            print("[PACKAGES] No custom packages found.")
+        return EXIT_OK
 
     have_namcap: bool = shutil.which("namcap") is not None
 
-    if not have_namcap:
-        print("[PACKAGES] NOTE: namcap is not installed, skipping PKGBUILD linting.")
-        print("[PACKAGES]       Install it with: pacman -S namcap")
-    elif not args.build:
-        print("[PACKAGES] NOTE: pass --build to let namcap audit 'depends'.")
+    if not args.quiet:
+        if not have_namcap:
+            print("[PACKAGES] NOTE: namcap is not installed, skipping PKGBUILD linting.")
+            print("[PACKAGES]       Install it with: pacman -S namcap")
+        elif not args.build:
+            print("[PACKAGES] NOTE: pass --build to let namcap audit 'depends'.")
 
     results: list[Result] = [check(directory, args.offline, args.build, have_namcap) for directory in directories]
 
-    report(results)
+    report(results, args.quiet)
 
-    failed: list[Result] = [result for result in results if result.failed]
+    errored: list[Result] = [result for result in results if result.has_errors]
+    warned: list[Result] = [result for result in results if result.has_warnings]
 
-    if not failed:
+    # Errors outrank warnings: a package that cannot build matters more than a
+    # package that is merely behind upstream.
+    if errored:
+        print(f"[PACKAGES] ERROR: {len(errored)} of {len(results)} custom package(s) will not build.")
+        return EXIT_ERROR
+
+    if warned:
+        print(f"[PACKAGES] WARNING: {len(warned)} of {len(results)} custom package(s) need attention.")
+        return EXIT_WARNING
+
+    if not args.quiet:
         print("[PACKAGES] SUCCESS: All custom packages are current and valid.")
-        return 0
 
-    print(f"[PACKAGES] ERROR: {len(failed)} of {len(results)} custom package(s) need attention.")
-    return 1
+    return EXIT_OK
 
 
 if __name__ == "__main__":

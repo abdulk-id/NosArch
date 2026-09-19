@@ -22,6 +22,15 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by Decman
     - `tools/check_paths.py` checks that NosArch-owned paths referenced anywhere in `dotfiles/`
       (unit files, udev rules, shell scripts) resolve against what the modules actually deploy.
       `decman --source` runs it and aborts if the script finds a dangling reference.
+    - `tools/check_custom_packages.py` checks the PKGBUILDs under `nosarch/packages/`: whether each
+      `pkgver` is behind upstream, and whether the PKGBUILD itself is valid (structural checks, plus
+      `namcap` when it is installed). Exits 0 when clean, 1 on errors that would break a build,
+      and 2 when packages are only outdated. `decman --source` runs it and aborts on 1.
+- Custom packages live in `nosarch/packages/`, one directory per PKGBUILD, for apps that ship no Arch
+  package. Modules declare them with `@aur.custom_packages`.
+    - `docs/internal/custom-packages.md` is the workflow: adding one, declaring its upstream, wiring
+      it into a module, and bumping versions. `nosarch/packages/README.md` is the PKGBUILD reference.
+- Internal documentation lives in `docs/internal/`.
 
 ## Testing Guidelines
 

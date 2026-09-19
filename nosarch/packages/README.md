@@ -1,13 +1,13 @@
 # Custom packages
 
-PKGBUILDs for apps that ship no Arch package — AppImages, vendor tarballs, and the
-payloads behind `curl | bash` installers. decman builds these in a clean chroot and
-hands the result to pacman, exactly like an AUR package, except the recipe lives here
-and is reviewed by us.
+PKGBUILDs for apps that ship no Arch package — AppImages, vendor tarballs, and the payloads
+behind `curl | bash` installers. decman builds these in a clean chroot and hands the result
+to pacman, exactly like an AUR package, except the recipe lives here and is reviewed by us.
 
-Declare one from a module with `@aur.custom_packages`.
-Decman prefers custom packages over AUR packages of the same name,
-so a name collision with the AUR is harmless.
+**For the full workflow — creating a package, declaring its upstream, wiring it into a
+module, checking it, and bumping versions — see `docs/internal/custom-packages.md`.**
+
+This file is the PKGBUILD reference: what the fields mean, and a template to copy.
 
 ## Reading a PKGBUILD
 
@@ -52,31 +52,6 @@ Both are optional, and both run inside a throwaway build directory.
 `install -Dm755 SOURCE DEST` copies, creates missing parent directories (`-D`), and sets
 permissions (`-m`) in one step. `755` for anything executable, `644` for data files like
 `.desktop` entries and icons. `install -d DIR` just creates a directory.
-
-## Checking your work
-
-From the package directory:
-
-```sh
-makepkg --printsrcinfo   # parses the metadata; catches syntax errors
-makepkg --force          # actually builds it
-pacman --query --list --file *.pkg.tar.zst   # lists exactly what would be installed
-```
-
-That last command is the real review step: it shows every path the package claims, so you
-can confirm it is not writing anywhere unexpected. Delete the built `.pkg.tar.zst` and
-`src/`, `pkg/` directories afterwards — they are not committed.
-
-## Getting the checksum
-
-```sh
-curl --location --output app.AppImage "<url>"
-sha256sum app.AppImage
-```
-
-Paste the hash into `sha256sums`. From then on, any change to the bytes at that URL breaks
-the build instead of silently installing something different — which is the main thing this
-whole approach buys over `curl | bash`.
 
 ## Template
 

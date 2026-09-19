@@ -3,9 +3,7 @@
 require("looknfeel")
 require("autostart")
 require("input")
-require("binds.hyprbinds")
-require("binds.mediabinds")
-require("binds.userbinds")
+require("./binds/*")
 require("permissions")
 require("windows")
 

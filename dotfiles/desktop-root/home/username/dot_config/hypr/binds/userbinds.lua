@@ -13,8 +13,6 @@ hl.bind("SUPER + SHIFT + ALT + B", hl.dsp.exec_cmd("nosarch-launch-app browser-p
 hl.bind("SUPER + SHIFT + E", hl.dsp.exec_cmd("nosarch-launch-app editor"), { description = "Open Editor" })
 
 -- === Shortcut binds ===
-hl.bind("CTRL + SHIFT + 2", hl.dsp.global("com.t3tools.T3Code:capture-window"))
-
 hl.bind("SUPER + A", hl.dsp.exec_cmd("nosarch-dash"), { description = "Open NosArch Dash" })
 
 -- === Capture Binds ===

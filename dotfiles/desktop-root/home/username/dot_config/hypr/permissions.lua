@@ -23,4 +23,5 @@ hl.permission({ binary = "/usr/bin/grim", type = "screencopy", mode = "allow" })
 hl.permission({ binary = "/usr/bin/still", type = "screencopy", mode = "allow" })
 hl.permission({ binary = "/usr/bin/hyprpicker", type = "screencopy", mode = "allow" })
 
-hl.permission({ binary = "/home/%USER%/.local/share/t3code/hyprland-capture/", type = "screencopy", mode = "allow" })
+-- App-specific tweaks
+require("./app-permissions/*")

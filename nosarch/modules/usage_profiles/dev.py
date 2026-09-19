@@ -1,3 +1,4 @@
+import os
 from typing import override
 
 import decman
@@ -102,13 +103,20 @@ class DevModule(decman.Module):
                         source_file="../dotfiles/dev-root/home/username/dot_config/nvim/.neoconf.json",
                         owner=f"{_username}",
                     )  # This file is handled separately because using `self._userhome_dotfiles.files()` requires that
-                    # hidden files start with the `dot_` prefix. This file is part of lazyvim and should not modified by
-                    # NosArch, so therefore, cannot be prefixed with `dot_`.
+                    # hidden files start with the `dot_` prefix. This file is part of lazyvim and should not be
+                    # modified by NosArch, so therefore, cannot be prefixed with `dot_`.
                 }
             )
 
         if _editors.__contains__("zed"):
             files.update(self._userhome_dotfiles.files("/.config/zed/settings.json"))
+
+        if self._t3code_needed():
+            files.update(
+                self._userhome_dotfiles.files(
+                    "/.config/hypr/app-permissions/t3code.lua", "/.config/hypr/binds/t3code.lua"
+                )
+            )
 
         # /etc files
         files.update(
@@ -138,6 +146,9 @@ class DevModule(decman.Module):
         )
 
         return files
+
+    def _t3code_needed(self) -> bool:
+        return _agents.__contains__("codex") or _agents.__contains__("opencode") or _agents.__contains__("claude-code")
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
@@ -183,7 +194,7 @@ class DevModule(decman.Module):
         if _agents.__contains__("kilocode"):
             aur_pkgs.add("kilo-bin")
 
-        if _agents.__contains__("codex") or _agents.__contains__("opencode") or _agents.__contains__("claude-code"):
+        if self._t3code_needed():
             # Only install T3-Code if the providers it supports are installed
             aur_pkgs.add("t3code-bin")
 

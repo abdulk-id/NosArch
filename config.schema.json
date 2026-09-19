@@ -166,6 +166,16 @@
                     "uniqueItems": true
                 }
             }
+        },
+        "advanced": {
+            "type": "object",
+            "properties": {
+                "enable_nosarch_works": {
+                    "type": "boolean",
+                    "description": "Enable to setup machine for working on the NosArch codebase",
+                    "default": false
+                }
+            }
         }
     },
     "required": ["user", "profiles"]

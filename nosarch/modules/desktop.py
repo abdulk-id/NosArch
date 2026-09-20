@@ -310,6 +310,8 @@ class DesktopModule(decman.Module):
 
         return desktop_set
 
+    decman.aur.ignored_packages.add("nosarch-dash-bin")
+
     @flatpak.packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_pkgs(self) -> set[str]:
         return {

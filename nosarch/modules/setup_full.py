@@ -4,7 +4,7 @@ import decman
 import user_config.config_reader as userConfig
 import utils.paths
 from decman import File
-from decman.plugins import aur, flatpak, pacman, systemd
+from decman.plugins import aur, pacman, systemd
 
 userConfig.load()
 _username: str = userConfig.get_str("user.username")

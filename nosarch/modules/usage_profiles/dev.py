@@ -64,6 +64,50 @@ class DevModule(decman.Module):
             )
         )
 
+        if _agents.__contains__("claude-code"):
+            files.update(
+                {
+                    f"/home/{_username}/.claude/skills/bro/SKILL.md": File(
+                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/bro/SKILL.md",
+                        owner=f"{_username}",
+                    ),
+                    f"/home/{_username}/.claude/skills/unslop/SKILL.md": File(
+                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/unslop/SKILL.md",
+                        owner=f"{_username}",
+                    ),
+                }
+            )
+
+        if _agents.__contains__("codex"):
+            # Codex can have issues with reading skills from `~/.agents/skills`
+            files.update(
+                {
+                    f"/home/{_username}/.codex/skills/bro/SKILL.md": File(
+                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/bro/SKILL.md",
+                        owner=f"{_username}",
+                    ),
+                    f"/home/{_username}/.codex/skills/unslop/SKILL.md": File(
+                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/unslop/SKILL.md",
+                        owner=f"{_username}",
+                    ),
+                }
+            )
+
+        if _editors.__contains__("cursor"):
+            # Cursor can read skills from `~/.agents/skills` but cannot sync them for Cursor Cloud Agents
+            files.update(
+                {
+                    f"/home/{_username}/.cursor/skills/bro/SKILL.md": File(
+                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/bro/SKILL.md",
+                        owner=f"{_username}",
+                    ),
+                    f"/home/{_username}/.cursor/skills/unslop/SKILL.md": File(
+                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/unslop/SKILL.md",
+                        owner=f"{_username}",
+                    ),
+                }
+            )
+
         ## ~/.config files
         files.update(
             self._userhome_dotfiles.files(

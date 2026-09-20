@@ -35,19 +35,24 @@ LOW_BATTERY_FLAG="${XDG_RUNTIME_DIR:-}/nosarch-battery-warned"
 # session when running as root, and are best-effort either way.
 _notify() {
     if [ "$(id -u)" -eq 0 ]; then
-        session_uid=$(loginctl list-sessions --no-legend 2>/dev/null | while read -r session_id uid _; do
+        # Both fields are needed: runuser resolves users by name, while the
+        # session bus socket is addressed by UID.
+        session=$(loginctl list-sessions --no-legend 2>/dev/null | while read -r session_id uid username _; do
             state=$(loginctl show-session "$session_id" --property=State --value 2>/dev/null)
             type=$(loginctl show-session "$session_id" --property=Type --value 2>/dev/null)
 
             if [ "$state" = "active" ] && { [ "$type" = "wayland" ] || [ "$type" = "x11" ]; }; then
-                echo "$uid"
+                echo "$uid $username"
                 break
             fi
         done)
 
-        [ -n "${session_uid:-}" ] || return 0
+        [ -n "${session:-}" ] || return 0
 
-        runuser --user "#$session_uid" -- \
+        session_uid=${session% *}
+        session_user=${session#* }
+
+        runuser --user "$session_user" -- \
             env "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$session_uid/bus" \
             notify-send "$@" >/dev/null 2>&1 || true
     else

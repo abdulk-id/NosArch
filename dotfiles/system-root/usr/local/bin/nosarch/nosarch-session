@@ -41,6 +41,71 @@ _check_display() {
     fi
 }
 
+# Echoes "<uid> <username>" for the active graphical session, or nothing if
+# there is none. Both are needed: runuser resolves users by name, while
+# XDG_RUNTIME_DIR is addressed by UID.
+_graphical_session() {
+    loginctl list-sessions --no-legend 2>/dev/null | while read -r session_id uid username _; do
+        state=$(loginctl show-session "$session_id" --property=State --value 2>/dev/null)
+        type=$(loginctl show-session "$session_id" --property=Type --value 2>/dev/null)
+
+        if [ "$state" = "active" ] && { [ "$type" = "wayland" ] || [ "$type" = "x11" ]; }; then
+            echo "$uid $username"
+            break
+        fi
+    done
+}
+
+# Variables a graphical session needs for hyprctl, zenity and `systemctl --user`
+# to find it. Used as a grep alternation, so keep pipe-separated.
+_SESSION_ENV_KEYS="DBUS_SESSION_BUS_ADDRESS|DISPLAY|HYPRLAND_INSTANCE_SIGNATURE|WAYLAND_DISPLAY|XAUTHORITY|XDG_RUNTIME_DIR|XDG_SESSION_TYPE"
+
+# Re-runs this script as the owner of the active graphical session. Does not return.
+#
+# Root has no session of its own, so `systemctl --user` talks to root's manager,
+# hyprctl cannot find a compositor socket, and zenity has no display. Root
+# callers (decman, udev rules) would otherwise skip hyprshutdown for text prompts.
+_reexec_in_graphical_session() {
+    session=$(_graphical_session)
+
+    if [ -z "${session:-}" ]; then
+        echo "Error: no active graphical session to run '$1' in." >&2
+        exit 1
+    fi
+
+    session_uid=${session% *}
+    session_user=${session#* }
+
+    # The session's systemd user manager holds these because of `import-environment`
+    # in the Hyprland's autostart config. Reading them back is exact. Reconstructing
+    # them from $XDG_RUNTIME_DIR would mean guessing at WAYLAND_DISPLAY and the
+    # Hyprland instance signature, and the compositor's own environment does not
+    # carry either -- it exports them to its children rather than to itself.
+    session_env=$(runuser --user "$session_user" -- \
+        env "XDG_RUNTIME_DIR=/run/user/$session_uid" \
+        systemctl --user show-environment 2>/dev/null |
+        grep -E "^($_SESSION_ENV_KEYS)=") || true
+
+    script_path=$0
+    case "$script_path" in
+        /*) ;;
+        *) script_path=$(command -v "$0" || echo "/usr/local/bin/nosarch/nosarch-session") ;;
+    esac
+
+    # Split $session_env on newlines alone so values containing spaces survive.
+    # "$@" is expanded before `set` reassigns it, so the original arguments end
+    # up after the assignments and the script path, which is the order env
+    # expects. XDG_RUNTIME_DIR is repeated in case the manager did not export it.
+    old_ifs=$IFS
+    IFS="
+"
+    # shellcheck disable=SC2086
+    set -- $session_env "XDG_RUNTIME_DIR=/run/user/$session_uid" "$script_path" "$@"
+    IFS=$old_ifs
+
+    exec runuser --user "$session_user" -- env "$@"
+}
+
 ## === Features ===
 IDLE_LOCK_UNIT="nosarch-idle-inhibit.service"
 
@@ -53,7 +118,7 @@ enable_idle_lock() {
 
     notify-send --urgency=low --transient \
       --app-name="NosArch Power" \
-      "󰅶  Enabled Idle-Lock" "Stop locking computer when idle"
+      "󰅶  Enabled Idle Lock" "Stop locking computer when idle"
 
     pkill -RTMIN+8 waybar # Update the waybar idlelock module
 }
@@ -61,7 +126,7 @@ disable_idle_lock() {
     systemctl --user stop "$IDLE_LOCK_UNIT"
     notify-send --urgency=low --transient \
       --app-name="NosArch Power" \
-      "󰾪  Disabled Idle-Lock" "Now locking computer when idle"
+      "󰾪  Disabled Idle Lock" "Now locking computer when idle"
 
     pkill -RTMIN+8 waybar # Update the waybar idlelock module
 }
@@ -217,6 +282,17 @@ main() {
         show_help
         return
     fi
+
+    # Every command except help acts on the graphical session, so hand the
+    # invocation over to it when there is no session here to act on.
+    case "${1:-}" in
+        help|-h|--help) ;;
+        *)
+            if [ "$(id -u)" -eq 0 ]; then
+                _reexec_in_graphical_session "$@"
+            fi
+            ;;
+    esac
 
     case "${1:-}" in
         idle-lock)

@@ -1,3 +1,4 @@
+import utils.change_tracker
 from decman import File
 
 
@@ -20,6 +21,21 @@ class Dotfiles:
             for path in target_paths
         }
 
+    def tracked_files(
+        self,
+        change_tracker: utils.change_tracker.ChangeTracker,
+        *target_paths: str,
+        bin_file: bool = False,
+        owner: str = "root",
+        permissions: int = 0o644,
+    ) -> dict[str, File]:
+        return {
+            path: change_tracker.file(
+                source_file=f"{self._source_root}{path}", bin_file=bin_file, owner=owner, permissions=permissions
+            )
+            for path in target_paths
+        }
+
 
 class UserhomeDotfiles:
     def __init__(self, source_root: str, username: str) -> None:
@@ -29,6 +45,23 @@ class UserhomeDotfiles:
     def files(self, *rel_paths: str, bin_file: bool = False, permissions: int = 0o644) -> dict[str, File]:
         return {
             f"/home/{self._username}{rel}": File(
+                source_file=f"{self._source_root}/home/username{_dot_source_path(rel)}",
+                bin_file=bin_file,
+                permissions=permissions,
+                owner=self._username,
+            )
+            for rel in rel_paths
+        }
+
+    def tracked_files(
+        self,
+        change_tracker: utils.change_tracker.ChangeTracker,
+        *rel_paths: str,
+        bin_file: bool = False,
+        permissions: int = 0o644,
+    ) -> dict[str, File]:
+        return {
+            f"/home/{self._username}{rel}": change_tracker.file(
                 source_file=f"{self._source_root}/home/username{_dot_source_path(rel)}",
                 bin_file=bin_file,
                 permissions=permissions,

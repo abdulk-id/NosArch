@@ -1,3 +1,5 @@
+import os
+import sys
 from typing import override
 
 import decman
@@ -10,7 +12,8 @@ import utils.hardware.cpu_vendor
 import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.paths
-from decman import File
+from decman import File, Store
+from decman.core.output import print_info, print_list, prompt_confirm
 from decman.plugins import aur, pacman, systemd
 
 userConfig.load()
@@ -43,7 +46,8 @@ class SystemModule(decman.Module):
 
         # /etc files
         files.update(
-            self._dotfiles.files(
+            self._dotfiles.tracked_files(
+                self._tracker,
                 "/etc/default/limine",
                 "/etc/greetd/config.toml",
                 "/etc/modules-load.d/zram.conf",
@@ -71,7 +75,7 @@ class SystemModule(decman.Module):
                 "/etc/pacman.conf",
             )
         )
-        files.update(self._dotfiles.files("/etc/profile.d/nosarch.sh", permissions=0o644))
+        files.update(self._dotfiles.tracked_files(self._tracker, "/etc/profile.d/nosarch.sh", permissions=0o644))
 
         wireless_regdom: str | None = utils.dotfile.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
@@ -85,7 +89,8 @@ class SystemModule(decman.Module):
 
         # /usr files
         files.update(
-            self._dotfiles.files(
+            self._dotfiles.tracked_files(
+                self._tracker,
                 "/usr/lib/systemd/user/nosarch-battery-monitor.service",
                 "/usr/lib/systemd/user/nosarch-battery-monitor.timer",
             )
@@ -93,7 +98,8 @@ class SystemModule(decman.Module):
 
         ## Plymouth theme files
         files.update(
-            self._dotfiles.files(
+            self._dotfiles.tracked_files(
+                self._tracker,
                 "/usr/share/plymouth/themes/nosarch/bullet.png",
                 "/usr/share/plymouth/themes/nosarch/entry.png",
                 "/usr/share/plymouth/themes/nosarch/lock.png",
@@ -104,7 +110,8 @@ class SystemModule(decman.Module):
             )
         )
         files.update(
-            self._dotfiles.files(
+            self._dotfiles.tracked_files(
+                self._tracker,
                 "/usr/share/plymouth/themes/nosarch/nosarch.plymouth",
                 "/usr/share/plymouth/themes/nosarch/nosarch.script",
             )
@@ -112,7 +119,8 @@ class SystemModule(decman.Module):
 
         ## NosArch scripts
         files.update(
-            self._dotfiles.files(
+            self._dotfiles.tracked_files(
+                self._tracker,
                 "/usr/local/bin/nosarch/nosarch-battery",
                 "/usr/local/bin/nosarch/nosarch-package",
                 "/usr/local/bin/nosarch/nosarch-session",
@@ -124,10 +132,89 @@ class SystemModule(decman.Module):
 
         # ~/ files
         files.update(
-            self._userhome_dotfiles.files("/.config/yay/config.json", "/.bash_profile", "/.bashrc", "/.gitconfig")
+            self._userhome_dotfiles.tracked_files(
+                self._tracker, "/.config/yay/config.json", "/.bash_profile", "/.bashrc", "/.gitconfig"
+            )
         )
 
         return files
+
+    @override
+    def on_change(self, store: Store) -> None:
+        changed_files: set[str] = self._tracker.changed
+
+        def changed_files_in(*target_dirs: str) -> bool:
+            for target_dir in target_dirs:
+                target_path: str = os.path.abspath(target_dir)
+
+                if any(os.path.commonpath([p, target_path]) == target_path for p in changed_files):
+                    return True
+            return False
+
+        def files_changed(*paths: str) -> bool:
+            return not changed_files.isdisjoint(paths)
+
+        if changed_files_in("/etc/systemd/system", "/usr/lib/systemd"):
+            print_info("Reloading systemd.")
+            _ = decman.prg(["systemctl", "daemon-reload"])
+
+        if changed_files_in("/etc/NetworkManager"):
+            print_info("Reloading NetworkManager.")
+            _ = decman.prg(["systemctl", "reload", "NetworkManager"])
+
+        if changed_files_in("/etc/sysctl.d"):
+            print_info("Applying kernel parameters.")
+            _ = decman.prg(["sysctl", "--system", "--quiet"])
+
+        if changed_files_in("/etc/systemd/journald.conf.d"):
+            print_info("Restarting systemd-journald.")
+            _ = decman.prg(["systemctl", "restart", "systemd-journald"])
+
+        if changed_files_in("/etc/systemd/system.conf.d", "/etc/systemd/user.conf.d") or files_changed(
+            "/etc/systemd/system.conf"
+        ):
+            print_info("Restarting systemd.")
+            _ = decman.prg(["systemctl", "daemon-reexec"])
+
+        if changed_files_in("/etc/tmpfiles.d"):
+            print_info("Cleaning tmp files.")
+            _ = decman.prg(["systemd-tmpfiles", "--create", "--clean"])
+
+        if changed_files_in("/etc/udev/rules.d"):
+            print_info("Reloading udev.")
+            _ = decman.prg(["udevadm", "control", "--reload"])
+            _ = decman.prg(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
+
+        if changed_files_in("/etc/ufw"):
+            print_info("Restarting firewall (ufw).")
+            _ = decman.prg(["systemctl", "restart", "ufw"])
+
+        if (
+            changed_files_in("/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes")
+            or "/etc/mkinitcpio.conf" in changed_files
+        ):
+            print_info("Rebuilding initramfs and updating Limine boot entries.")
+            _ = decman.prg(["limine-mkinitcpio"])
+
+        # Reboot requiring changes ---
+        needs_reboot: list[str] = []
+
+        if files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
+            # Applying these live means swapoff on an active zram device holding
+            # compressed pages, which can OOM the machine under memory pressure.
+            needs_reboot.append("ZRAM configuration")
+
+        if changed_files_in("/etc/systemd/logind.conf.d"):
+            # systemd-logind has no ExecReload, and restarting it disturbs active sessions.
+            needs_reboot.append("logind configuration")
+
+        if not needs_reboot:
+            return
+
+        print_list("These changes will take effect after a reboot: ", needs_reboot, 1)
+
+        if sys.stdin.isatty() and prompt_confirm("Reboot now?", default=False):
+            _ = decman.prg(["/usr/local/bin/nosarch/nosarch-session", "restart"])
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def system_packages(self) -> set[str]:

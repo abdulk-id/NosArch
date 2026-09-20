@@ -153,7 +153,7 @@ class DevModule(decman.Module):
             )
 
         if _editors.__contains__("zed"):
-            files.update(self._userhome_dotfiles.files("/.config/zed/settings.json"))
+            files.update(self._userhome_dotfiles.files("/.config/zed/settings.json", "/.config/zed/keymap.json"))
 
         if self._t3code_needed():
             files.update(

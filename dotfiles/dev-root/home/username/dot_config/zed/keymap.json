@@ -1,0 +1,30 @@
+// Managed by NosArch
+
+// Zed keymap
+// For information on binding keys, see the Zed documentation: https://zed.dev/docs/key-bindings
+[
+    {
+        "context": "Workspace",
+        "bindings": {
+            // "shift shift": "file_finder::Toggle"
+        },
+    },
+    {
+        "context": "Editor && vim_mode == insert",
+        "bindings": {
+            // "j k": "vim::NormalBefore"
+        },
+    },
+    {
+        "context": "Workspace",
+        "bindings": {
+            "ctrl-f10": "task::Spawn",
+        },
+    },
+    {
+        "context": "Workspace",
+        "unbind": {
+            "alt-shift-f10": "task::Spawn",
+        },
+    },
+]

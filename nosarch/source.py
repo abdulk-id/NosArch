@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -24,23 +25,30 @@ if userConfig.get_bool("advanced.enable_nosarch_works"):
     decman.pacman.packages |= {"lynis", "namcap", "shellcheck"}
 
     # Checks ---
-    decman.core.output.print_summary("Running NosArch pre-checks.")
+    # `decman` doesn't forward custom CLI flags to this file, so this is toggled via an env var:
+    # `NOSARCH_SKIP_CHECKS=1 sudo -E decman --source ...` skips the checks for that run.
+    DISABLE_CHECKS_PARAM: bool = os.environ.get("NOSARCH_DECMAN_SKIP_CHECKS") == "1"
 
-    # decman does not import this file, it reads it as text and `exec()`s it after `os.chdir`-ing into its directory,
-    # so `__file__` here would resolve to decman's own module rather than this one.
-    _path_check: subprocess.CompletedProcess[bytes] = subprocess.run([sys.executable, "../tools/check_paths.py"])
-    if _path_check.returncode != 0:
-        decman.core.output.print_error("[CHECKS] Dangling path references found in dotfiles.")
-        raise SystemExit()
+    if DISABLE_CHECKS_PARAM:
+        decman.core.output.print_warning("Skipping NosArch pre-checks.")
+    else:
+        decman.core.output.print_summary("Running NosArch pre-checks.")
 
-    _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
-        [sys.executable, "../tools/check_custom_packages.py"]
-    )
-    if _custom_package_check.returncode == 1:
-        decman.core.output.print_error("[CHECKS] Custom package check failed with error(s).")
-        raise SystemExit()
-    elif _custom_package_check.returncode == 2:
-        decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
+        # decman does not import this file, it reads it as text and `exec()`s it after `os.chdir`-ing into its directory,
+        # so `__file__` here would resolve to decman's own module rather than this one.
+        _path_check: subprocess.CompletedProcess[bytes] = subprocess.run([sys.executable, "../tools/check_paths.py"])
+        if _path_check.returncode != 0:
+            decman.core.output.print_error("[CHECKS] Dangling path references found in dotfiles.")
+            raise SystemExit()
+
+        _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
+            [sys.executable, "../tools/check_custom_packages.py"]
+        )
+        if _custom_package_check.returncode == 1:
+            decman.core.output.print_error("[CHECKS] Custom package check failed with error(s).")
+            raise SystemExit()
+        elif _custom_package_check.returncode == 2:
+            decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
 # ===
 
 userConfig.load()

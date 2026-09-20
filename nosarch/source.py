@@ -2,6 +2,7 @@ import subprocess
 import sys
 
 import decman.config
+import decman.core.output
 import user_config.config_reader as userConfig
 import utils.aur_chroot
 from decman.extras.users import User, UserManager
@@ -23,21 +24,23 @@ if userConfig.get_bool("advanced.enable_nosarch_works"):
     decman.pacman.packages |= {"lynis", "namcap", "shellcheck"}
 
     # Checks ---
+    decman.core.output.print_summary("Running NosArch pre-checks.")
 
     # decman does not import this file, it reads it as text and `exec()`s it after `os.chdir`-ing into its directory,
     # so `__file__` here would resolve to decman's own module rather than this one.
-
     _path_check: subprocess.CompletedProcess[bytes] = subprocess.run([sys.executable, "../tools/check_paths.py"])
     if _path_check.returncode != 0:
-        raise SystemExit("[CHECKS] ABORT: Dangling path references found in dotfiles.")
+        decman.core.output.print_error("[CHECKS] Dangling path references found in dotfiles.")
+        raise SystemExit()
 
     _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
         [sys.executable, "../tools/check_custom_packages.py"]
     )
     if _custom_package_check.returncode == 1:
-        raise SystemExit("[CHECKS] ABORT: Custom package check failed with error(s).")
+        decman.core.output.print_error("[CHECKS] Custom package check failed with error(s).")
+        raise SystemExit()
     elif _custom_package_check.returncode == 2:
-        print("[CHECKS] WARNING: Custom package check has unresolved warnings.")
+        decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
 # ===
 
 userConfig.load()

@@ -360,10 +360,7 @@ def namcap_rules() -> set[str]:
         ["namcap", "--list"], capture_output=True, text=True, check=False
     )
 
-    return {
-        match.group(1)
-        for match in NAMCAP_RULE_PATTERN.finditer(completed.stdout)
-    }
+    return {match.group(1) for match in NAMCAP_RULE_PATTERN.finditer(completed.stdout)}
 
 
 def run_namcap(target: Path) -> list[str]:
@@ -378,10 +375,7 @@ def run_namcap(target: Path) -> list[str]:
         return ["could not determine namcap's rule list"]
 
     completed: subprocess.CompletedProcess[str] = subprocess.run(
-        ["namcap", f"--rules={','.join(sorted(rules))}", str(target)],
-        capture_output=True,
-        text=True,
-        check=False,
+        ["namcap", f"--rules={','.join(sorted(rules))}", str(target)], capture_output=True, text=True, check=False
     )
 
     findings: list[str] = []
@@ -422,13 +416,7 @@ def build_and_audit(package_dir: Path) -> list[str]:
             capture_output=True,
             text=True,
             check=False,
-            env={
-                "PKGDEST": scratch,
-                "SRCDEST": scratch,
-                "BUILDDIR": scratch,
-                "PATH": "/usr/bin",
-                "HOME": scratch,
-            },
+            env={"PKGDEST": scratch, "SRCDEST": scratch, "BUILDDIR": scratch, "PATH": "/usr/bin", "HOME": scratch},
             preexec_fn=_drop_to_nobody if _running_as_root() else None,
         )
 

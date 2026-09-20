@@ -3,6 +3,7 @@ from typing import override
 import decman
 import modules.theme
 import user_config.config_reader as userConfig
+import utils.change_tracker
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
 import utils.hardware.gpu_vendor
@@ -23,6 +24,7 @@ class DesktopModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/desktop-root", _username
         )
+        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
     def on_change(self, store: decman.Store) -> None:
@@ -130,7 +132,12 @@ class DesktopModule(decman.Module):
         )
 
         # /usr files
-        files.update(self._dotfiles.files("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"))
+        files.update(
+            self._dotfiles.files(
+                "/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override",
+                "/usr/share/wayland-sessions/nosarch/nosarch-hyprland.desktop",
+            )
+        )
 
         ## NosArch scripts
         files.update(

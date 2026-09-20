@@ -27,7 +27,7 @@ class GamingModule(decman.Module):
                 "/etc/modprobe.d/blacklist-xpad.conf",
                 "/etc/modules-load.d/gaming-controllers.conf",
                 "/etc/modules-load.d/windows-compat.conf",
-                "/usr/share/wayland-sessions/steam-big-picture.desktop",
+                "/usr/share/wayland-sessions/nosarch/steam-big-picture.desktop",
             )
         )
         files.update(self._userhome_dotfiles.files("/.config/hypr/app-windows/steam.lua"))

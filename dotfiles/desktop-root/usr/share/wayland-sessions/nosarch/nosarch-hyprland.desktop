@@ -1,0 +1,8 @@
+# Managed by NosArch
+
+[Desktop Entry]
+Name=NosArch (Hyprland uwsm)
+Comment=NosArch Hyprland desktop managed by uwsm
+Exec=uwsm start -g 10 -e -D Hyprland hyprland.desktop
+TryExec=uwsm
+Type=Application

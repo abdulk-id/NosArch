@@ -31,6 +31,11 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by Decman
     - `docs/internal/custom-packages.md` is the workflow: adding one, declaring its upstream, wiring
       it into a module, and bumping versions. `nosarch/packages/README.md` is the PKGBUILD reference.
 - Internal documentation lives in `docs/internal/`.
+    - `docs/internal/files.md` covers how files are declared and deployed: why every file is named
+      individually rather than by directory, the `dotfiles/` layout and `dot_` convention, the
+      `utils/paths.py` helpers, and what each deployed path needs reloaded afterwards.
+    - `docs/internal/updating.md` covers moving a machine between NosArch versions: what decman's
+      convergence already handles, what it cannot reach, and when a migration mechanism is warranted.
 
 ## Testing Guidelines
 

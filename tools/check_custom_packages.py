@@ -44,8 +44,11 @@ sources the file. Only ever point this at PKGBUILDs from this repo.
 """
 
 import argparse
+import contextlib
 import dataclasses
 import json
+import os
+import pwd
 import re
 import shutil
 import subprocess
@@ -54,7 +57,7 @@ import tempfile
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 # Exit codes. Callers such as `nosarch/source.py` use these to decide whether a
 # finding is worth aborting a decman run over.
@@ -144,6 +147,51 @@ def vercmp(left: str, right: str) -> int:
         return 0 if left == right else -1
 
 
+def _running_as_root() -> bool:
+    return os.geteuid() == 0
+
+
+def _drop_to_nobody() -> None:
+    """
+    `preexec_fn` that switches a subprocess from root to the `nobody` user.
+
+    Matches decman's own approach to parsing a PKGBUILD (see
+    `decman.plugins.aur.package._srcinfo_from_pkgbuild_directory`): makepkg
+    refuses outright to run as root, even just to print metadata, so when
+    this script itself runs as root (invoked from `nosarch/source.py`, which
+    decman runs as root) every `makepkg` call must drop privileges first.
+    """
+    nobody = pwd.getpwnam("nobody")
+    os.setgid(nobody.pw_gid)
+    os.setuid(nobody.pw_uid)
+
+
+@contextlib.contextmanager
+def _buildable_copy(package_dir: Path) -> Iterator[Path]:
+    """
+    A directory `nobody` can read and write, containing this package's files.
+
+    Only makes a copy when actually running as root: `nobody` cannot be
+    trusted to read an arbitrary path in the repo (permissions, ACLs), but a
+    normal, non-root invocation already owns `package_dir` and can use it
+    directly, exactly as this script did before it had to worry about root.
+    """
+    if not _running_as_root():
+        yield package_dir
+        return
+
+    with tempfile.TemporaryDirectory(prefix="nosarch-pkgcheck-src-") as tmpdir:
+        shutil.copytree(package_dir, tmpdir, dirs_exist_ok=True)
+
+        mode = 0o777
+        for root, dirs, files in os.walk(tmpdir):
+            for name in dirs + files:
+                os.chmod(os.path.join(root, name), mode)
+        os.chmod(tmpdir, mode)
+
+        yield Path(tmpdir)
+
+
 def package_dirs(only: list[str]) -> list[Path]:
     """Every directory under `nosarch/packages/` holding a PKGBUILD."""
     if not PACKAGES_DIR.is_dir():
@@ -164,9 +212,15 @@ def read_srcinfo(package_dir: Path) -> dict[str, list[str]]:
     Values are collected per key, since keys such as `depends` and
     `sha256sums` legitimately repeat.
     """
-    completed: subprocess.CompletedProcess[str] = subprocess.run(
-        ["makepkg", "--printsrcinfo"], cwd=package_dir, capture_output=True, text=True, check=True
-    )
+    with _buildable_copy(package_dir) as build_dir:
+        completed: subprocess.CompletedProcess[str] = subprocess.run(
+            ["makepkg", "--printsrcinfo"],
+            cwd=build_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+            preexec_fn=_drop_to_nobody if _running_as_root() else None,
+        )
 
     fields: dict[str, list[str]] = {}
 
@@ -353,14 +407,29 @@ def build_and_audit(package_dir: Path) -> list[str]:
     This is the only way to get namcap's `depends` analysis, which is what
     catches a PKGBUILD that under- or over-declares its dependencies.
     """
-    with tempfile.TemporaryDirectory(prefix="nosarch-pkgcheck-") as scratch:
+    with (
+        _buildable_copy(package_dir) as build_dir,
+        tempfile.TemporaryDirectory(prefix="nosarch-pkgcheck-out-") as scratch,
+    ):
+        # `nobody` needs write access to wherever the build writes output, same
+        # as the source copy above.
+        if _running_as_root():
+            os.chmod(scratch, 0o777)
+
         completed: subprocess.CompletedProcess[str] = subprocess.run(
             ["makepkg", "--force", "--clean", "--nodeps"],
-            cwd=package_dir,
+            cwd=build_dir,
             capture_output=True,
             text=True,
             check=False,
-            env={"PKGDEST": scratch, "SRCDEST": scratch, "BUILDDIR": scratch, "PATH": "/usr/bin"},
+            env={
+                "PKGDEST": scratch,
+                "SRCDEST": scratch,
+                "BUILDDIR": scratch,
+                "PATH": "/usr/bin",
+                "HOME": scratch,
+            },
+            preexec_fn=_drop_to_nobody if _running_as_root() else None,
         )
 
         if completed.returncode != 0:

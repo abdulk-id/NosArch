@@ -341,6 +341,7 @@ class SystemModule(decman.Module):
             "greetd.service",
             "limine-snapper-sync.service",
             "NetworkManager.service",
+            "snapper-cleanup.timer",
             "udisks2.service",
             "ufw.service",
             "swap-swapfile.swap",

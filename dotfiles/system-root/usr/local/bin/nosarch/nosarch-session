@@ -178,9 +178,6 @@ session_after_unlock() {
 }
 
 session_logout() {
-    uwsm stop
-}
-session_logout_prompt() {
     if [ "$(_check_display)" = "true" ]; then
         _ensure_command "hyprshutdown"
         _ensure_command "zenity"
@@ -193,7 +190,7 @@ session_logout_prompt() {
             --cancel-label="Cancel" \
             --default-cancel
         then
-            CMD="hyprshutdown --top-label 'Logging out...' --post-cmd 'session_logout'"
+            CMD="hyprshutdown --top-label 'Logging out...' --post-cmd 'uwsm stop'"
             hyprctl eval "hl.exec_cmd([==[$CMD]==])"
         fi
     else
@@ -201,7 +198,7 @@ session_logout_prompt() {
         read -r response
         case "$response" in
             [yY])
-                session_logout
+                uwsm stop
                 ;;
             *)
                 return
@@ -211,9 +208,6 @@ session_logout_prompt() {
 }
 
 system_shutdown() {
-    systemctl poweroff --no-wall
-}
-system_shutdown_prompt() {
     if [ "$(_check_display)" = "true" ]; then
         _ensure_command "hyprshutdown"
         _ensure_command "zenity"
@@ -226,7 +220,7 @@ system_shutdown_prompt() {
             --cancel-label="Cancel" \
             --default-cancel
         then
-            CMD="hyprshutdown --top-label 'Shutting down...' --post-cmd 'system_shutdown'"
+            CMD="hyprshutdown --top-label 'Shutting down...' --post-cmd 'systemctl poweroff --no-wall'"
             hyprctl eval "hl.exec_cmd([==[$CMD]==])"
         fi
     else
@@ -234,7 +228,7 @@ system_shutdown_prompt() {
         read -r response
         case "$response" in
             [yY])
-                system_shutdown
+                systemctl poweroff --no-wall
                 ;;
             *)
                 return
@@ -244,9 +238,6 @@ system_shutdown_prompt() {
 }
 
 system_restart() {
-    systemctl reboot --no-wall
-}
-system_restart_prompt() {
     if [ "$(_check_display)" = "true" ]; then
         _ensure_command "hyprshutdown"
         _ensure_command "zenity"
@@ -259,7 +250,7 @@ system_restart_prompt() {
             --cancel-label="Cancel" \
             --default-cancel
         then
-            CMD="hyprshutdown --top-label 'Restarting...' --post-cmd 'system_restart'"
+            CMD="hyprshutdown --top-label 'Restarting...' --post-cmd 'systemctl reboot --no-wall'"
             hyprctl eval "hl.exec_cmd([==[$CMD]==])"
         fi
     else
@@ -267,7 +258,7 @@ system_restart_prompt() {
         read -r response
         case "$response" in
             [yY])
-                system_restart
+                systemctl reboot --no-wall
                 ;;
             *)
                 return
@@ -323,13 +314,13 @@ main() {
             session_lock
             ;;
         logout)
-            session_logout_prompt
+            session_logout
             ;;
         restart)
-            system_restart_prompt
+            system_restart
             ;;
         shutdown)
-            system_shutdown_prompt
+            system_shutdown
             ;;
         help|-h|--help)
             show_help

@@ -1,6 +1,7 @@
 import os
+import re
 import sys
-from typing import override
+from typing import Any, override
 
 import decman
 import user_config.config_reader as userConfig
@@ -215,6 +216,34 @@ class SystemModule(decman.Module):
 
         if sys.stdin.isatty() and prompt_confirm("Reboot now?", default=False):
             _ = decman.prg(["/usr/local/bin/nosarch/nosarch-session", "restart"])
+
+    @override
+    def after_update(self, store: Store) -> None:
+        def update_limine_conf_settings() -> None:
+            path = "/boot/limine.conf"
+            settings: dict[str, str] = {"timeout": "3", "default_entry": "linux"}
+
+            with open(path, "r", encoding="utf-8") as f:
+                lines: list[str] = f.readlines()
+
+            new_lines, found = [], set()
+            for line in lines:
+                key = line.split(":", 1)[0].strip() if ":" in line else None
+                if key in settings:
+                    found.add(key)
+                    line: str = f"{key}: {settings[key]}\n"
+                new_lines.append(line)
+
+            prefix: list[str] = [f"{k}: {v}\n" for k, v in settings.items() if k not in found]
+            final_lines: list[str] = prefix + new_lines
+
+            if final_lines != lines:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.writelines(final_lines)
+
+                print_info("Updated Limine boot menu settings.")
+
+        update_limine_conf_settings()
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def system_packages(self) -> set[str]:

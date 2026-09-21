@@ -112,26 +112,30 @@ if userConfig.get_bool("profiles.full_setup"):
     if desktop_enabled:
         decman.modules += {FullSetupModule()}
     else:
-        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[PROFILES] Full setup profile requires Desktop module to be enabled.")
+        raise SystemExit()
 
 if userConfig.get_bool("profiles.creative"):
     if desktop_enabled:
         decman.modules += {CreativeModule()}
     else:
-        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[PROFILES] Creative profile requires Desktop module to be enabled.")
+        raise SystemExit()
 
 if userConfig.get_bool("profiles.dev"):
     if desktop_enabled:
         decman.modules += {DevModule()}
     else:
         # Task for later: Make dev module workable without desktop
-        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[PROFILES] Dev profile requires Desktop module to be enabled.")
+        raise SystemExit()
 
 if userConfig.get_bool("profiles.gaming"):
     if desktop_enabled:
         decman.modules += {GamingModule()}
     else:
-        raise SystemExit("[CHECKS] ABORT: Creative profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[PROFILES] Gaming profile requires Desktop module to be enabled.")
+        raise SystemExit()
 
 decman.modules += {UserDefinedModule()}
 # ===

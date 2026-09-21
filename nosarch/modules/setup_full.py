@@ -1,20 +1,21 @@
 from typing import override
 
 import decman
-import user_config.config_reader as userConfig
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman, systemd
-
-userConfig.load()
-_username: str = userConfig.get_str("user.username")
+from utils.user_config_reader import UserConfigReader
 
 
 class FullSetupModule(decman.Module):
-    def __init__(self) -> None:
+    def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="setup_full")
+
+        self._user_config: UserConfigReader = user_config_reader
+        self._username: str = self._user_config.get_str("user.username")
+
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/setup-full-root", _username
+            "../dotfiles/setup-full-root", self._username
         )
 
     @override
@@ -33,7 +34,7 @@ class FullSetupModule(decman.Module):
             "transmission-gtk",
         }
 
-        if userConfig.get_bool("full_setup.enable_virtualization"):
+        if self._user_config.get_bool("full_setup.enable_virtualization"):
             pkgs_set.update(
                 {
                     "libvirt",
@@ -55,7 +56,7 @@ class FullSetupModule(decman.Module):
             "whatsie",
         }
 
-        if userConfig.get_bool("full_setup.enable_virtualization"):
+        if self._user_config.get_bool("full_setup.enable_virtualization"):
             aur_pkgs_set.update(
                 {
                     "bridge-utils"  # Utils for configuring Linux ethernet bridge
@@ -66,7 +67,9 @@ class FullSetupModule(decman.Module):
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def systemd_services(self) -> set[str]:
-        if userConfig.get_bool("full_setup.enable_virtualization"):
-            return {"libvirtd.service"}
-        else:
-            return set()
+        systemd_services: set[str] = set()
+
+        if self._user_config.get_bool("full_setup.enable_virtualization"):
+            systemd_services.add("libvirtd.service")
+
+        return systemd_services

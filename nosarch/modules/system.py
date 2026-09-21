@@ -1,10 +1,8 @@
 import os
-import re
 import sys
-from typing import Any, override
+from typing import override
 
 import decman
-import user_config.config_reader as userConfig
 import utils.change_tracker
 import utils.dotfile.luks_uuid
 import utils.dotfile.wireless_regdom
@@ -16,19 +14,21 @@ import utils.paths
 from decman import File, Store
 from decman.core.output import print_info, print_list, prompt_confirm
 from decman.plugins import aur, pacman, systemd
-
-userConfig.load()
-_username: str = userConfig.get_str("user.username")
+from utils.user_config_reader import UserConfigReader
 
 _cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
 
 
 class SystemModule(decman.Module):
-    def __init__(self) -> None:
+    def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="system")
+
+        self._user_config: UserConfigReader = user_config_reader
+        self._username: str = self._user_config.get_str("user.username")
+
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/system-root", _username
+            "../dotfiles/system-root", self._username
         )
         self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
@@ -36,9 +36,9 @@ class SystemModule(decman.Module):
     def file_variables(self) -> dict[str, str]:
         return {
             "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
-            "%USER%": _username,
-            "%FULLNAME%": userConfig.get_str("user.fullname"),
-            "%GIT_EMAIL%": userConfig.get_str("user.git_email"),
+            "%USER%": self._username,
+            "%FULLNAME%": self._user_config.get_str("user.fullname"),
+            "%GIT_EMAIL%": self._user_config.get_str("user.git_email"),
         }
 
     @override
@@ -280,7 +280,7 @@ class SystemModule(decman.Module):
             "zram-generator",
         }
 
-        if userConfig.get_bool("system.enable_lts_kernel"):
+        if self._user_config.get_bool("system.enable_lts_kernel"):
             system_set.add("linux-lts")
             system_set.add("linux-lts-headers")
 

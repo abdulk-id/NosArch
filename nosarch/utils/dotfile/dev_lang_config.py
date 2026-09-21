@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import override
 
-import user_config.config_reader as userConfig
-
-userConfig.load()
+from utils.user_config_reader import UserConfigReader
 
 
 class DevLang(ABC):
@@ -141,7 +139,7 @@ def get_mise_config_contents() -> str:
     # Mise tools
     config_contents.append("[tools]\n")
 
-    enabled_languages: list[str] = userConfig.get_str_list("dev.languages")
+    enabled_languages: list[str] = UserConfigReader().get_str_list("dev.languages")
 
     for language in enabled_languages:
         if DEV_LANG_CONFIG[language].get_tools_config() != "":

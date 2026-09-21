@@ -2,7 +2,6 @@ from typing import override
 
 import decman
 import modules.theme
-import user_config.config_reader as userConfig
 import utils.change_tracker
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
@@ -10,19 +9,21 @@ import utils.hardware.gpu_vendor
 import utils.paths
 from decman import File
 from decman.plugins import aur, flatpak, pacman, systemd
-
-userConfig.load()
-_username: str = userConfig.get_str("user.username")
+from utils.user_config_reader import UserConfigReader
 
 _gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
 
 class DesktopModule(decman.Module):
-    def __init__(self) -> None:
+    def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="desktop")
+
+        self._user_config: UserConfigReader = user_config_reader
+        self._username: str = self._user_config.get_str("user.username")
+
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/desktop-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/desktop-root", _username
+            "../dotfiles/desktop-root", self._username
         )
         self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
@@ -125,8 +126,8 @@ class DesktopModule(decman.Module):
         )
         files.update(
             {
-                f"/home/{_username}/.local/share/applications/mimeapps.list": File(
-                    content=utils.dotfile.mimeapps_list.get_mimeapps_content(), owner=f"{_username}"
+                f"/home/{self._username}/.local/share/applications/mimeapps.list": File(
+                    content=utils.dotfile.mimeapps_list.get_mimeapps_content(), owner=f"{self._username}"
                 )
             }
         )
@@ -171,8 +172,8 @@ class DesktopModule(decman.Module):
             files.update(self._dotfiles.files("/etc/mkinitcpio.conf.d/nvidia.conf", "/etc/modprobe.d/nvidia.conf"))
             files.update(
                 {
-                    f"/home/{_username}/.config/uwsm/env-nvidia": File(
-                        content=get_nvidia_uwsm_user_config(), owner=f"{_username}"
+                    f"/home/{self._username}/.config/uwsm/env-nvidia": File(
+                        content=get_nvidia_uwsm_user_config(), owner=f"{self._username}"
                     )
                 }
             )
@@ -343,4 +344,4 @@ class DesktopModule(decman.Module):
         if utils.hardware.chassis_type.has_battery():
             desktop_user_services.add("nosarch-battery-monitor.timer")
 
-        return {f"{_username}": desktop_user_services}
+        return {f"{self._username}": desktop_user_services}

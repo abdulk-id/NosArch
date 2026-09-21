@@ -1,21 +1,22 @@
 from typing import override
 
 import decman
-import user_config.config_reader as userConfig
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman
-
-userConfig.load()
-_username: str = userConfig.get_str("user.username")
+from utils.user_config_reader import UserConfigReader
 
 
 class GamingModule(decman.Module):
-    def __init__(self) -> None:
+    def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="gaming_profile")
+
+        self._user_config: UserConfigReader = user_config_reader
+        self._username: str = self._user_config.get_str("user.username")
+
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/gaming-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/gaming-root", _username
+            "../dotfiles/gaming-root", self._username
         )
 
     @override

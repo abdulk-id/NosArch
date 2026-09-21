@@ -1,14 +1,13 @@
 import decman
-import user_config.config_reader as userConfig
 from decman.plugins import aur, pacman, systemd
-
-userConfig.load()
-_username: str = userConfig.get_str("user.username")
+from utils.user_config_reader import UserConfigReader
 
 
 class SetupModule(decman.Module):
-    def __init__(self) -> None:
+    def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="setup")
+        self._user_config: UserConfigReader = user_config_reader
+        self._username: str = self._user_config.get_str("user.username")
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:
@@ -38,4 +37,4 @@ class SetupModule(decman.Module):
 
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def systemd_user_services(self) -> dict[str, set[str]]:
-        return {f"{_username}": {"nosarch-eyesight-reminder.timer"}}
+        return {f"{self._username}": {"nosarch-eyesight-reminder.timer"}}

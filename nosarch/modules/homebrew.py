@@ -2,13 +2,8 @@ import os
 from typing import override
 
 import decman
-import user_config.config_reader as userConfig
 from decman import File
 from decman.plugins import pacman
-
-userConfig.load()
-_username: str = userConfig.get_str("user.username")
-
 
 # Standard Homebrew-on-Linux prefix. Everything the git-clone install creates
 # lives here, so teardown is a single directory removal.
@@ -21,8 +16,9 @@ class HomebrewModule(decman.Module):
     Bootstraps Homebrew itself so the `homebrew` plugin has a `brew` to drive.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, username) -> None:
         super().__init__(name="homebrew")
+        self._username: str = username
 
     @override
     def files(self) -> dict[str, File]:
@@ -36,7 +32,9 @@ class HomebrewModule(decman.Module):
         )
 
         return {
-            f"/home/{_username}/.bashrc.d/homebrew.bashrc": File(content=homebrew_bashrc_contents, owner=f"{_username}")
+            f"/home/{self._username}/.bashrc.d/homebrew.bashrc": File(
+                content=homebrew_bashrc_contents, owner=f"{self._username}"
+            )
         }
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
@@ -51,7 +49,7 @@ class HomebrewModule(decman.Module):
 
         # Root phase: create the prefix and hand it to the user.
         # (brew refuses to run as root, and owning the prefix up front means the clone needs no privileges.)
-        _ = decman.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {_username}:{_username} /home/linuxbrew")
+        _ = decman.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {self._username}:{self._username} /home/linuxbrew")
 
         # User phase: clone brew, link the launcher, prime the formula data.
         _ = decman.sh(
@@ -63,7 +61,7 @@ class HomebrewModule(decman.Module):
             + 'mkdir -p "$prefix/bin"\n'
             + 'ln -sf ../Homebrew/bin/brew "$prefix/bin/brew"\n'
             + '"$prefix/bin/brew" update --force --quiet\n',
-            user=_username,
+            user=self._username,
             mimic_login=True,
         )
 

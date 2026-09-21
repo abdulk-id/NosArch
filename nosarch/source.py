@@ -4,7 +4,6 @@ import sys
 
 import decman.config
 import decman.core.output
-import user_config.config_reader as userConfig
 import utils.aur_chroot
 from decman.extras.users import User, UserManager
 from modules.desktop import DesktopModule
@@ -18,9 +17,14 @@ from modules.usage_profiles.dev import DevModule
 from modules.usage_profiles.gaming import GamingModule
 from modules.user_defined import UserDefinedModule
 from plugins import homebrew
+from utils.user_config_reader import UserConfigReader
+
+# User config
+user_config: UserConfigReader = UserConfigReader()
+_username: str = user_config.get_str("user.username")
 
 # NosArch Works ===
-if userConfig.get_bool("advanced.enable_nosarch_works"):
+if user_config.get_bool("advanced.enable_nosarch_works"):
     # Machine setup ---
     decman.pacman.packages |= {"lynis", "namcap", "shellcheck"}
 
@@ -51,9 +55,6 @@ if userConfig.get_bool("advanced.enable_nosarch_works"):
             decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
 # ===
 
-userConfig.load()
-_username: str = userConfig.get_str("user.username")
-
 # Decman configuration ===
 decman.config.arch = "x86_64"
 decman.config.debug_output = False
@@ -69,7 +70,7 @@ if utils.aur_chroot.is_available():
     # satisfied, which aborts the build before anything is installed.
     decman.aur.commands = utils.aur_chroot.NoHostHooksAurCommands()
 
-if userConfig.get_bool("enable_homebrew"):
+if user_config.get_bool("enable_homebrew"):
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.insert(decman.execution_order.index("systemd"), "homebrew")
@@ -85,9 +86,9 @@ userManager.add_user(
         home=f"/home/{_username}",
         shell="/usr/bin/bash",
         groups=(_username, "wheel")
-        + (("libvirt",) if userConfig.get_bool("full_setup.enable_virtualization") else ())
+        + (("libvirt",) if user_config.get_bool("full_setup.enable_virtualization") else ())
         + (
-            ("input",) if userConfig.get_bool("profiles.gaming") else ()
+            ("input",) if user_config.get_bool("profiles.gaming") else ()
             # Allow user access to controller devices (/dev/input)
         ),
         system=False,
@@ -101,41 +102,46 @@ decman.modules += {userManager}
 # ===
 
 # Decman modules ===
-decman.modules += {SystemModule(), DesktopModule(), ThemingModule(), SetupModule()}
+decman.modules += {
+    SystemModule(user_config),
+    DesktopModule(user_config),
+    ThemingModule(user_config),
+    SetupModule(user_config),
+}
 
-if userConfig.get_bool("enable_homebrew"):
-    decman.modules += {HomebrewModule()}
+if user_config.get_bool("enable_homebrew"):
+    decman.modules += {HomebrewModule(_username)}
 
 desktop_enabled: bool = any(module.name == "desktop" for module in decman.modules)
 
-if userConfig.get_bool("profiles.full_setup"):
+if user_config.get_bool("profiles.full_setup"):
     if desktop_enabled:
-        decman.modules += {FullSetupModule()}
+        decman.modules += {FullSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Full setup profile requires Desktop module to be enabled.")
         raise SystemExit()
 
-if userConfig.get_bool("profiles.creative"):
+if user_config.get_bool("profiles.creative"):
     if desktop_enabled:
-        decman.modules += {CreativeModule()}
+        decman.modules += {CreativeModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Creative profile requires Desktop module to be enabled.")
         raise SystemExit()
 
-if userConfig.get_bool("profiles.dev"):
+if user_config.get_bool("profiles.dev"):
     if desktop_enabled:
-        decman.modules += {DevModule()}
+        decman.modules += {DevModule(user_config)}
     else:
         # Task for later: Make dev module workable without desktop
         decman.core.output.print_error("[PROFILES] Dev profile requires Desktop module to be enabled.")
         raise SystemExit()
 
-if userConfig.get_bool("profiles.gaming"):
+if user_config.get_bool("profiles.gaming"):
     if desktop_enabled:
-        decman.modules += {GamingModule()}
+        decman.modules += {GamingModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Gaming profile requires Desktop module to be enabled.")
         raise SystemExit()
 
-decman.modules += {UserDefinedModule()}
+decman.modules += {UserDefinedModule(user_config)}
 # ===

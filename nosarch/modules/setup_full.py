@@ -53,7 +53,7 @@ class FullSetupModule(decman.Module):
             "spotify",
             "spotify-adblock",
             "stacher7",  # yt-dlp frontend
-            "whatsie",
+            "whatsie-git",
         }
 
         if self._user_config.get_bool("full_setup.enable_virtualization"):

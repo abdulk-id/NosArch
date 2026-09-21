@@ -262,7 +262,7 @@ class DevModule(decman.Module):
         if "cursor" in self._editors:
             custom_pkgs.add(
                 aur.CustomPackage(
-                    pkgname="cursor-appimage", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-appimage")
+                    pkgname="cursor-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-nosarch")
                 )
             )
 

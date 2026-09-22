@@ -386,7 +386,7 @@ main() {
                     new_try_project "$@"
                     ;;
                 *)
-                    echo "Unknown action: $2"
+                    echo "Unknown action: ${2:-}"
                     show_help
                     exit 1
                     ;;

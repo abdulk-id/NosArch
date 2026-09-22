@@ -457,7 +457,7 @@ main() {
                     install_flatpak_packages
                     ;;
                 *)
-                    echo "Unknown install action: $2"
+                    echo "Unknown install action: ${2:-}"
                     show_help
                     exit 1
                     ;;

@@ -119,7 +119,7 @@ main() {
                     stop_eyesight_timer
                     ;;
                 *)
-                    echo "Unknown eyesight action: $2"
+                    echo "Unknown eyesight action: ${2:-}"
                     show_help
                     exit 1
                     ;;

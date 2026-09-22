@@ -305,7 +305,7 @@ main() {
                     idle_lock_status_waybar
                     ;;
                 *)
-                    echo "Unknown idle-lock action: $2"
+                    echo "Unknown idle-lock action: ${2:-}"
                     show_help
                     exit 1
                     ;;

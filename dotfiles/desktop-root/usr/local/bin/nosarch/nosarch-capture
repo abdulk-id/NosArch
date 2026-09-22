@@ -226,7 +226,7 @@ main() {
                     screenshot_all_monitors
                     ;;
                 *)
-                    echo "Unknown screenshot action: $2" >&2
+                    echo "Unknown screenshot action: ${2:-}" >&2
                     show_help
                     exit 1
                     ;;

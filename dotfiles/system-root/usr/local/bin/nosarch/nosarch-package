@@ -407,7 +407,11 @@ remove_unused_packages() {
     gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
     echo
 
-    if pacman -Qdtq | sudo pacman -Rns --noconfirm -; then
+    orphans=$(pacman -Qdtq || true)
+
+    if [ -z "$orphans" ]; then
+        gum style --foreground 10 "✓ No unused Arch/AUR packages found!"
+    elif printf '%s\n' "$orphans" | sudo pacman -Rns --noconfirm -; then
         echo
         gum style --foreground 10 "✓ Unused Arch/AUR packages removed!"
     else

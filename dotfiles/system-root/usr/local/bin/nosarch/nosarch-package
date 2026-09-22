@@ -41,6 +41,10 @@ update_db() {
 
 ## === Features ===
 install_arch_packages() {
+    for cmd in gum fzf; do
+        _ensure_command "$cmd"
+    done
+
     fzf_output=$(
         pacman -Slq | fzf \
         --multi \
@@ -82,6 +86,10 @@ install_arch_packages() {
 }
 
 install_aur_packages() {
+    for cmd in gum fzf yay; do
+        _ensure_command "$cmd"
+    done
+
     fzf_output=$(
         yay -Slqa | fzf \
             --multi \
@@ -127,45 +135,57 @@ install_aur_packages() {
 }
 
 install_flatpak_packages() {
-    TAB_CHAR=$(printf '\t')
+    if command -v flatpak >/dev/null 2>&1; then
+        for cmd in gum fzf; do
+            _ensure_command "$cmd"
+        done
 
-    # APP_ID<TAB>NAME<TAB>DESCRIPTION
-    pkg_selection=$(
-        flatpak remote-ls --app --columns=application,name,description | \
-        awk -F "$TAB_CHAR" '
-            !seen[$1]++ {
-                printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
-            }
-        ' | \
-        sort -t "$TAB_CHAR" -k2,2f |
-        fzf \
-            --multi \
-            --delimiter="$TAB_CHAR" \
-            --with-nth=2 \
-            --preview 'printf "%s\n" "{}" | cut -f3' \
-            --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos 'bottom' \
-            --preview-window 'down:55%:wrap' \
-            --bind 'alt-p:toggle-preview' \
-            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-            --bind 'alt-k:preview-up,alt-j:preview-down' \
-            --color 'pointer:green,marker:green'
-    ) || return 0
+        TAB_CHAR=$(printf '\t')
 
-    if [ -n "$pkg_selection" ]; then
-        pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
+        # APP_ID<TAB>NAME<TAB>DESCRIPTION
+        pkg_selection=$(
+            flatpak remote-ls --app --columns=application,name,description | \
+            awk -F "$TAB_CHAR" '
+                !seen[$1]++ {
+                    printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
+                }
+            ' | \
+            sort -t "$TAB_CHAR" -k2,2f |
+            fzf \
+                --multi \
+                --delimiter="$TAB_CHAR" \
+                --with-nth=2 \
+                --preview 'printf "%s\n" "{}" | cut -f3' \
+                --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+                --preview-label-pos 'bottom' \
+                --preview-window 'down:55%:wrap' \
+                --bind 'alt-p:toggle-preview' \
+                --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+                --bind 'alt-k:preview-up,alt-j:preview-down' \
+                --color 'pointer:green,marker:green'
+        ) || return 0
 
-        gum style --foreground 10 "▸ Installing Flatpak packages..."
+        if [ -n "$pkg_selection" ]; then
+            pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
 
-        if flatpak install --assumeyes $pkg_ids; then
-            gum style --foreground 10 "✓ Installation complete!"
-        else
-            gum style --foreground 9 "x Installation failed."
+            gum style --foreground 10 "▸ Installing Flatpak packages..."
+
+            if flatpak install --assumeyes $pkg_ids; then
+                gum style --foreground 10 "✓ Installation complete!"
+            else
+                gum style --foreground 9 "x Installation failed."
+            fi
         fi
+    else
+        gum style --foreground 9 "x Flatpak is not available on this system."
     fi
 }
 
 update_packages() {
+    for cmd in gum yay; do
+        _ensure_command "$cmd"
+    done
+
     gum style --foreground 10 "▸ Authenticating..."
 
     if ! start_sudo_keepalive; then
@@ -215,6 +235,10 @@ update_packages() {
 }
 
 remove_packages() {
+    for cmd in gum fzf yay; do
+        _ensure_command "$cmd"
+    done
+
     TAB_CHAR=$(printf '\t')
 
     # entry format: "[display type] - \t - internal type - \t - package name"
@@ -297,7 +321,6 @@ remove_packages() {
         tr '\n' ' '
     )
 
-    # Flatpak & Homebrew don't require sudo, so only authenticate for Arch/AUR removals.
     if [ -n "$pacman_pkgs" ]; then
         gum style --foreground 10 "▸ Authenticating..."
 
@@ -323,6 +346,10 @@ remove_packages() {
         fi
         echo
     fi
+
+    # Flatpak & Homebrew don't require sudo, so only authenticate for Arch/AUR removals.
+    stop_sudo_keepalive
+    trap - 0
 
     if [ -n "$flatpak_pkgs" ]; then
         gum style --foreground 10 "▸ Removing Flatpak packages..."
@@ -361,13 +388,13 @@ remove_packages() {
         echo
     fi
 
-    stop_sudo_keepalive
-    trap - 0
 
     $success
 }
 
 remove_unused_packages() {
+    _ensure_command gum
+
     gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
 
     orphans=$(pacman -Qdtq || true)
@@ -455,9 +482,5 @@ main() {
             ;;
     esac
 }
-
-for cmd in gum fzf yay; do
-    _ensure_command "$cmd"
-done
 
 main "$@"

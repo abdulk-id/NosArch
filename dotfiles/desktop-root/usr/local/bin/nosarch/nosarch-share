@@ -33,12 +33,15 @@ _ensure_command() {
 
 ## === Features ===
 pick_files() {
+    _ensure_command zenity
     zenity --file-selection --multiple --separator="$(printf '\n')"
 }
 pick_folder() {
+    _ensure_command zenity
     zenity --file-selection --directory
 }
 input_text() {
+    _ensure_command zenity
     zenity --text-info \
         --editable \
         --title="Share Text" \
@@ -51,6 +54,8 @@ input_text() {
 }
 
 share_files() {
+    _ensure_command localsend
+
     result="$(pick_files)" || return 0
 
     (
@@ -63,12 +68,16 @@ share_files() {
 }
 
 share_folder() (
+    _ensure_command localsend
+
     folder="$(pick_folder)" || return 0
 
     systemd-run --user --quiet --collect localsend --headless send "$folder"
 )
 
 share_text() (
+    _ensure_command localsend
+
     text="$(input_text)" || return 0
 
     tmpfile="$(mktemp --suffix=.txt)"
@@ -78,6 +87,8 @@ share_text() (
 )
 
 share_clipboard() (
+    _ensure_command localsend
+
     tmpfile="$(mktemp --suffix=.txt)"
     wl-paste > "$tmpfile"
 
@@ -114,9 +125,5 @@ main() {
             ;;
     esac
 }
-
-for cmd in localsend fzf xdg-terminal-exec; do
-    _ensure_command "$cmd"
-done
 
 main "$@"

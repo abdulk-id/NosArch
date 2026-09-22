@@ -62,7 +62,10 @@ share_files() {
         IFS='
 '
         set -f
-        set -- "$result"
+        # Split the newline-separated selection into one path per argument
+        # (IFS is newline, globs are off).
+        # shellcheck disable=SC2086
+        set -- $result
         systemd-run --user --quiet --collect localsend --headless send "$@"
     )
 }

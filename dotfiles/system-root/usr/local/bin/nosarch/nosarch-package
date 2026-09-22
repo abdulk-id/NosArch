@@ -206,7 +206,7 @@ update_packages() {
         echo
         gum style --foreground 10 "▸ Updating Homebrew packages..."
 
-        if brew update; then
+        if brew upgrade; then
             gum style --foreground 10 "✓ Homebrew packages updated!"
         else
             gum style --foreground 9 "x Homebrew package update failed."

@@ -93,7 +93,13 @@ share_clipboard() (
     _ensure_command localsend
 
     tmpfile="$(mktemp --suffix=.txt)"
-    wl-paste > "$tmpfile"
+
+    # wl-paste exits non-zero on an empty clipboard, which would error under `set -e`
+    if ! wl-paste > "$tmpfile" 2>/dev/null; then
+        rm --force "$tmpfile"
+        echo "Error: clipboard is empty or has no shareable content." >&2
+        return 1
+    fi
 
     systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
 )

@@ -22,7 +22,7 @@ Idle-Lock actions:
     enable                  Enable Idle-Lock
     disable                 Disable idle-lock
     status                  Check idle-lock state (outputs "true" if enabled, "false" otherwise)
-        status-waybar           Check idle-lock state (outputs JSON for waybar)
+    status-waybar           Check idle-lock state (outputs JSON for waybar)
 EOF
 }
 

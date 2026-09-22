@@ -15,7 +15,7 @@ Commands:
     install <action>        Install packages
     update                  Update packages (Arch and AUR, and Flatpak and Homebrew if installed)
     remove                  Remove packages (Arch and AUR, and Flatpak and Homebrew if installed)
-    remove-unused           Remove unused packages (Arch and AUR)
+    remove-unused           Remove unused packages (Arch and AUR, and Flatpak and Homebrew if installed)
     help                    Show this help message
 
 Install actions:

@@ -95,7 +95,7 @@ main() {
         file|files)
             share_files
             ;;
-            folder|folders)
+        folder|folders)
             share_folder
             ;;
         text)

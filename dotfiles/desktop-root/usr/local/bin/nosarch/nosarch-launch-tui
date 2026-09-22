@@ -30,7 +30,7 @@ done
 
 [ "$#" -eq 0 ] && {
     show_help
-    return
+    exit 0
 }
 
 : "${TERMINAL:=xdg-terminal-exec}"
@@ -42,8 +42,7 @@ TITLE="TUI.$(printf '%s' "$FULL_CMD" | sed 's/ /_/g')"
 # --- Refocus existing window if present ---
 ADDR=$(
     hyprctl clients -j |
-    jq -r \
-        ".[] | select(.title == \"$TITLE\") | .address" |
+    jq -r --arg title "$TITLE" '.[] | select(.title == $title) | .address' |
     head -n1
 )
 

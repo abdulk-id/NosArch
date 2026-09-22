@@ -110,6 +110,9 @@ _reexec_in_graphical_session() {
 ## === Features ===
 IDLE_LOCK_UNIT="nosarch-idle-inhibit.service"
 
+# Deployed by the desktop module; absent on system-only machines.
+WELLBEING_BIN="/usr/local/bin/nosarch/nosarch-wellbeing"
+
 enable_idle_lock() {
     ## TODO: Second line: use IDLE_LOCK_UNIT in the --unit argument as well
     systemd-run --user \
@@ -162,8 +165,10 @@ session_lock() {
     # Set keyboard layout to default (first layout)
     hyprctl switchxkblayout all 0 > /dev/null 2>&1
 
-    # Stop the eyesight reminder timer
-    nosarch-wellbeing eyesight stop
+    # Stop the eyesight reminder timer (desktop module; skip when absent)
+    if [ -x "$WELLBEING_BIN" ]; then
+        "$WELLBEING_BIN" eyesight stop
+    fi
 
     # Lock the screen (use lock helper script to avoid blocking)
     if ! pidof hyprlock >/dev/null; then
@@ -172,9 +177,8 @@ session_lock() {
 }
 session_after_unlock() {
     # Start the eyesight reminder timer if enabled
-
-    if [ "$(nosarch-wellbeing eyesight status)" = "true" ]; then
-        nosarch-wellbeing eyesight start
+    if [ -x "$WELLBEING_BIN" ] && [ "$("$WELLBEING_BIN" eyesight status)" = "true" ]; then
+        "$WELLBEING_BIN" eyesight start
     fi
 }
 

@@ -1,56 +1,59 @@
 # Custom packages
 
-How to install an app that ships no Arch package — an AppImage, a vendor tarball, or the
-payload behind a `curl | bash` installer — and have decman manage it like any other package.
+For apps which do not have an Arch or Homebrew package, a custom package should be used. This custom package
+implementation allows installing AppImages, vendor tarballs, or payloads behind `curl https://... | bash` installers.
+Custom packages allows installing these as Arch packages that decman and pacman can manage.
 
 ## Why not the AUR
 
-A custom package is a PKGBUILD kept in this repo under `nosarch/packages/`. decman builds it
-in a clean chroot and hands the result to pacman, exactly as it would an AUR package. The
-difference is where the recipe comes from:
+- **Security**: The PKGBUILD is managed by us. For a repackaged binary, we manage a URL and a checksum, which is
+  easier to audit than an unfamiliar maintainer's build script. The checksum is a guarantee `curl | bash` cannot
+  offer, since an install script fetches whatever is at the URL at the time.
+- **Reliability**: Nothing resolves through the AUR, so a package cannot be orphaned or deleted out from under a run.
 
-- **Security.** The recipe is ours. For a repackaged binary it amounts to a URL and a
-  checksum, which is far less to audit than an unfamiliar maintainer's build script — and
-  the checksum is a guarantee `curl | bash` cannot offer, since an install script fetches
-  whatever is at the URL today.
-- **Reliability.** Nothing resolves through the AUR RPC, so a package cannot be renamed,
-  orphaned, or deleted out from under a run.
+The cost is that we have to manage version bumps. `tools/check_custom_packages.py` checks for outdated versions and
+find the latest version to bump to.
 
-The cost is that version bumps are ours too. `tools/check_custom_packages.py` exists to make
-that cost visible rather than silent.
+## Adding a custom package
 
-## Adding one
+A custom package is a PKGBUILD kept in this repo under `nosarch/packages/`.
 
 ### 1. Create the directory
 
-One directory per package under `nosarch/packages/`, named exactly as the `pkgname` it
-builds. The checker enforces the match.
-
-```sh
-mkdir nosarch/packages/example-appimage
-```
+One directory per package under `nosarch/packages/`, named exactly as the `pkgname` it builds.
 
 ### 2. Get the download URL and its checksum
 
-```sh
-curl --location --output example.AppImage "<url>"
-sha256sum example.AppImage
-```
+The goal is always the same regardless of upstream's distribution method: find the actual file(s) `package()` needs to
+fetch, and pin each with a checksum.
 
-Keep the hash. Pinning it is the entire security argument for this approach: if the bytes at
-that URL ever change, the build fails loudly instead of installing something new.
+- **AppImage or tarball**: the download URL is the artifact itself.
+
+    ```sh
+    curl --location --output example.AppImage "<url>"
+    sha256sum example.AppImage
+    ```
+
+- **`curl https://... | bash` installer**: Read the installer script to find the URL(s) it fetches (a `.deb`, tarball,
+  or binary), and pin those instead. If the script builds the URL from a version string, that version is what
+  [step 4](#4-declare-where-upstream-lives)'s directive needs to track.
+
+    ```sh
+    curl --location "<installer-url>" | less   # read it, don't run it
+    curl --location --output example.tar.gz "<real-payload-url-found-in-script>"
+    sha256sum example.tar.gz
+    ```
+
+Keep every hash to pin them so if the bytes at a pinned URL ever change, the build fail instead of installing
+something unexpected.
 
 ### 3. Write the PKGBUILD
 
-Start from the template in `nosarch/packages/README.md`, which also explains what each field
-means and how `$pkgdir` maps onto the installed filesystem. The short version: a PKGBUILD is
-a shell script that sets some variables and defines `prepare()` and `package()`; `package()`
-fills a fake root, and whatever path you create under `$pkgdir` is the path the file lands on
-at install time.
+Match the existing custom package PKGBUILDs.
 
 ### 4. Declare where upstream lives
 
-Add one directive comment so the checker can tell when the package falls behind:
+Add one directive comment near the top of the PKGBUILD so the checker can tell when the package version is old:
 
 ```bash
 # nosarch-upstream: github <owner>/<repo>
@@ -58,18 +61,31 @@ Add one directive comment so the checker can tell when the package falls behind:
 # nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'
 ```
 
-| Form                      | Use when                          | Notes                                                                             |
-| ------------------------- | --------------------------------- | --------------------------------------------------------------------------------- |
-| `github <owner>/<repo>`   | The app has GitHub releases       | Reads `tag_name`, strips a leading `v`. Try this first.                           |
-| `json <url> <dotted.key>` | The vendor has an update endpoint | Find it with DevTools' Network tab on their download page, filtered to XHR/Fetch. |
-| `regex <url> <pattern>`   | Neither of the above              | One capture group. Brittle — vendors restyle pages.                               |
+| Form                      | Use when                          | Notes                                                                                     |
+| ------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------- |
+| `github <owner>/<repo>`   | The app has GitHub releases       | Reads `tag_name`, strips a leading `v`.                                                   |
+| `json <url> <dotted.key>` | The vendor has an update endpoint | Find it with Browser DevTools' Network tab on their download page, filtered to XHR/Fetch. |
+| `regex <url> <pattern>`   | Neither of the above              | One capture group. Brittle — vendors restyle pages.                                       |
 
-The directive is optional. Without it the package is still validated, just never
-version-checked, and the checker warns once per run.
+The directive is optional. Without it the package is never version-checked.
+
+#### Regex directive
+
+The checker fetches `<url>` as plain text (the raw HTML, not rendered) and runs `<pattern>` against it as a Python
+regex. Whatever the single capture group `(...)` matches is treated as the current upstream version.
+
+Example: a vendor's download page contains `href="/dl/Example-2.4.1-x86_64.AppImage"`. The directive
+`# nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'` matches that text and captures
+`2.4.1`.
+
+Keep exactly one capture group as the checker uses group 1 and ignores the rest of the match.
+
+If the page renders its download links client-side (nothing but a JS bundle in the raw HTML), `regex` cannot see them.
+In that case, look for a `json` endpoint the page calls instead.
 
 ### 5. Wire it into a module
 
-Declare it from whichever module owns the app, alongside that module's other package hooks:
+Declare it in whichever module owns the app. Example:
 
 ```python
 import os
@@ -80,7 +96,7 @@ from decman.plugins import aur
 _PACKAGES_DIR: str = os.path.abspath("packages")
 
 
-    @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.custom_packages
     def custom_pkgs(self) -> set[aur.CustomPackage]:
         return {
             aur.CustomPackage(
@@ -90,8 +106,8 @@ _PACKAGES_DIR: str = os.path.abspath("packages")
         }
 ```
 
-decman prefers custom packages over AUR packages of the same name, so a name collision with
-something in the AUR is harmless — the AUR entry is never fetched.
+Note: decman prefers custom packages over AUR packages of the same name, so a name collision with something in the AUR
+is harmless.
 
 ### 6. Check it
 
@@ -99,36 +115,34 @@ something in the AUR is harmless — the AUR entry is never fetched.
 python3 tools/check_custom_packages.py --build
 ```
 
-`--build` is slow but is the only way namcap can audit `depends`. Then review what the
-package actually claims before trusting it:
+pass `--build` so namcap can audit `depends` (slower process).
+
+Then review what paths the package actually installs to, so an unexpected path stands out:
 
 ```sh
 pacman --query --list --file *.pkg.tar.zst
 ```
 
-That listing is the real review step — it shows every path the package would install, so an
-unexpected path stands out without reading any shell.
-
 ## The checker
 
-`tools/check_custom_packages.py` covers both halves: whether each `pkgver` is behind
-upstream, and whether the PKGBUILD itself is sound (structural checks, plus namcap when it
-is installed).
+`tools/check_custom_packages.py` checks whether each `pkgver` is behind upstream, and whether the PKGBUILD itself is
+sound (structural checks and namcap audits).
 
-It exits with a tiered status so a caller can distinguish "this will break the run" from
-"this is merely stale":
+The checker exits with the following codes
 
-| Code | Meaning                                                                                                                        |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `0`  | Every package is valid and current.                                                                                            |
-| `1`  | At least one package has an **error**: it does not parse, fails validation, or trips namcap. decman will fail to build it.     |
-| `2`  | No errors, but at least one **warning**: behind upstream, no upstream declared, or the lookup failed. Everything still builds. |
+| Exit Code | Meaning                                                                                                                        |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `0`       | Every package is valid and current.                                                                                            |
+| `1`       | At least one package has an **error**: it does not parse, fails validation, or trips namcap. decman will fail to build it.     |
+| `2`       | No errors, but at least one **warning**: behind upstream, no upstream declared, or the lookup failed. Everything still builds. |
 
-Errors outrank warnings; a run with both exits `1`. `nosarch/source.py` runs it on every
-decman invocation and aborts only on `1`.
+Errors outrank warnings; a run with both exits `1`.
 
-Useful flags: `--offline` skips every network lookup, `--quiet` prints only packages with
-something to report, and `--package NAME` narrows to one.
+Flags:
+
+- `--offline` skips every network lookup,
+- `--quiet` prints only packages with something to report,
+- `--package NAME` narrows to one specific package
 
 ## Bumping a version
 
@@ -139,20 +153,13 @@ something to report, and `--package NAME` narrows to one.
 
 ## Gotchas
 
-These are real failures this repo has hit, not hypotheticals.
-
-**Pin every remote source.** `SKIP` in `sha256sums` is legitimate only for files shipped
-alongside the PKGBUILD. The checker treats `SKIP` on an `http(s)`/`git+` source as an error.
-
-**`LicenseRef-` obliges you to ship the license.** A non-standard license identifier requires
-the license text under `/usr/share/licenses/$pkgname/`, or namcap fails the package. Vendor
-archives usually contain one — extract it in `prepare()` and install it in `package()`.
-
-**Not every AppImage bundles a `.desktop` entry and icons.** Run `--appimage-extract` by hand
-once and look before assuming they are there. When they are, install them from the extracted
-tree rather than hand-maintaining copies; check that the entry's `Icon=` name matches the
-icon files it ships, since vendors get this wrong.
-
-**Expect namcap noise on repackaged binaries.** Unstripped ELFs, files outside FHS paths, and
-missing hardening flags are properties of a binary we did not compile. The checker already
-excludes those rules; do not "fix" them in the PKGBUILD.
+- **Pin every remote source**: `SKIP` in `sha256sums` is legitimate only for files shipped alongside the PKGBUILD.
+  The checker treats `SKIP` on an `http(s)`/`git+` source as an error.
+- **`LicenseRef-` obliges you to ship the license**: A non-standard license identifier requires the license text under
+  `/usr/share/licenses/$pkgname/`, or namcap fails the package. Vendor archives usually contain one. Extract it in
+  `prepare()` and install it in `package()`.
+- **Not every AppImage bundles a `.desktop` entry and icons**: Run `--appimage-extract` by hand once and look before
+  assuming they are there. Also check that the desktop entry's `Icon=` name matches the icon files it ships.
+- **Expect namcap noise on repackaged binaries**: Unstripped ELFs, files outside FHS paths, and missing hardening
+  flags are properties of a binary we did not compile. The checker already excludes those rules. Do not "fix" them in
+  the PKGBUILD.

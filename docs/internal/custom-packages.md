@@ -22,6 +22,9 @@ A custom package is a PKGBUILD kept in this repo under `nosarch/packages/`.
 
 One directory per package under `nosarch/packages/`, named exactly as the `pkgname` it builds.
 
+To avoid name collisions with packages from the AUR, suffix the name with `-nosarch`. So if there is a name collision,
+AUR helpers would not assume it is an AUR package and try to update it themselves.
+
 ### 2. Get the download URL and its checksum
 
 The goal is always the same regardless of upstream's distribution method: find the actual file(s) `package()` needs to
@@ -105,9 +108,6 @@ _PACKAGES_DIR: str = os.path.abspath("packages")
             )
         }
 ```
-
-Note: decman prefers custom packages over AUR packages of the same name, so a name collision with something in the AUR
-is harmless.
 
 ### 6. Check it
 

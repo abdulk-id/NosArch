@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Lock, log out, restart, shutdown, and manage idle-lock
 
 set -eu
 

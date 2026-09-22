@@ -1,4 +1,6 @@
 #!/bin/sh
+# Managed by NosArch
+# nosarch:summary=Scaffold and list try-projects
 
 set -eu
 

@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Run a TUI in a floating terminal window
 
 set -eu
 

@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Screenshots, text extraction, and color picking
 
 set -eu
 

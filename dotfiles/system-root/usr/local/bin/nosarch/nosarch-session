@@ -338,4 +338,7 @@ main() {
     esac
 }
 
-main "$@"
+# Run main only when executed directly; when sourced (nosarch-lock-helper.sh), this file must only define functions.
+case "${0##*/}" in
+    nosarch-session) main "$@" ;;
+esac

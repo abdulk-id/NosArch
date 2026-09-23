@@ -32,9 +32,15 @@ _ensure_command() {
 
 
 ## === Features ===
+
+# localsend has no API to clear its send selection. If an instance is already running, a new share is appended to
+# whatever is already selected. Clearing it requires the UI button in the app.
+
 pick_files() {
     _ensure_command zenity
-    zenity --file-selection --multiple --separator="$(printf '\n')"
+    separator='
+'
+    zenity --file-selection --multiple --separator="$separator"
 }
 pick_folder() {
     _ensure_command zenity
@@ -62,11 +68,12 @@ share_files() {
         IFS='
 '
         set -f
-        # Split the newline-separated selection into one path per argument
-        # (IFS is newline, globs are off).
+
+        # Split the newline-separated selection into one path per argument (IFS is newline, globs are off).
         # shellcheck disable=SC2086
         set -- $result
-        systemd-run --user --quiet --collect localsend --headless send "$@"
+
+        systemd-run --user --quiet --collect localsend "$@"
     )
 }
 
@@ -75,7 +82,7 @@ share_folder() (
 
     folder="$(pick_folder)" || return 0
 
-    systemd-run --user --quiet --collect localsend --headless send "$folder"
+    systemd-run --user --quiet --collect localsend "$folder"
 )
 
 share_text() (
@@ -86,7 +93,7 @@ share_text() (
     tmpfile="$(mktemp --suffix=.txt)"
     echo "$text" > "$tmpfile"
 
-    systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
+    systemd-run --user --quiet --collect localsend "$tmpfile"
 )
 
 share_clipboard() (
@@ -101,7 +108,7 @@ share_clipboard() (
         return 1
     fi
 
-    systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
+    systemd-run --user --quiet --collect localsend "$tmpfile"
 )
 
 ## ===

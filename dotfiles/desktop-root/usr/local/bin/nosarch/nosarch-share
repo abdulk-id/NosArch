@@ -59,6 +59,36 @@ input_text() {
         --cancel-label="Cancel"
 }
 
+# True when the argument contains at least one non-whitespace character.
+has_content() {
+    case "$1" in
+        *[![:space:]]*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Share a text message through localsend's `--text` flag
+share_message() (
+    _ensure_command localsend
+
+    text="$1"
+    text_bytes="$(printf '%s' "$text" | wc -c)"
+
+    # Linux caps a single argument at 128 KB, so anything larger falls back to sharing a temporary .txt file.
+    if [ "$text_bytes" -le 102400 ]; then
+        systemd-run --user --quiet --collect localsend --text "$text"
+    else
+        echo "Warning: text exceeds the command-line argument limit; sharing as a file instead." >&2
+        tmpfile="$(mktemp --suffix=.txt)"
+        printf '%s\n' "$text" > "$tmpfile"
+        systemd-run --user --quiet --collect localsend "$tmpfile"
+    fi
+)
+
 share_files() {
     _ensure_command localsend
 
@@ -90,19 +120,69 @@ share_text() (
 
     text="$(input_text)" || return 0
 
-    tmpfile="$(mktemp --suffix=.txt)"
-    echo "$text" > "$tmpfile"
+    # localsend ignores an empty --text message. So ignore blank input.
+    has_content "$text" || return 0
 
-    systemd-run --user --quiet --collect localsend "$tmpfile"
+    share_message "$text"
 )
+
+# Map a clipboard MIME type to a file extension for the temporary file that a non-text clipboard is shared as.
+#
+# The clipboard only exposes a MIME type, but localsend takes a path and infers the file type purely from the
+# extension (receiver preview, gallery saving, the recipient's filename). Without this the payload would arrive as an
+# unidentifiable FileType.other file named e.g. "tmp.XvK9dQ".
+mime_to_extension() {
+    case "$1" in
+        image/png) echo "png" ;;
+        image/jpeg) echo "jpg" ;;
+        image/gif) echo "gif" ;;
+        image/webp) echo "webp" ;;
+        image/bmp) echo "bmp" ;;
+        image/tiff) echo "tiff" ;;
+        image/svg+xml) echo "svg" ;;
+        video/mp4) echo "mp4" ;;
+        video/webm) echo "webm" ;;
+        audio/mpeg) echo "mp3" ;;
+        audio/wav) echo "wav" ;;
+        application/pdf) echo "pdf" ;;
+        application/zip) echo "zip" ;;
+        *)
+            # Fall back to the sanitized subtype, e.g. "application/x-thing" -> "x-thing".
+            subtype="${1#*/}"
+            subtype="${subtype%%;*}"
+            subtype="${subtype%%+*}"
+            printf '%s' "$subtype" | tr -c 'A-Za-z0-9._-' '_'
+            ;;
+    esac
+}
 
 share_clipboard() (
     _ensure_command localsend
 
-    tmpfile="$(mktemp --suffix=.txt)"
+    # Prefer text: share it as an in-app message (recipient sees a text box).
+    if text="$(wl-paste --type text 2>/dev/null)"; then
+        # wl-paste can succeed with only whitespace; treat that as empty.
+        has_content "$text" || {
+            echo "Error: clipboard is empty or has no shareable content." >&2
+            return 1
+        }
 
-    # wl-paste exits non-zero on an empty clipboard, which would error under `set -e`
-    if ! wl-paste > "$tmpfile" 2>/dev/null; then
+        share_message "$text"
+        return 0
+    fi
+
+    # Non-text clipboard (image, etc.): pick the best offered type and share
+    # the raw payload as a file.
+    mime="$(wl-paste --list-types 2>/dev/null | sed -n '1p')"
+    if [ -z "$mime" ]; then
+        echo "Error: clipboard is empty or has no shareable content." >&2
+        return 1
+    fi
+
+    tmpfile="$(mktemp --suffix=".$(mime_to_extension "$mime")")"
+
+    # --no-newline so binary payloads are never corrupted with an appended newline.
+    if ! wl-paste --no-newline --type "$mime" > "$tmpfile" 2>/dev/null || [ ! -s "$tmpfile" ]; then
         rm --force "$tmpfile"
         echo "Error: clipboard is empty or has no shareable content." >&2
         return 1

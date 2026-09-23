@@ -20,7 +20,9 @@ class FullSetupModule(decman.Module):
 
     @override
     def files(self) -> dict[str, File]:
-        return self._userhome_dotfiles.files("/.config/obsidian/user-flags.conf")
+        return self._userhome_dotfiles.files(
+            "/.config/obsidian/user-flags.conf", "/.local/share/applications/dua-cli.desktop"
+        )
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

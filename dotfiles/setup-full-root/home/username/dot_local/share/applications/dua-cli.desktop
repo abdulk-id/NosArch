@@ -1,0 +1,9 @@
+# Managed by NosArch
+
+[Desktop]
+Name=Disk Usage
+Comment=Analyze disk usage
+Exec=nosarch-launch-tui dua interactive
+TryExec=dua
+Type=Application
+Categories=Utilities;

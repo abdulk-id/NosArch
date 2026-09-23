@@ -266,6 +266,14 @@ class DevModule(decman.Module):
                 )
             )
 
+        if self._t3code_needed():
+            # Only install T3-Code if the providers it supports are installed
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="t3code-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "t3code-cli-nosarch")
+                )
+            )
+
         return custom_pkgs
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]

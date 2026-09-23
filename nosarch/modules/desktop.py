@@ -309,7 +309,6 @@ class DesktopModule(decman.Module):
             "hyprland-preview-share-picker-git",
             "hyprqt6engine",
             "still",
-            "xdg-terminal-exec",
             "walker-bin",
         }
 
@@ -318,7 +317,7 @@ class DesktopModule(decman.Module):
 
         return desktop_set
 
-    decman.aur.ignored_packages.add("nosarch-dash-bin")
+    decman.aur.ignored_packages |= {"xdg-terminal-exec", "nosarch-dash-bin"}
 
     @flatpak.packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_pkgs(self) -> set[str]:

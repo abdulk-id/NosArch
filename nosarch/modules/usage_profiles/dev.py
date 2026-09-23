@@ -274,6 +274,13 @@ class DevModule(decman.Module):
                 )
             )
 
+        if self._agents.__contains__("grok-build"):
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="grok-build-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "grok-build-nosarch")
+                )
+            )
+
         return custom_pkgs
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]

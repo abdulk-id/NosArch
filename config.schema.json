@@ -59,7 +59,7 @@
                     "description": "List of AI agents to install",
                     "items": {
                         "type": "string",
-                        "enum": ["claude-code", "codex", "copilot-cli", "gemini-cli", "kilocode", "omp", "opencode"]
+                        "enum": ["claude-code", "codex", "copilot-cli", "gemini-cli", "grok-build", "kilocode", "omp", "opencode"]
                     },
                     "uniqueItems": true
                 },

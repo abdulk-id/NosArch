@@ -14,6 +14,7 @@ Declaring an upstream is opt-in. Add one directive to the PKGBUILD:
 
     # nosarch-upstream: json <url> <dotted.key>
     # nosarch-upstream: github <owner>/<repo>
+    # nosarch-upstream: text <url>
     # nosarch-upstream: regex <url> <pattern with one capture group>
 
 Without it, the package is only validated, never version-checked.
@@ -251,6 +252,10 @@ def read_upstream(package_dir: Path) -> Upstream | None:
     if kind == "github":
         return Upstream(kind=kind, url=f"https://api.github.com/repos/{parts[1]}/releases/latest")
 
+    # `text` needs only a URL: the body itself is the version.
+    if kind == "text":
+        return Upstream(kind=kind, url=parts[1])
+
     if len(parts) < 3:
         return None
 
@@ -290,6 +295,17 @@ def upstream_version(upstream: Upstream) -> str:
             raise ValueError(f"'{upstream.selector}' is not a scalar")
 
         return str(value)
+
+    if upstream.kind == "text":
+        # The body is a bare version string (what the vendor's own installer
+        # reads). Take the first line, strip surrounding whitespace — same
+        # normalization the installers do.
+        lines: list[str] = body.strip().splitlines()
+
+        if not lines:
+            raise ValueError("body is empty")
+
+        return lines[0].strip()
 
     if upstream.kind == "regex":
         assert upstream.selector is not None

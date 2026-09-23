@@ -61,14 +61,16 @@ Add one directive comment near the top of the PKGBUILD so the checker can tell w
 ```bash
 # nosarch-upstream: github <owner>/<repo>
 # nosarch-upstream: json https://example.com/api/latest version
+# nosarch-upstream: text https://example.com/stable
 # nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'
 ```
 
-| Form                      | Use when                          | Notes                                                                                     |
-| ------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------- |
-| `github <owner>/<repo>`   | The app has GitHub releases       | Reads `tag_name`, strips a leading `v`.                                                   |
-| `json <url> <dotted.key>` | The vendor has an update endpoint | Find it with Browser DevTools' Network tab on their download page, filtered to XHR/Fetch. |
-| `regex <url> <pattern>`   | Neither of the above              | One capture group. Brittle — vendors restyle pages.                                       |
+| Form                      | Use when                                   | Notes                                                                                      |
+| ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `github <owner>/<repo>`   | The app has GitHub releases                | Reads `tag_name`, strips a leading `v`.                                                    |
+| `json <url> <dotted.key>` | The vendor has an update endpoint          | Find it with Browser DevTools' Network tab on their download page, filtered to XHR/Fetch.  |
+| `text <url>`              | The vendor publishes a bare version string | The body _is_ the version (what the vendor's own installer reads). First line; no parsing. |
+| `regex <url> <pattern>`   | Neither of the above                       | One capture group. Brittle — vendors restyle pages. Prefer the other kinds when possible.  |
 
 The directive is optional. Without it the package is never version-checked.
 

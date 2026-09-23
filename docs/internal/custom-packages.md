@@ -52,6 +52,21 @@ something unexpected.
 
 ### 3. Write the PKGBUILD
 
+Writing style:
+
+- `# Maintainer: NosArch` as the first line, with the `# nosarch-upstream:` directive
+  ([step 4](#4-declare-where-upstream-lives)) as the comment block right after it.
+- Group the rest into two blocks, separated by a blank line:
+    - Package info first, in this order: `pkgname`, `pkgdesc`, `pkgver`, `pkgrel`, `url`, `license`.
+    - Build info second, in this order: `arch`, `depends`, `provides`, `conflicts` (if any), `options`, `source`,
+      `sha256sums`.
+- Then the functions, in this order, defining only the ones the package actually needs: `prepare()`, `build()`,
+  `package()`.
+- Always install the package's own `LICENSE`/similar file under `/usr/share/licenses/$pkgname/`, even when `license=`
+  is a standard SPDX identifier and nothing forces it (see the `LicenseRef-` gotcha below for when it's mandatory).
+- If the package offers shell completions, install them, but as best-effort. Guard the generation with `|| true` and
+  only install a completion file if it came out non-empty A missing completion should never fail the build.
+
 Match the existing custom package PKGBUILDs.
 
 ### 4. Declare where upstream lives
@@ -65,16 +80,22 @@ Add one directive comment near the top of the PKGBUILD so the checker can tell w
 # nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'
 ```
 
-| Form                      | Use when                                   | Notes                                                                                      |
-| ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `github <owner>/<repo>`   | The app has GitHub releases                | Reads `tag_name`, strips a leading `v`.                                                    |
-| `json <url> <dotted.key>` | The vendor has an update endpoint          | Find it with Browser DevTools' Network tab on their download page, filtered to XHR/Fetch.  |
-| `text <url>`              | The vendor publishes a bare version string | The body _is_ the version (what the vendor's own installer reads). First line; no parsing. |
-| `regex <url> <pattern>`   | Neither of the above                       | One capture group. Brittle — vendors restyle pages. Prefer the other kinds when possible.  |
+| Form                      | Use when                                   | Notes                                                                                       |
+| ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `github <owner>/<repo>`   | The app has GitHub releases                | Reads `tag_name`, strips a leading `v`.                                                     |
+| `json <url> <dotted.key>` | The vendor has an update endpoint          | Find it with Browser DevTools' Network tab on their download page, filtered to XHR/Fetch.   |
+| `text <url>`              | The vendor publishes a bare version string | The body is the version (what the vendor's own installer reads). First line; no parsing.    |
+| `regex <url> <pattern>`   | Neither of the above                       | One capture group. Fragile as vendors restyle pages. Prefer other directives when possible. |
 
-The directive is optional. Without it the package is never version-checked.
+The directive is optional. Without it the package is not version-checked.
 
 #### Regex directive
+
+> `regex` is fragile and should be a last resort. `json` and `text` point at an endpoint the vendor's own installer or
+> updater reads to check for new versions, so it's a de facto stable contract. `regex` instead scrapes a page meant
+> for a browser, not a scraper. A marketing copy update, a redesign, an A/B test, or a locale change can all move or
+> reword the surrounding text without the vendor considering it a breaking change. Prefer other directives.
+> Use `regex` only when a page is truly the only place the version is published.
 
 The checker fetches `<url>` as plain text (the raw HTML, not rendered) and runs `<pattern>` against it as a Python
 regex. Whatever the single capture group `(...)` matches is treated as the current upstream version.
@@ -86,7 +107,6 @@ Example: a vendor's download page contains `href="/dl/Example-2.4.1-x86_64.AppIm
 Keep exactly one capture group as the checker uses group 1 and ignores the rest of the match.
 
 If the page renders its download links client-side (nothing but a JS bundle in the raw HTML), `regex` cannot see them.
-In that case, look for a `json` endpoint the page calls instead.
 
 ### 5. Wire it into a module
 
@@ -99,7 +119,6 @@ from decman.plugins import aur
 # decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its
 # directory, so package paths resolve relative to `nosarch/`, not to this file.
 _PACKAGES_DIR: str = os.path.abspath("packages")
-
 
     @aur.custom_packages
     def custom_pkgs(self) -> set[aur.CustomPackage]:
@@ -158,8 +177,7 @@ Flags:
 - **Pin every remote source**: `SKIP` in `sha256sums` is legitimate only for files shipped alongside the PKGBUILD.
   The checker treats `SKIP` on an `http(s)`/`git+` source as an error.
 - **`LicenseRef-` obliges you to ship the license**: A non-standard license identifier requires the license text under
-  `/usr/share/licenses/$pkgname/`, or namcap fails the package. Vendor archives usually contain one. Extract it in
-  `prepare()` and install it in `package()`.
+  `/usr/share/licenses/$pkgname/`, or namcap fails the package. Vendor archives usually contain one. Install it.
 - **Not every AppImage bundles a `.desktop` entry and icons**: Run `--appimage-extract` by hand once and look before
   assuming they are there. Also check that the desktop entry's `Icon=` name matches the icon files it ships.
 - **Expect namcap noise on repackaged binaries**: Unstripped ELFs, files outside FHS paths, and missing hardening

@@ -25,12 +25,13 @@ _username: str = user_config.get_str("user.username")
 
 # NosArch Works ===
 if user_config.get_bool("advanced.enable_nosarch_works"):
+    # decman.config.debug_output = True
+    decman.config.quiet_output = False
+
     # Machine setup ---
     decman.pacman.packages |= {"lynis", "namcap", "shellcheck"}
 
     # Checks ---
-    # `decman` doesn't forward custom CLI flags to this file, so this is toggled via an env var:
-    # `NOSARCH_SKIP_CHECKS=1 sudo -E decman --source ...` skips the checks for that run.
     DISABLE_CHECKS_PARAM: bool = os.environ.get("NOSARCH_DECMAN_SKIP_CHECKS") == "1"
 
     if DISABLE_CHECKS_PARAM:
@@ -53,21 +54,21 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
             raise SystemExit()
         elif _custom_package_check.returncode == 2:
             decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
+else:
+    decman.config.debug_output = False
+    decman.config.quiet_output = True  # Disable info messages
 # ===
 
 # Decman configuration ===
 decman.config.arch = "x86_64"
-decman.config.debug_output = False
-decman.config.quiet_output = False  # Disable info messages
 decman.execution_order = ["files", "pacman", "aur", "flatpak", "systemd"]
 
 # decman builds in /tmp by default, which is a tmpfs. Build on disk instead
 decman.aur.build_dir = "/var/cache/decman/build"
 
 if utils.aur_chroot.is_available():
-    # NosArch's own pacman hooks must not apply to the AUR build chroot: `mkarchroot`
-    # evaluates host hooks against an empty root, where no `Depends =` can be
-    # satisfied, which aborts the build before anything is installed.
+    # NosArch's own pacman hooks must not apply to the AUR build chroot. `mkarchroot` evaluates host hooks against an
+    # empty root, where no `Depends =` can be satisfied, which aborts the build.
     decman.aur.commands = utils.aur_chroot.NoHostHooksAurCommands()
 
 if user_config.get_bool("enable_homebrew"):
@@ -132,7 +133,6 @@ if user_config.get_bool("profiles.dev"):
     if desktop_enabled:
         decman.modules += {DevModule(user_config)}
     else:
-        # Task for later: Make dev module workable without desktop
         decman.core.output.print_error("[PROFILES] Dev profile requires Desktop module to be enabled.")
         raise SystemExit()
 

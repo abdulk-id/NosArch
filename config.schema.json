@@ -44,7 +44,7 @@
                     "description": "Enable to setup NosArch for gaming"
                 }
             },
-            "required": ["full_setup", "creative", "dev", "gaming"]
+            "required": ["setup", "creative", "dev", "gaming"]
         },
         "enable_homebrew": {
             "type": "boolean",

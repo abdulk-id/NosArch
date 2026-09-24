@@ -89,7 +89,7 @@ Deleting a declaration deletes the file from the target system. decman keeps eve
 `store["all_files"]`, and on each run removes those that no longer appear in any module (`core/file_manager.py:113`).
 Therefore, there is no uninstall step or cleanup migration.
 
-## Tracking changes
+## Tracking file changes
 
 Decman does not provide a way to track which files were just updated on a run. To track this for applying changes to
 the system later ([Applying changes](#applying-changes)), declarations should go through `utils/change_tracker.py`,
@@ -99,8 +99,10 @@ which subclasses decman's `File`, `Directory` and `Symlink` to record every path
 self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 ```
 
-Then `tracked_files()` instead of `files()` (from `/nosarch/utils/paths.py`). Each module should carry its own tracker
-so it sees only its own files:
+> - A module only needs one `ChangeTracker`, tracking both files and [package](packages.md#tracking-package-changes) changes.
+> - Each module should carry its own tracker so it sees only its own files.
+
+Then `tracked_files()` instead of `files()` (from `/nosarch/utils/paths.py`):
 
 ```python
 files.update(
@@ -114,6 +116,9 @@ files.update(
 
 Nothing is recorded during `--dry-run`.
 
+The same tracker also records package and unit changes; see
+[Tracking packages](packages.md#tracking-packages).
+
 ## Applying changes
 
 Sometimes updating a file requires running a command to apply the changes to the system.
@@ -121,7 +126,7 @@ Sometimes updating a file requires running a command to apply the changes to the
 For example: `systemd-sysctl` read `/etc/sysctl.d/` once at boot. Changes can be applied live by running
 `sysctl --system`.
 
-To apply changes, check which files were changed ([Tracking changes](#tracking-changes)) and take action accordingly
+To apply changes, check which files were changed ([Tracking file changes](#tracking-file-changes)) and take action accordingly
 in `on_change` hooks.
 
 ### Ordering

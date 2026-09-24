@@ -1,10 +1,91 @@
-# Custom packages
+# Packages
+
+NosArch is responsible for managing packages on the system. The kinds of packages include:
+
+- Arch and AUR,
+- Homebrew (via NosArch's own `plugins/homebrew.py`, if enabled by user),
+- Flatpak (system and per-user),
+- and custom pacman packages ([Custom Packages](#custom-packages)).
+
+## Declaring
+
+Each plugin exposes decorators. A module method annotated with one returns the set (or dict, for user-scoped kinds) of
+packages that module wants:
+
+```python
+@pacman.packages
+def arch_pkgs(self) -> set[str]:
+    return set(self._user_config.get_str_list("user_packages.arch"))
+
+@aur.packages
+def aur_pkgs(self) -> set[str]:
+    return set(self._user_config.get_str_list("user_packages.aur"))
+
+@flatpak.packages
+def flatpak_pkgs(self) -> set[str]:
+    return set(self._user_config.get_str_list("user_packages.flatpak"))
+
+@flatpak.user_packages
+def flatpak_user_pkgs(self) -> dict[str, set[str]]:
+    return {self._username: set(self._user_config.get_str_list("user_packages.flatpak_user"))}
+
+@homebrew.formulae
+def brew_formulae(self) -> set[str]:
+    return set(self._user_config.get_str_list("user_packages.homebrew_formulae"))
+```
+
+## Tracking package changes
+
+Decman provides the `Store` in `on_change` hooks from which package changes can be tracked. But the store only holds
+the current run's entries per plugin, and a hook still has to know each plugin's store key and per-user shape to make
+sense of it.
+
+`utils/change_tracker.py`'s `ChangeTracker` makes tracking package changes easy. It snapshots every plugin's entries
+in `before_update`, diffs them against what's there after, records which packages were added or removed on a run,
+across every plugin (pacman, AUR, custom, flatpak, homebrew). It normalizes user-scoped kinds into a flat set of
+names. `on_change` hooks only need `package_changed(...)` instead of reaching into the store itself.
+
+```python
+self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
+```
+
+> - A module only needs one `ChangeTracker`, tracking both [files](files.md#tracking-file-changes) and package changes.
+> - Each module should carry its own tracker so it sees only its own packages.
+
+Then snapshot the store in `before_update` and diff in `on_change`:
+
+```python
+@override
+def before_update(self, store: Store) -> None:
+    self._tracker.snapshot_packages(store, self.name)
+
+@override
+def on_change(self, store: Store) -> None:
+    self._tracker.diff_packages(store, self.name)
+
+    if self._tracker.package_changed("mise", kinds=("pacman",)):
+        ...
+
+    if self._tracker.package_changed("visual-studio-code", kinds=("brew_cask",)):
+        ...
+
+    if self._tracker.package_changed(f"{self._username}:org.mozilla.firefox", kinds=("flatpak_user",)):
+        ...
+```
+
+`self._tracker.added_pkgs` and `self._tracker.removed_pkgs` map each kind (`"pacman"`, `"aur"`, `"custom"`,
+`"flatpak"`, `"flatpak_user"`, `"brew_formula"`, `"brew_cask"`, `"brew_tap"`) to a set of names. User-scoped kinds are
+recorded as `"<user>:<pkg>"`. A module enabled for the first time sees everything as added.
+
+`ChangeTracker` can also track `"systemd"` and `"systemd_user"` units.
+
+## Custom Packages
 
 For apps which do not have an Arch or Homebrew package, a custom package should be used. This custom package
 implementation allows installing AppImages, vendor tarballs, or payloads behind `curl https://... | bash` installers.
 Custom packages allows installing these as Arch packages that decman and pacman can manage.
 
-## Why not the AUR
+### Why not the AUR
 
 - **Security**: The PKGBUILD is managed by us. For a repackaged binary, we manage a URL and a checksum, which is
   easier to audit than an unfamiliar maintainer's build script. The checksum is a guarantee `curl | bash` cannot
@@ -14,18 +95,18 @@ Custom packages allows installing these as Arch packages that decman and pacman 
 The cost is that we have to manage version bumps. `tools/check_custom_packages.py` checks for outdated versions and
 find the latest version to bump to.
 
-## Adding a custom package
+### Adding a custom package
 
 A custom package is a PKGBUILD kept in this repo under `nosarch/packages/`.
 
-### 1. Create the directory
+#### 1. Create the directory
 
 One directory per package under `nosarch/packages/`, named exactly as the `pkgname` it builds.
 
 To avoid name collisions with packages from the AUR, suffix the name with `-nosarch`. So if there is a name collision,
 AUR helpers would not assume it is an AUR package and try to update it themselves.
 
-### 2. Get the download URL and its checksum
+#### 2. Get the download URL and its checksum
 
 The goal is always the same regardless of upstream's distribution method: find the actual file(s) `package()` needs to
 fetch, and pin each with a checksum.
@@ -50,7 +131,7 @@ fetch, and pin each with a checksum.
 Keep every hash to pin them so if the bytes at a pinned URL ever change, the build fail instead of installing
 something unexpected.
 
-### 3. Write the PKGBUILD
+#### 3. Write the PKGBUILD
 
 Writing style:
 
@@ -69,7 +150,7 @@ Writing style:
 
 Match the existing custom package PKGBUILDs.
 
-### 4. Declare where upstream lives
+#### 4. Declare where upstream lives
 
 Add one directive comment near the top of the PKGBUILD so the checker can tell when the package version is old:
 
@@ -89,7 +170,7 @@ Add one directive comment near the top of the PKGBUILD so the checker can tell w
 
 The directive is optional. Without it the package is not version-checked.
 
-#### Regex directive
+##### Regex directive
 
 > `regex` is fragile and should be a last resort. `json` and `text` point at an endpoint the vendor's own installer or
 > updater reads to check for new versions, so it's a de facto stable contract. `regex` instead scrapes a page meant
@@ -108,7 +189,7 @@ Keep exactly one capture group as the checker uses group 1 and ignores the rest 
 
 If the page renders its download links client-side (nothing but a JS bundle in the raw HTML), `regex` cannot see them.
 
-### 5. Wire it into a module
+#### 5. Wire it into a module
 
 Declare it in whichever module owns the app. Example:
 
@@ -130,7 +211,7 @@ _PACKAGES_DIR: str = os.path.abspath("packages")
         }
 ```
 
-### 6. Check it
+#### 6. Check it
 
 ```sh
 python3 tools/check_custom_packages.py --build
@@ -144,7 +225,7 @@ Then review what paths the package actually installs to, so an unexpected path s
 pacman --query --list --file *.pkg.tar.zst
 ```
 
-## The checker
+### The checker
 
 `tools/check_custom_packages.py` checks whether each `pkgver` is behind upstream, and whether the PKGBUILD itself is
 sound (structural checks and namcap audits).
@@ -165,14 +246,14 @@ Flags:
 - `--quiet` prints only packages with something to report,
 - `--package NAME` narrows to one specific package
 
-## Bumping a version
+### Bumping a version
 
 1. Run the checker; it names the packages that are behind and the version upstream is on.
 2. Update `pkgver`, any `_commit`-style variable, and `sha256sums` (re-download, re-hash).
 3. Reset `pkgrel` to `1`. Bump `pkgrel` instead of `pkgver` when only the recipe changed.
 4. Re-run the checker with `--build`.
 
-## Gotchas
+### Custom Package Gotchas
 
 - **Pin every remote source**: `SKIP` in `sha256sums` is legitimate only for files shipped alongside the PKGBUILD.
   The checker treats `SKIP` on an `http(s)`/`git+` source as an error.

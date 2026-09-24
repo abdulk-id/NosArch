@@ -1,4 +1,4 @@
-# Updating
+# Updating (INCOMPLETE & UNCHECKED)
 
 How a machine running an older NosArch gets to a newer one, what that covers today, and what
 it does not yet.

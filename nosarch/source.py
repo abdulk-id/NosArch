@@ -86,7 +86,7 @@ userManager.add_user(
         home=f"/home/{_username}",
         shell="/usr/bin/bash",
         groups=(_username, "wheel")
-        + (("libvirt",) if user_config.get_bool("full_setup.enable_virtualization") else ())
+        + (("libvirt",) if user_config.get_bool("setup.enable_virtualization") else ())
         + (
             ("input",) if user_config.get_bool("profiles.gaming") else ()
             # Allow user access to controller devices (/dev/input)
@@ -109,7 +109,7 @@ if user_config.get_bool("enable_homebrew"):
 
 desktop_enabled: bool = any(module.name == "desktop" for module in decman.modules)
 
-if user_config.get_bool("profiles.full_setup"):
+if user_config.get_bool("profiles.setup"):
     if desktop_enabled:
         decman.modules += {SetupModule(user_config)}
     else:

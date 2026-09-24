@@ -9,13 +9,13 @@ from utils.user_config_reader import UserConfigReader
 
 class SetupModule(decman.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
-        super().__init__(name="setup_full")
+        super().__init__(name="setup")
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
 
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/setup-full-root", self._username
+            "../dotfiles/setup-root", self._username
         )
 
     @override
@@ -36,7 +36,7 @@ class SetupModule(decman.Module):
             "transmission-gtk",
         }
 
-        if self._user_config.get_bool("full_setup.enable_virtualization"):
+        if self._user_config.get_bool("setup.enable_virtualization"):
             pkgs_set.update(
                 {
                     "libvirt",
@@ -71,7 +71,7 @@ class SetupModule(decman.Module):
     def systemd_services(self) -> set[str]:
         systemd_services: set[str] = set()
 
-        if self._user_config.get_bool("full_setup.enable_virtualization"):
+        if self._user_config.get_bool("setup.enable_virtualization"):
             systemd_services.add("libvirtd.service")
 
         return systemd_services

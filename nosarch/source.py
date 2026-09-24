@@ -9,7 +9,6 @@ from decman.extras.users import User, UserManager
 from modules.desktop import DesktopModule
 from modules.homebrew import HomebrewModule
 from modules.setup import SetupModule
-from modules.setup_full import FullSetupModule
 from modules.system import SystemModule
 from modules.theme import ThemingModule
 from modules.usage_profiles.creative import CreativeModule
@@ -103,12 +102,7 @@ decman.modules += {userManager}
 # ===
 
 # Decman modules ===
-decman.modules += {
-    SystemModule(user_config),
-    DesktopModule(user_config),
-    ThemingModule(user_config),
-    SetupModule(user_config),
-}
+decman.modules += {SystemModule(user_config), DesktopModule(user_config), ThemingModule(user_config)}
 
 if user_config.get_bool("enable_homebrew"):
     decman.modules += {HomebrewModule(_username)}
@@ -117,9 +111,9 @@ desktop_enabled: bool = any(module.name == "desktop" for module in decman.module
 
 if user_config.get_bool("profiles.full_setup"):
     if desktop_enabled:
-        decman.modules += {FullSetupModule(user_config)}
+        decman.modules += {SetupModule(user_config)}
     else:
-        decman.core.output.print_error("[PROFILES] Full setup profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[PROFILES] Setup module requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("profiles.creative"):

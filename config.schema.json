@@ -27,7 +27,7 @@
         "profiles": {
             "type": "object",
             "properties": {
-                "full_setup": {
+                "setup": {
                     "type": "boolean",
                     "description": "Enable to install the full setup"
                 },
@@ -59,7 +59,16 @@
                     "description": "List of AI agents to install",
                     "items": {
                         "type": "string",
-                        "enum": ["claude-code", "codex", "copilot-cli", "gemini-cli", "grok-build", "kilocode", "omp", "opencode"]
+                        "enum": [
+                            "claude-code",
+                            "codex",
+                            "copilot-cli",
+                            "gemini-cli",
+                            "grok-build",
+                            "kilocode",
+                            "omp",
+                            "opencode"
+                        ]
                     },
                     "uniqueItems": true
                 },
@@ -104,7 +113,7 @@
                 }
             }
         },
-        "full_setup": {
+        "setup": {
             "type": "object",
             "properties": {
                 "enable_virtualization": {

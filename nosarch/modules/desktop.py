@@ -285,7 +285,22 @@ class DesktopModule(decman.Module):
             "zenity",  # GUI dialog box from shell commands
         }
 
-        merged_set: set[str] = desktop_set.union(config_set, graphics_set, media_set, printer_set, utilities_set)
+        apps_set: set[str] = {
+            "celluloid",  # Video player (frontend for mpv)
+            "firefox",
+            "gnome-calculator",
+            "gnome-clocks",
+            "gnome-disk-utility",
+            "loupe",  # Image viewer
+            "nautilus",  # File manager
+            "nautilus-python",  # Python bindings for Nautilus extension API; Needed for Custom Actions in Nautilus
+            "papers",  # Document viewer
+            "seahorse",  # Password and Keys GUI
+        }
+
+        merged_set: set[str] = desktop_set.union(
+            config_set, graphics_set, media_set, printer_set, utilities_set, apps_set
+        )
         return merged_set
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
@@ -315,7 +330,13 @@ class DesktopModule(decman.Module):
         if _gpu_vendor == "nvidia_non_gsp":
             desktop_set |= {"lib32-nvidia-580xx-utils", "nvidia-580xx-dkms", "nvidia-580xx-utils"}
 
-        return desktop_set
+        apps_set: set[str] = {
+            "localsend-bin",  # Cross-platform file sharing app
+            "zen-browser-bin",
+        }
+
+        merged_set: set[str] = desktop_set.union(apps_set)
+        return merged_set
 
     decman.aur.ignored_packages |= {"xdg-terminal-exec", "nosarch-dash-bin"}
 
@@ -338,6 +359,7 @@ class DesktopModule(decman.Module):
             "pipewire-pulse.service",
             "wireplumber.service",
             "xdg-user-dirs.service",
+            "nosarch-eyesight-reminder.timer",
         }
 
         if utils.hardware.chassis_type.has_battery():

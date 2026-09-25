@@ -11,6 +11,7 @@ from modules.homebrew import HomebrewModule
 from modules.setup import SetupModule
 from modules.system import SystemModule
 from modules.theme import ThemingModule
+from modules.usage_profiles.ai import AIModule
 from modules.usage_profiles.creative import CreativeModule
 from modules.usage_profiles.dev import DevModule
 from modules.usage_profiles.gaming import GamingModule
@@ -114,6 +115,14 @@ if user_config.get_bool("profiles.setup"):
         decman.modules += {SetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Setup module requires Desktop module to be enabled.")
+        raise SystemExit()
+
+if user_config.get_bool("profiles.ai"):
+    if desktop_enabled:
+        decman.modules += {AIModule(user_config)}
+    else:
+        # TODO: Only show error if desktop apps for AI are enabled
+        decman.core.output.print_error("[PROFILES] AI module requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("profiles.creative"):

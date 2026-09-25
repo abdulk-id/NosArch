@@ -6,7 +6,6 @@ import utils.dotfile.dev_lang_config
 import utils.paths
 from decman import File, Store
 from decman.plugins import aur, flatpak, pacman, systemd
-from plugins import homebrew
 from utils.user_config_reader import UserConfigReader
 
 # decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its directory,
@@ -20,7 +19,6 @@ class DevModule(decman.Module):
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
-        self._agents: list[str] = self._user_config.get_str_list("dev.agents")
         self._editors: list[str] = self._user_config.get_str_list("dev.editors")
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/dev-root")
@@ -48,9 +46,6 @@ class DevModule(decman.Module):
     def file_variables(self) -> dict[str, str]:
         return {"%USER%": self._username}
 
-    def _t3code_needed(self) -> bool:
-        return any(agent in self._agents for agent in ("claude-code", "codex", "opencode"))
-
     @override
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {}
@@ -58,8 +53,6 @@ class DevModule(decman.Module):
         # ~/ files
         files.update(
             self._userhome_dotfiles.files(
-                "/.agents/skills/bro/SKILL.md",
-                "/.agents/skills/unslop/SKILL.md",
                 "/.bashrc.d/dev.bashrc",
                 "/Codespace/Language-Tooling/.npmrc",
                 "/Codespace/Language-Tooling/.trackerignore",
@@ -67,50 +60,6 @@ class DevModule(decman.Module):
                 "/.ideavimrc",
             )
         )
-
-        if "claude-code" in self._agents:
-            files.update(
-                {
-                    f"/home/{self._username}/.claude/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.claude/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
-        if "codex" in self._agents:
-            # Codex can have issues with reading skills from `~/.agents/skills`
-            files.update(
-                {
-                    f"/home/{self._username}/.codex/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.codex/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
-        if "cursor" in self._editors:
-            # Cursor can read skills from `~/.agents/skills` but cannot sync them for Cursor Cloud Agents
-            files.update(
-                {
-                    f"/home/{self._username}/.cursor/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.cursor/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/dev-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
 
         ## ~/.config files
         files.update(
@@ -159,13 +108,6 @@ class DevModule(decman.Module):
         if self._editors.__contains__("zed"):
             files.update(self._userhome_dotfiles.files("/.config/zed/settings.json", "/.config/zed/keymap.json"))
 
-        if self._t3code_needed():
-            files.update(
-                self._userhome_dotfiles.files(
-                    "/.config/hypr/app-permissions/t3code.lua", "/.config/hypr/binds/t3code.lua"
-                )
-            )
-
         # /etc files
         files.update(
             self._dotfiles.files(
@@ -212,13 +154,6 @@ class DevModule(decman.Module):
             "podman-desktop",
         }
 
-        # Agents
-        if self._agents.__contains__("codex"):
-            pkgs.add("openai-codex")
-
-        if self._agents.__contains__("opencode"):
-            pkgs.add("opencode")
-
         # Code Editors
         if self._editors.__contains__("neovim"):
             pkgs.update({"ast-grep", "fd", "luarocks", "neovim", "tectonic"})
@@ -235,15 +170,6 @@ class DevModule(decman.Module):
     def aur_pkgs(self) -> set[str]:
         aur_pkgs: set[str] = set()
 
-        # Agents
-        if self._agents.__contains__("kilocode"):
-            aur_pkgs.add("kilo-bin")
-
-        if self._t3code_needed():
-            # Only install T3-Code if the providers it supports are installed
-            aur_pkgs.add("t3code-bin")
-
-        # Code Editors
         if "codium" in self._editors:
             aur_pkgs.add("vscodium-bin")
 
@@ -255,60 +181,9 @@ class DevModule(decman.Module):
 
         return aur_pkgs
 
-    @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
-    def custom_pkgs(self) -> set[aur.CustomPackage]:
-        custom_pkgs: set[aur.CustomPackage] = set()
-
-        if "cursor" in self._editors:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="cursor-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-nosarch")
-                )
-            )
-
-        if self._t3code_needed():
-            # Only install T3-Code if the providers it supports are installed
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="t3code-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "t3code-cli-nosarch")
-                )
-            )
-
-        if self._agents.__contains__("grok-build"):
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="grok-build-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "grok-build-nosarch")
-                )
-            )
-
-        return custom_pkgs
-
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
         return {f"{self._username}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}}
-
-    @homebrew.casks  # pyright: ignore[reportUnknownMemberType]
-    def brew_casks(self) -> set[str]:
-        if self._agents.__contains__("claude-code"):
-            return {"claude-code@latest"}
-        else:
-            return set()
-
-    @homebrew.formulae  # pyright: ignore[reportUnknownMemberType]
-    def brew_formulae(self) -> set[str]:
-        brew_formulae: set[str] = set()
-
-        # Agents
-        if self._agents.__contains__("gemini-cli"):
-            brew_formulae.add("gemini-cli")
-
-        if self._agents.__contains__("omp"):
-            brew_formulae.add("can1357/tap/omp")
-
-        if self._agents.__contains__("copilot-cli"):
-            brew_formulae.add("copilot-cli")
-
-        return brew_formulae
 
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:

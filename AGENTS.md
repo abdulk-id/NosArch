@@ -2,45 +2,35 @@
 
 NosArch is an Arch Linux dotfile and system configuration repo managed by Decman.
 
+## Glossary
+
+- **Target system** refers to the arch linux system decman is going to apply all changes to.
+- **Deploying dotfiles** means installing files from `dotfiles` to the target system.
+- **Definition code** means the code defining how and where to deploy dotfiles, which packages to install, and
+  managing systemd units.
+
 ## Project Structure
 
 - The entrypoint is `nosarch/source.py`, which configures decman behavior.
-- Core modules live in `nosarch/modules/`:
-    - `system.py` manages system packages, services, and root-owned files;
-    - `desktop.py` manages Hyprland and user config;
-    - `setup.py` and `setup_full.py` install common and full-profile apps;
-    - `theme.py` deploys wallpapers;
-    - `homebrew.py` prepares the system to use homebrew;
-    - `user_defined.py` manages packages manually listed by users in their JSON config;
-    - Optional profiles live under `nosarch/modules/usage_profiles/`.
-- Reusable helpers are in `nosarch/utils/`.
-- Theme data and wallpapers are under `nosarch/themes/`.
-- Managed files live under `dotfiles/`, with a separate mirrored root per module (e.g. `dotfiles/system-root/`, `dotfiles/desktop-root/`, `dotfiles/dev-root/`, `dotfiles/gaming-root/`, `dotfiles/setup-full-root/`); inside each, `etc/`, `usr/`, and `home/username/` map to `/etc/`, `/usr/`, and `/home/<user>/`.
-    - `dotfiles/unused-config/` is not deployed.
-- User config reader is in `nosarch/user_config/config_reader.py`
-- Repo-maintenance scripts live in `tools/`.
-    - `tools/check_paths.py` checks that NosArch-owned paths referenced anywhere in `dotfiles/`
-      (unit files, udev rules, shell scripts) resolve against what the modules actually deploy.
-      `decman --source` runs it and aborts if the script finds a dangling reference.
-    - `tools/check_custom_packages.py` checks the PKGBUILDs under `nosarch/packages/`: whether each
-      `pkgver` is behind upstream, and whether the PKGBUILD itself is valid (structural checks, plus
-      `namcap` when it is installed). Exits 0 when clean, 1 on errors that would break a build,
-      and 2 when packages are only outdated. `decman --source` runs it and aborts on 1.
-- Custom packages live in `nosarch/packages/`, one directory per PKGBUILD, for apps that ship no Arch
-  package. Modules declare them with `@aur.custom_packages`.
-    - `docs/internal/custom-packages.md` is the workflow: adding one, declaring its upstream, wiring
-      it into a module, and bumping versions. `nosarch/packages/README.md` is the PKGBUILD reference.
-- Internal documentation lives in `docs/internal/`.
-    - `docs/internal/files.md` covers how files are declared and deployed: why every file is named
-      individually rather than by directory, the `dotfiles/` layout and `dot_` convention, the
-      `utils/paths.py` helpers, and what each deployed path needs reloaded afterwards.
-    - `docs/internal/updating.md` covers moving a machine between NosArch versions: what decman's
-      convergence already handles, what it cannot reach, and when a migration mechanism is warranted.
+- Definition code lives in `nosarch/modules/`.
+- Themes for the system live in `nosarch/themes`.
+- Custom Decman plugins live in `nosarch/plugins`.
+- Helpers used by Decman's source live in `nosarch/utils`.
+- PKGBUILDs of custom packages live in `nosarch/packages`.
+- Dotfiles to be deployed by Decman live in `dotfiles/`, with separate mirrored root per module.
+- JSON schema for NosArch's config is in `config.schema.json`.
+- Repo maintenence and test scripts live in `tools/`.
 
-## Testing Guidelines
+## Documentation
 
-There is no dedicated test suite.
+- `docs/internal/` is for code decisions and their reasons, and implementation traps that are hard to discover from the source.
 
-Performing a decman dry-run requires root access.
+Most code changes do not need an internal documentation update.
 
-Validate changes by asking the user to dry-run decman and report back any errors.
+## Testing
+
+- To test shell scripts, use shellcheck.
+- To test PKGBUILDs of custom packages: `python3 tools/check_custom_packages.py` (pass `--build` to audit `depends`
+  of PKGBUILDs).
+- The definition code can be tested by dry-running decman. It requires root access so ask the user to do so and report
+  back any errors.

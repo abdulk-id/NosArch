@@ -5,13 +5,6 @@
 
 ## Python style
 
-NosArch follows PEP 8.
-
-### General Python
-
-- Use two blank lines between top-level declarations.
-- Prefer double-quoted strings.
-- Group imports into standard library, third-party, and local imports. Avoid wildcard imports.
 - Prefer module-qualified local imports so call sites show where names come from:
 
     ```python
@@ -23,12 +16,7 @@ NosArch follows PEP 8.
 
 - Use strict typing for NosArch code. Annotate function parameters, return values, and variables.
     - External integration code, such as Nautilus extensions, is exempt when host API types are unavailable.
-- Use `PascalCase` for classes, `snake_case` for functions and variables, and `UPPER_SNAKE_CASE` for constants.
-
-### NosArch and Decman
-
 - Import Decman as `import decman` and use its namespaces explicitly, such as `decman.Module`.
-- Decman modules should subclass `decman.Module` and expose resources through the appropriate hook.
 - Place Decman decorators such as `@pacman.packages` directly above the hook they register.
 - Extend Decman-managed collections with `|=` or `+=`. Do not reassign existing Decman collections.
 

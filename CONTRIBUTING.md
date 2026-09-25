@@ -30,4 +30,3 @@ Common areas include:
 Message style:
 
 - Use an imperative verb ("Add", "Fix", "Update", "Remove") rather than past tense ("Added", "Fixed").
-- Keep the subject concise.

@@ -4,8 +4,5 @@ run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files --dry-run"
 [tasks.dry-run-quick]
 run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --dry-run"
 
-[tasks.dry-run-full]
-run = "sudo decman --dry-run"
-
 [tasks.apply-files]
 run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files"

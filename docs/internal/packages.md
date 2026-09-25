@@ -141,10 +141,9 @@ Writing style:
     - Package info first, in this order: `pkgname`, `pkgdesc`, `pkgver`, `pkgrel`, `url`, `license`.
     - Build info second, in this order: `arch`, `depends`, `provides`, `conflicts` (if any), `options`, `source`,
       `sha256sums`.
-- Then the functions, in this order, defining only the ones the package actually needs: `prepare()`, `build()`,
-  `package()`.
+- Then the functions, in this order, as needed: `prepare()`, `build()`, `package()`.
 - Always install the package's own `LICENSE`/similar file under `/usr/share/licenses/$pkgname/`, even when `license=`
-  is a standard SPDX identifier and nothing forces it (see the `LicenseRef-` gotcha below for when it's mandatory).
+  is a standard SPDX identifier and nothing forces it.
 - If the package offers shell completions, install them, but as best-effort. Guard the generation with `|| true` and
   only install a completion file if it came out non-empty A missing completion should never fail the build.
 
@@ -173,13 +172,12 @@ The directive is optional. Without it the package is not version-checked.
 ##### Regex directive
 
 > `regex` is fragile and should be a last resort. `json` and `text` point at an endpoint the vendor's own installer or
-> updater reads to check for new versions, so it's a de facto stable contract. `regex` instead scrapes a page meant
-> for a browser, not a scraper. A marketing copy update, a redesign, an A/B test, or a locale change can all move or
-> reword the surrounding text without the vendor considering it a breaking change. Prefer other directives.
-> Use `regex` only when a page is truly the only place the version is published.
+> updater reads to check for new versions, so it's much more stable. `regex` scrapes a page meant for a browser. Any
+> update to the page text or content can move or reword the surrounding text without it being a breaking change.
+> Prefer other directives. Use `regex` only when a page is truly the only place the version is published.
 
-The checker fetches `<url>` as plain text (the raw HTML, not rendered) and runs `<pattern>` against it as a Python
-regex. Whatever the single capture group `(...)` matches is treated as the current upstream version.
+The checker fetches `<url>` as plain text (the raw HTML) and runs `<pattern>` against it as a Python regex. Whatever
+the single capture group `(...)` matches is treated as the current upstream version.
 
 Example: a vendor's download page contains `href="/dl/Example-2.4.1-x86_64.AppImage"`. The directive
 `# nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'` matches that text and captures
@@ -187,71 +185,133 @@ Example: a vendor's download page contains `href="/dl/Example-2.4.1-x86_64.AppIm
 
 Keep exactly one capture group as the checker uses group 1 and ignores the rest of the match.
 
-If the page renders its download links client-side (nothing but a JS bundle in the raw HTML), `regex` cannot see them.
-
 #### 5. Wire it into a module
 
-Declare it in whichever module owns the app. Example:
+Declare it in the definition code. Example:
 
 ```python
 import os
 from decman.plugins import aur
 
-# decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its
-# directory, so package paths resolve relative to `nosarch/`, not to this file.
+# decman reads `source.py` as text and `exec()`s it after `os.chdir` into its dir, so paths are relative to `nosarch/`.
 _PACKAGES_DIR: str = os.path.abspath("packages")
 
     @aur.custom_packages
     def custom_pkgs(self) -> set[aur.CustomPackage]:
         return {
             aur.CustomPackage(
-                pkgname="example-appimage",
-                pkgbuild_directory=os.path.join(_PACKAGES_DIR, "example-appimage"),
+                pkgname="package-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "package-nosarch"),
             )
         }
 ```
 
-#### 6. Check it
+#### 6. Test it
 
-```sh
-python3 tools/check_custom_packages.py --build
-```
-
-pass `--build` so namcap can audit `depends` (slower process).
-
-Then review what paths the package actually installs to, so an unexpected path stands out:
-
-```sh
-pacman --query --list --file *.pkg.tar.zst
-```
+1. Verify the PKGBUILD is valid: `python3 tools/check_custom_packages.py --package <package-name>`
+    - Pass `--build` so namcap can audit `depends` (slower process).
+2. Check that the package actually installs to only the intended paths: `pacman --query --list --file *.pkg.tar.zst`
 
 ### The checker
 
-`tools/check_custom_packages.py` checks whether each `pkgver` is behind upstream, and whether the PKGBUILD itself is
-sound (structural checks and namcap audits).
+`tools/check_custom_packages.py` checks whether each package is outdated, and whether the PKGBUILD itself is valid and
+builds successfully.
 
-The checker exits with the following codes
+The checker exits with the following codes:
 
-| Exit Code | Meaning                                                                                                                        |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `0`       | Every package is valid and current.                                                                                            |
-| `1`       | At least one package has an **error**: it does not parse, fails validation, or trips namcap. decman will fail to build it.     |
-| `2`       | No errors, but at least one **warning**: behind upstream, no upstream declared, or the lookup failed. Everything still builds. |
+| Exit Code | Meaning                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------- |
+| `0`       | Every package is valid and current.                                                                                 |
+| `1`       | At least one **error**: PKGBUILD does not parse, fails validation, or trips namcap. Builds will fail.               |
+| `2`       | At least one **warning**: package is outdated, no upstream is declared, or the lookup failed. Builds still succeed. |
 
-Errors outrank warnings; a run with both exits `1`.
+Errors outrank warnings, so a run with both exits `1`.
 
-Flags:
+### Version Upgrades
 
-- `--offline` skips every network lookup,
-- `--quiet` prints only packages with something to report,
-- `--package NAME` narrows to one specific package
+If the package has self-updating, blocking self-updates should be implemented as best-effort.
 
-### Bumping a version
+To upgrade PKGBUILDs of custom packages:
 
-1. Run the checker; it names the packages that are behind and the version upstream is on.
-2. Update `pkgver`, any `_commit`-style variable, and `sha256sums` (re-download, re-hash).
-3. Reset `pkgrel` to `1`. Bump `pkgrel` instead of `pkgver` when only the recipe changed.
-4. Re-run the checker with `--build`.
+1. Run `python3 tools/check_custom_packages.py` to see which packages are behind.
+2. Set `pkgver` to that version and reset `pkgrel=1`.
+3. Update any other variable the `source=()` URLs depend on (per-directive, see below).
+4. Refresh the checksums from inside the package directory:
+
+    ```sh
+    cd nosarch/packages/<pkgname>
+    updpkgsums   # from pacman-contrib: downloads every source and rewrites sha256sums
+    ```
+
+5. Run `python3 tools/check_custom_packages.py --package <pkgname> --build` to make sure it still builds and passes
+   namcap audit.
+6. Read `git diff`. Only `pkgver`, `pkgrel`, the hashes, and whatever was changed in step 3 should have moved.
+
+Step 3 differs between upstream directives:
+
+#### GitHub Releases
+
+Release assets almost always live at `https://github.com/<owner>/<repo>/releases/download/v$pkgver/<asset>`, so the
+version is the only moving part. Steps 1, 2, 4 and 5 are all there is.
+
+#### `json`
+
+The endpoint usually returns more than the version, and the download URL often contains something besides it (a build
+hash, a CDN path, a build number). Fetch the endpoint and compare its URL with the one in `source=()`:
+
+```sh
+curl --silent "<endpoint-url>" | python3 -m json.tool
+```
+
+Everything in the returned URL that is not the version has to be copied into the PKGBUILD as well.
+
+Example, Cursor (`cursor-nosarch`). The endpoint returns:
+
+```json
+{
+    "downloadUrl": "https://downloads.cursor.com/production/37076c6c.../linux/x64/Cursor-3.22.7-x86_64.AppImage",
+    "version": "3.22.7",
+    "commitSha": "37076c6c..."
+}
+```
+
+The URL embeds the commit hash, so a bump sets both `pkgver=3.22.7` and `_commit=<commitSha>`. Changing only `pkgver`
+builds `.../production/<old commit>/.../Cursor-3.22.7-...`, which does not exist, and the download fails.
+
+After editing, check that the URL makepkg will build matches `downloadUrl` exactly:
+
+```sh
+cd nosarch/packages/cursor-nosarch
+makepkg --printsrcinfo | grep source
+```
+
+#### `text`
+
+The endpoint returns only the version, so nothing tells you whether the URL format is still the same. Read the vendor's
+installer script to see how it builds the download URL from that version:
+
+```sh
+curl --location "<installer-url>" | less
+```
+
+If the URL pattern in the script matches the PKGBUILD's `source=()`, this is as easy as `github`. If the script has
+changed (a new host, a new file name, a new architecture suffix, a new extra file), update `source=()` to match before
+running `updpkgsums`. Only re-read the script on bumps where `updpkgsums` fails or the version jumped a major number.
+
+Example, Grok Build (`grok-build-nosarch`). `https://x.ai/cli/stable` returns `1.0.41`, and the binary lives at
+`https://x.ai/cli/grok-$pkgver-linux-x86_64`, so a bump is just `pkgver`.
+
+Watch for sources that don't include the version. Grok's `LICENSE` is fetched from the `main` branch, so its hash can
+change between two bumps, or with no bump at all. When `updpkgsums` changes a hash for a file whose URL did not change,
+look at what changed in the file before accepting it.
+
+#### `regex`
+
+The regex gives you a version, but nothing about the URL. Open the page the directive scrapes and check that the
+download link still has the shape `source=()` expects.
+
+If the checker reports the lookup failed (exit `2`, "lookup failed") instead of a version, the page changed and the
+pattern no longer matches. Fix the pattern first: open the raw HTML (`curl --location "<url>" | less`), find the new
+text around the version, and update the directive. Then bump as usual.
 
 ### Custom Package Gotchas
 

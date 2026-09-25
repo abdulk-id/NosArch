@@ -1,23 +1,9 @@
 """
 Checks the PKGBUILDs under `nosarch/packages/`.
 
-Two independent checks:
-
-- Freshness: compares each `pkgver` against upstream, for packages that
-  declare where upstream lives (see `# nosarch-upstream:` below).
-- Correctness: structural validation of the PKGBUILD itself, plus `namcap`
-  if it is installed. `namcap` is the tool that reports missing and
-  redundant `depends`, but it can only do that against a *built* package,
-  so that part runs only with `--build`.
-
-Declaring an upstream is opt-in. Add one directive to the PKGBUILD:
-
-    # nosarch-upstream: json <url> <dotted.key>
-    # nosarch-upstream: github <owner>/<repo>
-    # nosarch-upstream: text <url>
-    # nosarch-upstream: regex <url> <pattern with one capture group>
-
-Without it, the package is only validated, never version-checked.
+- Freshness: compares each `pkgver` against upstream, for packages that declare an upstream directive.
+- Correctness: validats the PKGBUILD, plus `namcap` (if it is installed). `namcap` reports missing and redundant
+  `depends`, but it can only do that against a *built* package. Pass `--build` to check `depends`.
 
 Usage: python3 tools/check_custom_packages.py [OPTIONS]
 
@@ -25,24 +11,18 @@ Options:
     -h, --help       Show this message.
     -p, --package    Check only the named package. May be repeated.
     -o, --offline    Skip upstream version checks.
-    -b, --build      Build each package so namcap can audit `depends`. Slow.
+    -b, --build      Build each package so namcap can audit `depends`.
     -q, --quiet      Only print packages that have something to report.
 
-Exit status separates "this will break a decman run" from "this is merely
-stale", so a caller can abort on one and carry on past the other:
-
+Exit codes:
     0   Every package is valid and current.
-    1   At least one package has an error: a PKGBUILD that does not parse,
-        fails validation, or trips namcap. decman will fail to build it.
-    2   No errors, but at least one warning: a package is behind upstream,
-        declares no upstream to check, or could not be looked up. Everything
-        still builds.
+    1   Error(s): a PKGBUILD does not parse, fails validation, or trips namcap. Building it will fail.
+    2   Warning(s): a package is outdated, has no upstream to check, or could not be looked up. Builds still succeed.
 
-Errors outrank warnings: a run with both exits 1.
-
-Note: reading a PKGBUILD's metadata runs `makepkg --printsrcinfo`, which
-sources the file. Only ever point this at PKGBUILDs from this repo.
+A run with both errors and warnings exits 1.
 """
+
+# TODO: Check if an AppImage custom package's AppRun checks for DESKTOPINTEGRATION, and if the desktop entry sets it.
 
 import argparse
 import contextlib
@@ -60,16 +40,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Iterator
 
-# Exit codes. Callers such as `nosarch/source.py` use these to decide whether a
-# finding is worth aborting a decman run over.
-EXIT_OK: int = 0
-EXIT_ERROR: int = 1
-EXIT_WARNING: int = 2
-
 REPO_ROOT: Path = Path(__file__).resolve().parent.parent
 PACKAGES_DIR: Path = REPO_ROOT / "nosarch" / "packages"
 
-DIRECTIVE_PATTERN: re.Pattern[str] = re.compile(r"^#\s*nosarch-upstream:\s*(.+?)\s*$", re.MULTILINE)
+EXIT_OK: int = 0
+EXIT_ERROR: int = 1
+EXIT_WARNING: int = 2
 
 # Lines of `namcap --list` look like "elfpaths  : Check about ELF files ...".
 NAMCAP_RULE_PATTERN: re.Pattern[str] = re.compile(r"^(\S+)\s+: ", re.MULTILINE)
@@ -84,9 +60,8 @@ REMOTE_SOURCE_PREFIXES: tuple[str, ...] = ("http://", "https://", "ftp://", "git
 # Fields every custom package in this repo is expected to set.
 REQUIRED_FIELDS: tuple[str, ...] = ("pkgdesc", "url", "license", "arch")
 
-# namcap rules that cannot be satisfied by a repackaged vendor binary: every
-# one of them reports a property of an upstream ELF we do not compile and
-# cannot change. Rule names come from `namcap --list`.
+# namcap rules that cannot be satisfied by a repackaged vendor binary: every one of them reports a property of an
+# upstream ELF we do not compile and cannot change. Rule names come from `namcap --list`.
 NAMCAP_EXCLUDED_RULES: tuple[str, ...] = (
     "elfpaths",  # the payload lives under /opt by design
     "elfunstripped",
@@ -127,12 +102,12 @@ class Result:
 
     @property
     def has_errors(self) -> bool:
-        """Whether this package would break a decman run."""
+        """Whether this package would fail to build."""
         return bool(self.problems)
 
     @property
     def has_warnings(self) -> bool:
-        """Whether this package still builds but wants attention."""
+        """Whether this package still builds but has warnings."""
         return bool(self.warnings) or self.outdated
 
 
@@ -172,10 +147,9 @@ def _buildable_copy(package_dir: Path) -> Iterator[Path]:
     """
     A directory `nobody` can read and write, containing this package's files.
 
-    Only makes a copy when actually running as root: `nobody` cannot be
-    trusted to read an arbitrary path in the repo (permissions, ACLs), but a
-    normal, non-root invocation already owns `package_dir` and can use it
-    directly, exactly as this script did before it had to worry about root.
+    Only makes a copy when actually running as root: `nobody` cannot be trusted to read an arbitrary path in the repo
+    (permissions, ACLs), but a normal, non-root invocation already owns `package_dir` and can use it directly, exactly
+    as this script did before it had to worry about root.
     """
     if not _running_as_root():
         yield package_dir
@@ -210,8 +184,7 @@ def read_srcinfo(package_dir: Path) -> dict[str, list[str]]:
     """
     Parses a PKGBUILD's metadata via `makepkg --printsrcinfo`.
 
-    Values are collected per key, since keys such as `depends` and
-    `sha256sums` legitimately repeat.
+    Values are collected per key, since keys such as `depends` and `sha256sums` can repeat.
     """
     with _buildable_copy(package_dir) as build_dir:
         completed: subprocess.CompletedProcess[str] = subprocess.run(
@@ -236,8 +209,10 @@ def read_srcinfo(package_dir: Path) -> dict[str, list[str]]:
 
 
 def read_upstream(package_dir: Path) -> Upstream | None:
-    """Parses the `# nosarch-upstream:` directive out of a PKGBUILD, if present."""
-    match: re.Match[str] | None = DIRECTIVE_PATTERN.search((package_dir / "PKGBUILD").read_text())
+    """Parses the `# nosarch-upstream:` directive from a PKGBUILD, if present."""
+    match: re.Match[str] | None = re.compile(r"^#\s*nosarch-upstream:\s*(.+?)\s*$", re.MULTILINE).search(
+        (package_dir / "PKGBUILD").read_text()
+    )
 
     if match is None:
         return None
@@ -297,9 +272,7 @@ def upstream_version(upstream: Upstream) -> str:
         return str(value)
 
     if upstream.kind == "text":
-        # The body is a bare version string (what the vendor's own installer
-        # reads). Take the first line, strip surrounding whitespace — same
-        # normalization the installers do.
+        # The body is a bare version string. Take the first line (strip surrounding whitespace).
         lines: list[str] = body.strip().splitlines()
 
         if not lines:
@@ -421,8 +394,7 @@ def build_and_audit(package_dir: Path) -> list[str]:
         _buildable_copy(package_dir) as build_dir,
         tempfile.TemporaryDirectory(prefix="nosarch-pkgcheck-out-") as scratch,
     ):
-        # `nobody` needs write access to wherever the build writes output, same
-        # as the source copy above.
+        # `nobody` needs write access to wherever the build writes output, same as the source copy above.
         if _running_as_root():
             os.chmod(scratch, 0o777)
 
@@ -545,7 +517,7 @@ def main() -> int:
 
     if not args.quiet:
         if not have_namcap:
-            print("[PACKAGES] NOTE: namcap is not installed, skipping PKGBUILD linting.")
+            print("[PACKAGES] WARNING: namcap is not installed, skipping PKGBUILD linting.")
             print("[PACKAGES]       Install it with: pacman -S namcap")
         elif not args.build:
             print("[PACKAGES] NOTE: pass --build to let namcap audit 'depends'.")
@@ -557,8 +529,7 @@ def main() -> int:
     errored: list[Result] = [result for result in results if result.has_errors]
     warned: list[Result] = [result for result in results if result.has_warnings]
 
-    # Errors outrank warnings: a package that cannot build matters more than a
-    # package that is merely behind upstream.
+    # Errors outrank warnings: a package that cannot build matters more than a package that is only behind upstream.
     if errored:
         print(f"[PACKAGES] ERROR: {len(errored)} of {len(results)} custom package(s) will not build.")
         return EXIT_ERROR

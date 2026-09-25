@@ -31,6 +31,10 @@
                     "type": "boolean",
                     "description": "Enable to install the full setup"
                 },
+                "ai": {
+                    "type": "boolean",
+                    "description": "Enable to setup NosArch for AI and Agentic work"
+                },
                 "creative": {
                     "type": "boolean",
                     "description": "Enable to setup NosArch for creative work"
@@ -44,14 +48,14 @@
                     "description": "Enable to setup NosArch for gaming"
                 }
             },
-            "required": ["setup", "creative", "dev", "gaming"]
+            "required": ["setup", "ai", "creative", "dev", "gaming"]
         },
         "enable_homebrew": {
             "type": "boolean",
             "description": "Enable to setup Homebrew",
             "default": false
         },
-        "dev": {
+        "ai": {
             "type": "object",
             "properties": {
                 "agents": {
@@ -59,19 +63,74 @@
                     "description": "List of AI agents to install",
                     "items": {
                         "type": "string",
-                        "enum": [
-                            "claude-code",
-                            "codex",
-                            "copilot-cli",
-                            "gemini-cli",
-                            "grok-build",
-                            "kilocode",
-                            "omp",
-                            "opencode"
+                        "anyOf": [
+                            { "const": "antigravity-cli", "title": "Antigravity CLI" },
+                            { "const": "claude-code", "title": "Claude Code" },
+                            { "const": "codex", "title": "OpenAI Codex" },
+                            { "const": "copilot-cli", "title": "GitHub Copilot CLI" },
+                            { "const": "cursor-cli", "title": "Cursor CLI" },
+                            { "const": "devin-cli", "title": "Devin CLI" },
+                            { "const": "gemini-cli", "title": "Gemini CLI" },
+                            { "const": "grok-build", "title": "Grok Build" },
+                            { "const": "kilocode", "title": "Kilo Code" },
+                            { "const": "omp", "title": "Oh My Pi" },
+                            { "const": "opencode", "title": "OpenCode" },
+                            { "const": "pi", "title": "Pi" }
                         ]
                     },
                     "uniqueItems": true
                 },
+                "apps": {
+                    "type": "array",
+                    "description": "List of AI apps to install",
+                    "items": {
+                        "type": "string",
+                        "anyOf": [
+                            { "const": "chatgpt-desktop", "title": "ChatGPT Desktop" },
+                            { "const": "claude-desktop", "title": "Claude Desktop" },
+                            { "const": "cursor-desktop", "title": "Cursor Desktop" },
+                            { "const": "devin-desktop", "title": "Devin Desktop" },
+                            { "const": "github-copilot-app", "title": "GitHub Copilot App" },
+                            { "const": "opencode-desktop", "title": "OpenCode Desktop" }
+                        ]
+                    },
+                    "uniqueItems": true
+                },
+                "control-planes": {
+                    "type": "array",
+                    "description": "List of Agent control planes to install",
+                    "items": {
+                        "type": "string",
+                        "anyOf": [
+                            {
+                                "const": "openchamber",
+                                "title": "OpenChamber",
+                                "description": "Control plane for OpenCode"
+                            },
+                            {
+                                "const": "t3code-cli",
+                                "title": "T3 Code (CLI & Web)",
+                                "description": "Control plane for Claude Code, Codex, Cursor CLI, Grok Build, OpenCode and Antigravity"
+                            },
+                            {
+                                "const": "t3code-desktop",
+                                "title": "T3 Code Desktop",
+                                "description": "Control plane for Claude Code, Codex, Cursor CLI, Grok Build, OpenCode and Antigravity"
+                            },
+                            {
+                                "const": "zeron",
+                                "title": "Zeron",
+                                "description": "Control plane for Claude Code, Codex, Cursor CLI, Devin CLI, Grok Build, Hermes Agent, Pi, OpenCode and Antigravity"
+                            }
+                        ]
+                    },
+                    "uniqueItems": true
+                }
+            }
+        },
+        "dev": {
+            "type": "object",
+            "properties": {
                 "editors": {
                     "type": "array",
                     "description": "List of code editors to install",

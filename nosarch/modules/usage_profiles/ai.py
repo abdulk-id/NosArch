@@ -158,6 +158,13 @@ class AIModule(decman.Module):
                 )
             )
 
+        if "zeron" in self._control_planes:
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="zeron-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "zeron-nosarch")
+                )
+            )
+
         return custom_pkgs
 
     @homebrew.casks  # pyright: ignore[reportUnknownMemberType]

@@ -143,6 +143,14 @@ class AIModule(decman.Module):
                 )
             )
 
+        if "github-copilot-app" in self._apps:
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="github-copilot-app-nosarch",
+                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "github-copilot-app-nosarch"),
+                )
+            )
+
         # Control planes
         if "openchamber" in self._control_planes:
             custom_pkgs.add(
@@ -214,11 +222,11 @@ class AIModule(decman.Module):
 # - claude-desktop -> aur.packages
 # - cursor-desktop -> aur.custom_packages
 # - devin-desktop -> aur.packages
-# - github-copilot-app -> not setup yet
+# - github-copilot-app -> aur.custom_packages
 # - opencode-desktop -> not setup yet
 #
 # Control planes:
 # - openchamber -> aur.custom_packages
 # - t3code-cli -> aur.custom_packages
 # - t3code-desktop -> aur.packages
-# - zeron -> not setup yet
+# - zeron -> aur.custom_packages

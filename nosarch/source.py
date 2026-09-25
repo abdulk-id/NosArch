@@ -29,7 +29,7 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
     decman.config.quiet_output = False
 
     # Machine setup ---
-    decman.pacman.packages |= {"lynis", "namcap", "shellcheck"}
+    decman.pacman.packages |= {"lynis", "namcap", "pacman-contrib", "shellcheck"}
 
     # Checks ---
     DISABLE_CHECKS_PARAM: bool = os.environ.get("NOSARCH_DECMAN_SKIP_CHECKS") == "1"

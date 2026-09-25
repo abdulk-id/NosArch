@@ -25,5 +25,6 @@
         { "action": "shell", "resource": "sudo *", "effect": "deny" },
         // external_directory
         { "action": "external_directory", "resource": "*", "effect": "ask" },
+        { "action": "external_directory", "resource": "/tmp/opencode", "effect": "allow" },
     ],
 }

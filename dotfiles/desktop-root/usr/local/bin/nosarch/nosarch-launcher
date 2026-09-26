@@ -1,9 +1,24 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Open the app launcher
 
+set -eu
+
+## === Utilities ===
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+## ===
+# _ensure_command vicinae
 # vicinae toggle
 
-if [ -n "$1" ]; then
+_ensure_command walker
+
+if [ -n "${1:-}" ]; then
     walker -m "$1"
 else
     walker

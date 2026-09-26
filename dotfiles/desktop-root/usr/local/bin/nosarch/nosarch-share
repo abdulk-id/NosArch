@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Share files or text via LocalSend
 
 set -eu
 
@@ -29,15 +30,37 @@ _ensure_command() {
     fi
 }
 
+# True when the argument contains at least one non-whitespace character.
+_has_content() {
+    case "$1" in
+        *[![:space:]]*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 
 ## === Features ===
-pick_files() {
-    zenity --file-selection --multiple --separator="$(printf '\n')"
+
+# localsend has no API to clear its send selection. If an instance is already running, a new share is appended to
+# whatever is already selected. Clearing it requires the UI button in the app.
+
+# --- Input pickers ---
+_pick_files() {
+    _ensure_command zenity
+    separator='
+'
+    zenity --file-selection --multiple --separator="$separator"
 }
-pick_folder() {
+_pick_folder() {
+    _ensure_command zenity
     zenity --file-selection --directory
 }
-input_text() {
+_input_text() {
+    _ensure_command zenity
     zenity --text-info \
         --editable \
         --title="Share Text" \
@@ -49,38 +72,211 @@ input_text() {
         --cancel-label="Cancel"
 }
 
-share_files() {
-    result="$(pick_files)" || return 0
+# --- Share helpers ---
 
-    (
-        IFS='
+# Share text through localsend's `--text` flag
+_share_message() (
+    _ensure_command localsend
+
+    text="$1"
+    text_bytes="$(printf '%s' "$text" | wc -c)"
+
+    # Linux caps a single argument at 128 KB, so anything larger falls back to sharing a temporary .txt file.
+    if [ "$text_bytes" -le 102400 ]; then
+        systemd-run --user --quiet --collect localsend --text "$text"
+    else
+        echo "Warning: text exceeds the command-line argument limit; sharing as a file instead." >&2
+        tmpfile="$(mktemp --suffix=.txt)"
+        printf '%s\n' "$text" > "$tmpfile"
+        systemd-run --user --quiet --collect localsend "$tmpfile"
+    fi
+)
+
+# Share newline-separated paths via localsend (one path per argument).
+_share_paths() (
+    IFS='
 '
-        set -f
-        set -- "$result"
-        systemd-run --user --quiet --collect localsend --headless send "$@"
-    )
+    set -f
+
+    # Split on newlines (IFS is newline, globs are off).
+    # shellcheck disable=SC2086
+    set -- $1
+
+    systemd-run --user --quiet --collect localsend "$@"
+)
+
+# Map a clipboard MIME type to a file extension for the temporary file that a non-text clipboard is shared as.
+#
+# The clipboard only exposes a MIME type, but localsend takes a path and infers the file type purely from the
+# extension (receiver preview, gallery saving, the recipient's filename). Without this the payload would arrive as an
+# unidentifiable FileType.other file named e.g. "tmp.XvK9dQ".
+_mime_to_extension() {
+    case "$1" in
+        image/png) echo "png" ;;
+        image/jpeg) echo "jpg" ;;
+        image/gif) echo "gif" ;;
+        image/webp) echo "webp" ;;
+        image/bmp) echo "bmp" ;;
+        image/tiff) echo "tiff" ;;
+        image/svg+xml) echo "svg" ;;
+        video/mp4) echo "mp4" ;;
+        video/webm) echo "webm" ;;
+        audio/mpeg) echo "mp3" ;;
+        audio/wav) echo "wav" ;;
+        application/pdf) echo "pdf" ;;
+        application/zip) echo "zip" ;;
+        *)
+            # Fall back to the sanitized subtype, e.g. "application/x-thing" -> "x-thing".
+            subtype="${1#*/}"
+            subtype="${subtype%%;*}"
+            subtype="${subtype%%+*}"
+            printf '%s' "$subtype" | tr -c 'A-Za-z0-9._-' '_'
+            ;;
+    esac
 }
 
+# Print the local file paths a file manager has copied to the clipboard, one per line, and fail if there are none.
+# Handles both clipboard types Nautilus and friends offer, collecting from whichever are present:
+#   - x-special/gnome-copied-files: "copy"/"cut" header, then either plain paths (classic format) or percent-encoded
+#     file:// URIs (current Nautilus)
+#   - text/uri-list: percent-encoded file:// URIs (RFC 2483)
+# Lines are accepted as plain /path or file:// URIs (percent-decoded). Non-local URIs (https://...) and paths that no
+# longer exist are skipped, so callers can fall through to other content.
+_clipboard_local_paths() {
+    types="$(wl-paste --list-types 2>/dev/null || true)"
+
+    candidates=""
+    case "$types" in
+        *x-special/gnome-copied-files*)
+            # First line is the "copy" or "cut" header — drop it.
+            gnome_paths="$(wl-paste --type x-special/gnome-copied-files 2>/dev/null | sed '1d')"
+            candidates="$gnome_paths
+" ;;
+    esac
+    case "$types" in
+        *text/uri-list*)
+            uri_paths="$(wl-paste --type text/uri-list 2>/dev/null)"
+            candidates="$candidates$uri_paths
+" ;;
+    esac
+
+    [ -n "$candidates" ] || return 1
+
+    paths="$(printf '%s\n' "$candidates" | awk '
+        function hexval(c) {
+            return index("0123456789ABCDEF", toupper(c)) - 1
+        }
+        function decode(s,   out, i, h) {
+            out = ""
+            i = 1
+            while (i <= length(s)) {
+                if (substr(s, i, 1) == "%" && i + 2 <= length(s)) {
+                    h = substr(s, i + 1, 2)
+                    if (h ~ /^[0-9A-Fa-f][0-9A-Fa-f]$/) {
+                        out = out sprintf("%c", hexval(substr(h, 1, 1)) * 16 + hexval(substr(h, 2, 1)))
+                        i += 3
+                        continue
+                    }
+                }
+                out = out substr(s, i, 1)
+                i++
+            }
+            return out
+        }
+        {
+            sub(/\r$/, "")
+            if ($0 == "" || substr($0, 1, 1) == "#") next
+            if (substr($0, 1, 7) == "file://") {
+                path = decode(substr($0, 8))
+                if (substr(path, 1, 1) == "/") print path
+                next
+            }
+            if (substr($0, 1, 1) == "/") print $0
+        }
+    ')"
+    [ -n "$paths" ] || return 1
+
+    existing=""
+    while IFS= read -r path; do
+        [ -n "$path" ] && [ -e "$path" ] || continue
+        # Both clipboard types may list the same file — keep it once.
+        case "$existing" in
+            *"$path
+"*) continue ;;
+        esac
+        existing="$existing$path
+"
+    done <<EOF
+$paths
+EOF
+
+    [ -n "$existing" ] || return 1
+    printf '%s' "$existing"
+}
+
+# --- Commands ---
+share_files() {
+    _ensure_command localsend
+
+    result="$(_pick_files)" || return 0
+
+    _share_paths "$result"
+}
 share_folder() (
-    folder="$(pick_folder)" || return 0
+    _ensure_command localsend
 
-    systemd-run --user --quiet --collect localsend --headless send "$folder"
+    folder="$(_pick_folder)" || return 0
+
+    systemd-run --user --quiet --collect localsend "$folder"
 )
-
 share_text() (
-    text="$(input_text)" || return 0
+    _ensure_command localsend
 
-    tmpfile="$(mktemp --suffix=.txt)"
-    echo "$text" > "$tmpfile"
+    text="$(_input_text)" || return 0
 
-    systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
+    # localsend ignores an empty --text message. So ignore blank input.
+    _has_content "$text" || return 0
+
+    _share_message "$text"
 )
-
 share_clipboard() (
-    tmpfile="$(mktemp --suffix=.txt)"
-    wl-paste > "$tmpfile"
+    _ensure_command localsend
 
-    systemd-run --user --quiet --collect localsend --headless send "$tmpfile"
+    # Files copied: share the actual files, not their paths as text.
+    if paths="$(_clipboard_local_paths 2>/dev/null)"; then
+        _share_paths "$paths"
+        return 0
+    fi
+
+    # Plain text: share it as text.
+    if text="$(wl-paste --type text 2>/dev/null)"; then
+        # wl-paste can succeed with only whitespace; treat that as empty.
+        _has_content "$text" || {
+            echo "Error: clipboard is empty or has no shareable content." >&2
+            return 1
+        }
+
+        _share_message "$text"
+        return 0
+    fi
+
+    # Non-text (image, etc.): pick the best offered type and share the raw payload as a file.
+    mime="$(wl-paste --list-types 2>/dev/null | sed -n '1p')"
+    if [ -z "$mime" ]; then
+        echo "Error: clipboard is empty or has no shareable content." >&2
+        return 1
+    fi
+
+    tmpfile="$(mktemp --suffix=".$(_mime_to_extension "$mime")")"
+
+    # --no-newline so binary payloads are never corrupted with an appended newline.
+    if ! wl-paste --no-newline --type "$mime" > "$tmpfile" 2>/dev/null || [ ! -s "$tmpfile" ]; then
+        rm --force "$tmpfile"
+        echo "Error: clipboard is empty or has no shareable content." >&2
+        return 1
+    fi
+
+    systemd-run --user --quiet --collect localsend "$tmpfile"
 )
 
 ## ===
@@ -94,7 +290,7 @@ main() {
         file|files)
             share_files
             ;;
-            folder|folders)
+        folder|folders)
             share_folder
             ;;
         text)
@@ -113,9 +309,5 @@ main() {
             ;;
     esac
 }
-
-for cmd in localsend fzf xdg-terminal-exec; do
-    _ensure_command "$cmd"
-done
 
 main "$@"

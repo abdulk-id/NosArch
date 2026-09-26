@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Install, update, and remove packages
 
 set -eu
 
@@ -14,7 +15,7 @@ Commands:
     install <action>        Install packages
     update                  Update packages (Arch and AUR, and Flatpak and Homebrew if installed)
     remove                  Remove packages (Arch and AUR, and Flatpak and Homebrew if installed)
-    remove-unused           Remove unused packages (Arch and AUR)
+    remove-unused           Remove unused packages (Arch and AUR, and Flatpak and Homebrew if installed)
     help                    Show this help message
 
 Install actions:
@@ -40,6 +41,10 @@ update_db() {
 
 ## === Features ===
 install_arch_packages() {
+    for cmd in gum fzf; do
+        _ensure_command "$cmd"
+    done
+
     fzf_output=$(
         pacman -Slq | fzf \
         --multi \
@@ -57,10 +62,8 @@ install_arch_packages() {
 
     if [ -n "$pkg_names" ]; then
         gum style --foreground 10 "▸ Authenticating..."
-        echo
 
         if ! start_sudo_keepalive; then
-            echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
@@ -68,15 +71,12 @@ install_arch_packages() {
         echo
 
         gum style --foreground 10 "▸ Installing packages..."
-        echo
 
         if sudo pacman -S --needed --noconfirm $pkg_names; then
             update_db
 
-            echo
             gum style --foreground 10 "✓ Installation complete!"
         else
-            echo
             gum style --foreground 9 "x Installation failed."
         fi
 
@@ -86,6 +86,10 @@ install_arch_packages() {
 }
 
 install_aur_packages() {
+    for cmd in gum fzf yay; do
+        _ensure_command "$cmd"
+    done
+
     fzf_output=$(
         yay -Slqa | fzf \
             --multi \
@@ -105,10 +109,8 @@ install_aur_packages() {
 
     if [ -n "$pkg_names" ]; then
         gum style --foreground 10 "▸ Authenticating..."
-        echo
 
         if ! start_sudo_keepalive; then
-            echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
@@ -116,12 +118,10 @@ install_aur_packages() {
         echo
 
         gum style --foreground 10 "▸ Installing AUR packages..."
-        echo
 
         if yay -S --noconfirm $pkg_names; then
             update_db
 
-            echo
             gum style --foreground 10 "✓ Installation complete!"
         else
             echo
@@ -135,108 +135,110 @@ install_aur_packages() {
 }
 
 install_flatpak_packages() {
-    TAB_CHAR=$(printf '\t')
+    if command -v flatpak >/dev/null 2>&1; then
+        for cmd in gum fzf; do
+            _ensure_command "$cmd"
+        done
 
-    # APP_ID<TAB>NAME<TAB>DESCRIPTION
-    pkg_selection=$(
-        flatpak remote-ls --app --columns=application,name,description | \
-        awk -F "$TAB_CHAR" '
-            !seen[$1]++ {
-                printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
-            }
-        ' | \
-        sort -t "$TAB_CHAR" -k2,2f |
-        fzf \
-            --multi \
-            --delimiter="$TAB_CHAR" \
-            --with-nth=2 \
-            --preview 'printf "%s\n" "{}" | cut -f3' \
-            --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos 'bottom' \
-            --preview-window 'down:55%:wrap' \
-            --bind 'alt-p:toggle-preview' \
-            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-            --bind 'alt-k:preview-up,alt-j:preview-down' \
-            --color 'pointer:green,marker:green'
-    ) || return 0
+        TAB_CHAR=$(printf '\t')
 
-    if [ -n "$pkg_selection" ]; then
-        pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
+        # APP_ID<TAB>NAME<TAB>DESCRIPTION
+        pkg_selection=$(
+            flatpak remote-ls --app --columns=application,name,description | \
+            awk -F "$TAB_CHAR" '
+                !seen[$1]++ {
+                    printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
+                }
+            ' | \
+            sort -t "$TAB_CHAR" -k2,2f |
+            fzf \
+                --multi \
+                --delimiter="$TAB_CHAR" \
+                --with-nth=2 \
+                --preview 'printf "%s\n" "{}" | cut -f3' \
+                --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+                --preview-label-pos 'bottom' \
+                --preview-window 'down:55%:wrap' \
+                --bind 'alt-p:toggle-preview' \
+                --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+                --bind 'alt-k:preview-up,alt-j:preview-down' \
+                --color 'pointer:green,marker:green'
+        ) || return 0
 
-        gum style --foreground 10 "▸ Installing Flatpak packages..."
-        echo
+        if [ -n "$pkg_selection" ]; then
+            pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
 
-        if flatpak install --assumeyes $pkg_ids; then
-            echo
-            gum style --foreground 10 "✓ Installation complete!"
-        else
-            echo
-            gum style --foreground 9 "x Installation failed."
+            gum style --foreground 10 "▸ Installing Flatpak packages..."
+
+            if flatpak install --assumeyes $pkg_ids; then
+                gum style --foreground 10 "✓ Installation complete!"
+            else
+                gum style --foreground 9 "x Installation failed."
+            fi
         fi
+    else
+        gum style --foreground 9 "x Flatpak is not available on this system."
     fi
 }
 
 update_packages() {
+    for cmd in gum yay; do
+        _ensure_command "$cmd"
+    done
+
     gum style --foreground 10 "▸ Authenticating..."
-    echo
 
     if ! start_sudo_keepalive; then
-        echo
         gum style --foreground 9 "x Authentication failed."
         return 1
     fi
     trap 'stop_sudo_keepalive' 0
+    echo
 
-    echo
     gum style --foreground 10 "▸ Updating Arch and AUR packages..."
-    echo
 
     if yay -Syu; then
         # yay -Syu = yay --sync --refresh --sysupgrade
-        # Also add:
         update_db
 
-        echo
         gum style --foreground 10 "✓ Arch and AUR packages updated!"
     else
-        echo
         gum style --foreground 9 "x Arch and AUR package update failed."
-    fi
-
-    if command -v flatpak >/dev/null 2>&1; then
-        echo
-        gum style --foreground 10 "▸ Updating Flatpak packages..."
-        echo
-
-        if flatpak update --assumeyes; then
-            echo
-            gum style --foreground 10 "✓ Flatpak packages updated!"
-        else
-            echo
-            gum style --foreground 9 "x Flatpak package update failed."
-        fi
     fi
 
     stop_sudo_keepalive
     trap - 0
 
+    # Flatpak does not require sudo
+    if command -v flatpak >/dev/null 2>&1; then
+        echo
+        gum style --foreground 10 "▸ Updating Flatpak packages..."
+
+        if flatpak update --assumeyes; then
+            gum style --foreground 10 "✓ Flatpak packages updated!"
+        else
+            gum style --foreground 9 "x Flatpak package update failed."
+        fi
+    fi
+
     # Homebrew does not require sudo
     if command -v brew >/dev/null 2>&1; then
         echo
         gum style --foreground 10 "▸ Updating Homebrew packages..."
-        echo
 
-        if brew update; then
-            echo
+        if brew upgrade; then
             gum style --foreground 10 "✓ Homebrew packages updated!"
         else
-            echo
             gum style --foreground 9 "x Homebrew package update failed."
         fi
     fi
 }
 
 remove_packages() {
+    for cmd in gum fzf yay; do
+        _ensure_command "$cmd"
+    done
+
     TAB_CHAR=$(printf '\t')
 
     # entry format: "[display type] - \t - internal type - \t - package name"
@@ -319,13 +321,10 @@ remove_packages() {
         tr '\n' ' '
     )
 
-    # Flatpak & Homebrew don't require sudo, so only authenticate for Arch/AUR removals.
     if [ -n "$pacman_pkgs" ]; then
         gum style --foreground 10 "▸ Authenticating..."
-        echo
 
         if ! start_sudo_keepalive; then
-            echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
@@ -338,28 +337,26 @@ remove_packages() {
 
     if [ -n "$pacman_pkgs" ]; then
         gum style --foreground 10 "▸ Removing Arch/AUR packages..."
-        echo
 
         if yay -Rns --noconfirm $pacman_pkgs; then
-            echo
             gum style --foreground 10 "✓ Arch/AUR packages removed!"
         else
-            echo
             gum style --foreground 9 "x Arch/AUR removal failed."
             success=false
         fi
         echo
     fi
 
+    # Flatpak & Homebrew don't require sudo, so only authenticate for Arch/AUR removals.
+    stop_sudo_keepalive
+    trap - 0
+
     if [ -n "$flatpak_pkgs" ]; then
         gum style --foreground 10 "▸ Removing Flatpak packages..."
-        echo
 
         if flatpak uninstall --assumeyes $flatpak_pkgs; then
-            echo
             gum style --foreground 10 "✓ Flatpak packages removed!"
         else
-            echo
             gum style --foreground 9 "x Flatpak removal failed."
             success=false
         fi
@@ -368,13 +365,10 @@ remove_packages() {
 
     if [ -n "$homebrew_formulae" ]; then
         gum style --foreground 10 "▸ Removing Homebrew formulae..."
-        echo
 
         if brew uninstall --formula $homebrew_formulae; then
-            echo
             gum style --foreground 10 "✓ Homebrew formulae removed!"
         else
-            echo
             gum style --foreground 9 "x Homebrew formula removal failed."
             success=false
         fi
@@ -386,52 +380,46 @@ remove_packages() {
         echo
 
         if brew uninstall --cask $homebrew_casks; then
-            echo
             gum style --foreground 10 "✓ Homebrew casks removed!"
         else
-            echo
             gum style --foreground 9 "x Homebrew cask removal failed."
             success=false
         fi
         echo
     fi
 
-    stop_sudo_keepalive
-    trap - 0
 
     $success
 }
 
 remove_unused_packages() {
-    gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
-    echo
+    _ensure_command gum
 
-    if pacman -Qdtq | sudo pacman -Rns --noconfirm -; then
-        echo
+    gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
+
+    orphans=$(pacman -Qdtq || true)
+
+    if [ -z "$orphans" ]; then
+        gum style --foreground 10 "✓ No unused Arch/AUR packages found!"
+    elif printf '%s\n' "$orphans" | sudo pacman -Rns --noconfirm -; then
         gum style --foreground 10 "✓ Unused Arch/AUR packages removed!"
     else
-        echo
         gum style --foreground 9 "x Removing unused Arch/AUR packages failed."
     fi
 
     if command -v flatpak >/dev/null 2>&1; then
         echo
         gum style --foreground 10 "▸ Removing unused Flatpak packages..."
-        echo
 
         if flatpak uninstall --system --unused --assumeyes; then
-            echo
             gum style --foreground 10 "✓ Unused Flatpak packages removed!"
         else
-            echo
             gum style --foreground 9 "x Removing unused Flatpak packages failed."
         fi
 
         if flatpak uninstall --user --unused --assumeyes; then
-            echo
             gum style --foreground 10 "✓ Unused Flatpak user packages removed!"
         else
-            echo
             gum style --foreground 9 "x Removing unused Flatpak user packages failed."
         fi
     fi
@@ -439,13 +427,10 @@ remove_unused_packages() {
     if command -v brew >/dev/null 2>&1; then
         echo
         gum style --foreground 10 "▸ Removing unused Homebrew packages..."
-        echo
 
         if brew cleanup; then
-            echo
             gum style --foreground 10 "✓ Unused Homebrew packages removed!"
         else
-            echo
             gum style --foreground 9 "x Removing unused Homebrew packages failed."
         fi
     fi
@@ -472,7 +457,7 @@ main() {
                     install_flatpak_packages
                     ;;
                 *)
-                    echo "Unknown install action: $2"
+                    echo "Unknown install action: ${2:-}"
                     show_help
                     exit 1
                     ;;
@@ -497,9 +482,5 @@ main() {
             ;;
     esac
 }
-
-for cmd in gum fzf yay; do
-    _ensure_command "$cmd"
-done
 
 main "$@"

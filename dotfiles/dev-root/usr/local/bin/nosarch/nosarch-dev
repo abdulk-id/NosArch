@@ -1,4 +1,6 @@
 #!/bin/sh
+# Managed by NosArch
+# nosarch:summary=Scaffold and list try-projects
 
 set -eu
 
@@ -384,7 +386,7 @@ main() {
                     new_try_project "$@"
                     ;;
                 *)
-                    echo "Unknown action: $2"
+                    echo "Unknown action: ${2:-}"
                     show_help
                     exit 1
                     ;;

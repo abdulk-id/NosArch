@@ -58,7 +58,7 @@ class SetupModule(decman.Module):
             "whatsie-git",
         }
 
-        if self._user_config.get_bool("full_setup.enable_virtualization"):
+        if self._user_config.get_bool("setup.enable_virtualization"):
             aur_pkgs_set.update(
                 {
                     "bridge-utils"  # Utils for configuring Linux ethernet bridge

@@ -46,14 +46,18 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
             decman.core.output.print_error("[CHECKS] Dangling path references found in dotfiles.")
             raise SystemExit()
 
-        _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
-            [sys.executable, "../tools/check_custom_packages.py"]
-        )
-        if _custom_package_check.returncode == 1:
-            decman.core.output.print_error("[CHECKS] Custom package check failed with error(s).")
-            raise SystemExit()
-        elif _custom_package_check.returncode == 2:
-            decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
+        # Many custom packages = check takes time. Give option (to allow skipping just this check for quick dry-runs)
+        if decman.core.output.prompt_confirm("Run Custom package check?", True):
+            _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
+                [sys.executable, "../tools/check_custom_packages.py"]
+            )
+            if _custom_package_check.returncode == 1:
+                decman.core.output.print_error("[CHECKS] Custom package check failed with error(s).")
+                raise SystemExit()
+            elif _custom_package_check.returncode == 2:
+                decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
+        else:
+            decman.core.output.print_warning("[CHECKS] Custom package check manually skipped for this run.")
 else:
     decman.config.debug_output = False
     decman.config.quiet_output = True  # Disable info messages

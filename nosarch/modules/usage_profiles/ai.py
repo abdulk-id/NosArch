@@ -190,6 +190,9 @@ class AIModule(decman.Module):
         brew_formulae: set[str] = set()
 
         # Agents
+        if "crush" in self._agents:
+            brew_formulae.add("charmbracelet/tap/crush")
+
         if "gemini-cli" in self._agents:
             brew_formulae.add("gemini-cli")
 
@@ -210,6 +213,7 @@ class AIModule(decman.Module):
 # - copilot-cli -> homebrew.formulae
 # - cursor-cli -> not setup yet
 # - devin-cli -> not setup yet
+# - crush -> homebrew.formulae
 # - gemini-cli -> homebrew.formulae
 # - grok-build -> aur.custom_packages
 # - kilocode -> aur.packages

@@ -68,6 +68,7 @@
                             { "const": "claude-code", "title": "Claude Code" },
                             { "const": "codex", "title": "OpenAI Codex" },
                             { "const": "copilot-cli", "title": "GitHub Copilot CLI" },
+                            { "const": "crush", "title": "Crush" },
                             { "const": "cursor-cli", "title": "Cursor CLI" },
                             { "const": "devin-cli", "title": "Devin CLI" },
                             { "const": "gemini-cli", "title": "Gemini CLI" },

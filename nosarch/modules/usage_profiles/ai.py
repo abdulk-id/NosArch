@@ -128,6 +128,14 @@ class AIModule(decman.Module):
         custom_pkgs: set[aur.CustomPackage] = set()
 
         # Agents
+        if "antigravity-cli" in self._agents:
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="antigravity-cli-nosarch",
+                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "antigravity-cli-nosarch"),
+                )
+            )
+
         if "grok-build" in self._agents:
             custom_pkgs.add(
                 aur.CustomPackage(
@@ -207,7 +215,7 @@ class AIModule(decman.Module):
 
 # For reference
 # Agents:
-# - antigravity-cli -> not setup yet
+# - antigravity-cli -> aur.custom_packages
 # - claude-code -> homebrew.casks
 # - codex -> pacman.packages
 # - copilot-cli -> homebrew.formulae

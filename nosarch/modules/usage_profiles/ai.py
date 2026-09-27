@@ -143,6 +143,13 @@ class AIModule(decman.Module):
                 )
             )
 
+        if "devin-cli" in self._agents:
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="devin-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "devin-cli-nosarch")
+                )
+            )
+
         # Apps
         if "cursor-desktop" in self._apps:
             custom_pkgs.add(
@@ -220,8 +227,8 @@ class AIModule(decman.Module):
 # - codex -> pacman.packages
 # - copilot-cli -> homebrew.formulae
 # - cursor-cli -> not setup yet
-# - devin-cli -> not setup yet
 # - crush -> homebrew.formulae
+# - devin-cli -> aur.custom_packages
 # - gemini-cli -> homebrew.formulae
 # - grok-build -> aur.custom_packages
 # - kilocode -> aur.packages

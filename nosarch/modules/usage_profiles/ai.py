@@ -154,7 +154,8 @@ class AIModule(decman.Module):
         if "cursor-desktop" in self._apps:
             custom_pkgs.add(
                 aur.CustomPackage(
-                    pkgname="cursor-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-nosarch")
+                    pkgname="cursor-desktop-nosarch",
+                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-desktop-nosarch"),
                 )
             )
 

@@ -76,7 +76,7 @@ Add one directive comment near the top of the PKGBUILD so the checker can tell w
 # nosarch-upstream: github <owner>/<repo>
 # nosarch-upstream: json https://example.com/api/latest version
 # nosarch-upstream: text https://example.com/stable
-# nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'
+# nosarch-upstream: regex https://example.com/download Example-([0-9.]+)-x86_64
 ```
 
 | Form                      | Use when                                   | Notes                                                                                       |
@@ -99,7 +99,7 @@ The checker fetches `<url>` as plain text (the raw HTML) and runs `<pattern>` ag
 the single capture group `(...)` matches is treated as the current upstream version.
 
 Example: a vendor's download page contains `href="/dl/Example-2.4.1-x86_64.AppImage"`. The directive
-`# nosarch-upstream: regex https://example.com/download 'Example-([0-9.]+)-x86_64'` matches that text and captures
+`# nosarch-upstream: regex https://example.com/download Example-([0-9.]+)-x86_64` matches that text and captures
 `2.4.1`.
 
 Keep exactly one capture group as the checker uses group 1 and ignores the rest of the match.

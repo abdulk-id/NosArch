@@ -157,6 +157,11 @@ class AIModule(decman.Module):
                 )
             )
 
+        if "pi" in self._agents:
+            custom_pkgs.add(
+                aur.CustomPackage(pkgname="pi-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "pi-nosarch"))
+            )
+
         # Apps
         if "cursor-desktop" in self._apps:
             custom_pkgs.add(
@@ -263,7 +268,7 @@ class AIModule(decman.Module):
 # - kilocode -> aur.packages
 # - omp -> homebrew.formulae + taps
 # - opencode -> pacman.packages
-# - pi -> not setup yet
+# - pi -> aur.custom_packages
 #
 # Apps:
 # - chatgpt-desktop -> aur.packages

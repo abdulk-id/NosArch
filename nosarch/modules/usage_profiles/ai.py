@@ -136,6 +136,13 @@ class AIModule(decman.Module):
                 )
             )
 
+        if "cursor-cli" in self._agents:
+            custom_pkgs.add(
+                aur.CustomPackage(
+                    pkgname="cursor-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-cli-nosarch")
+                )
+            )
+
         if "grok-build" in self._agents:
             custom_pkgs.add(
                 aur.CustomPackage(
@@ -235,8 +242,8 @@ class AIModule(decman.Module):
 # - claude-code -> homebrew.casks
 # - codex -> pacman.packages
 # - copilot-cli -> homebrew.formulae
-# - cursor-cli -> not setup yet
 # - crush -> homebrew.formulae
+# - cursor-cli -> aur.custom_packages
 # - devin-cli -> aur.custom_packages
 # - gemini-cli -> homebrew.formulae
 # - grok-build -> aur.custom_packages

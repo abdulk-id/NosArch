@@ -142,7 +142,7 @@ class SystemModule(decman.Module):
 
     @override
     def on_change(self, store: Store) -> None:
-        changed_files: set[str] = self._tracker.changed
+        changed_files: set[str] = self._tracker.changed_files
 
         def changed_files_in(*target_dirs: str) -> bool:
             for target_dir in target_dirs:

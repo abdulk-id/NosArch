@@ -216,6 +216,19 @@ class AIModule(decman.Module):
 
         return brew_casks
 
+    @homebrew.taps  # pyright: ignore[reportUnknownMemberType]
+    def brew_taps(self) -> set[str]:
+        brew_taps: set[str] = set()
+
+        # Agents
+        if "crush" in self._agents:
+            brew_taps.add("charmbracelet/tap")
+
+        if "omp" in self._agents:
+            brew_taps.add("can1357/tap")
+
+        return brew_taps
+
     @homebrew.formulae  # pyright: ignore[reportUnknownMemberType]
     def brew_formulae(self) -> set[str]:
         brew_formulae: set[str] = set()
@@ -242,13 +255,13 @@ class AIModule(decman.Module):
 # - claude-code -> homebrew.casks
 # - codex -> pacman.packages
 # - copilot-cli -> homebrew.formulae
-# - crush -> homebrew.formulae
+# - crush -> homebrew.formulae + taps
 # - cursor-cli -> aur.custom_packages
 # - devin-cli -> aur.custom_packages
 # - gemini-cli -> homebrew.formulae
 # - grok-build -> aur.custom_packages
 # - kilocode -> aur.packages
-# - omp -> homebrew.formulae
+# - omp -> homebrew.formulae + taps
 # - opencode -> pacman.packages
 # - pi -> not setup yet
 #

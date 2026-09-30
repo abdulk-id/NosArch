@@ -6,3 +6,7 @@ run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --dry-run"
 
 [tasks.apply-files]
 run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files"
+
+[tasks.pkgchk]
+description = "Check all custom packages"
+run = "python3 tools/check_custom_packages.py"

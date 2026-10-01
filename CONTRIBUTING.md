@@ -1,32 +1,24 @@
 # Contributing to NosArch
 
-NosArch is a work in progress.
-
-The project is in the early stages and its conventions are still evolving.
+NosArch is in the early stages and its conventions are still evolving.
 
 There is no guarantee of acceptance, but you can still open an issue or a PR to report bugs and suggest features or improvements.
 
 ## Commit Messages
 
-Write commit messages using the following format:
+Write commit messages in the following format: `Area: Action summary`
 
-```
-Area: Action summary
-```
+Areas:
+
+- `Decman`: Decman-specific changes (such as decman's configuration, the homebrew plugin for decman).
+- `<Module-Name>`: Changes in the definition code of a module.
+- `Repo`: Repository changes such as documentation, repo config files (`.gitignore` etc.), `opencode.jsonc` etc.
+- `Scripts`: Changes targeting user-facing shell scripts in multiple modules.
+- `Packages`: Adding, modifying or removing a custom package.
+- `Packages(update)`: Updating a custom package's version.
 
 Some examples:
 
 - `Scripts: Make all shell scripts POSIX-compliant`
 - `System: Add vendor-based CPU and GPU setup`
-- `Hyprland: Fix opening windows in wrong workspaces`
-
-Common areas include:
-
-- `Decman`: Decman-specific changes (which do not affect the system)
-- `Dev`: Dev-related changes (made in the Dev module)
-- `Repo`: Repository changes such as codebase documentation, repo config files (`.gitignore`, `.editorconfig` etc.), `opencode.jsonc` etc.
-- `Scripts`: All user-facing shell scripts
-
-Message style:
-
-- Use an imperative verb ("Add", "Fix", "Update", "Remove") rather than past tense ("Added", "Fixed").
+- `Desktop: Revert Firefox extension window rule`

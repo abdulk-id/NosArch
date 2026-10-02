@@ -36,8 +36,8 @@ desktop_mimes: dict[str, str] = {
     "text/plain": "org.gnome.TextEditor.desktop",
     "text/english": "org.gnome.TextEditor.desktop",
     # AppImages
-    "application/x-appimage": "it.mijorus.gearlever.desktop",
-    "application/x-iso9660-appimage": "it.mijorus.gearlever.desktop",
+    "application/x-appimage": "nosarch-appimage-installer.desktop",
+    "application/x-iso9660-appimage": "nosarch-appimage-installer.desktop",
 }
 
 dev_mimes: dict[str, str] = {

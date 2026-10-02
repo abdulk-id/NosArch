@@ -8,7 +8,7 @@ import utils.hardware.chassis_type
 import utils.hardware.gpu_vendor
 import utils.paths
 from decman import File
-from decman.plugins import aur, flatpak, pacman, systemd
+from decman.plugins import aur, pacman, systemd
 from utils.user_config_reader import UserConfigReader
 
 _gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
@@ -70,7 +70,6 @@ class DesktopModule(decman.Module):
                 "/.config/hypr/app-windows/chromium.lua",
                 "/.config/hypr/app-windows/core.lua",
                 "/.config/hypr/app-windows/firefox.lua",
-                "/.config/hypr/app-windows/gearlever.lua",
                 "/.config/hypr/app-windows/localsend.lua",
                 "/.config/hypr/app-windows/nosarch-dash.lua",
                 "/.config/hypr/app-windows/qemu.lua",
@@ -320,12 +319,6 @@ class DesktopModule(decman.Module):
         return desktop_set
 
     decman.aur.ignored_packages.add("nosarch-dash-bin")
-
-    @flatpak.packages  # pyright: ignore[reportUnknownMemberType]
-    def flatpak_pkgs(self) -> set[str]:
-        return {
-            "it.mijorus.gearlever"  # AppImage Manager
-        }
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def desktop_services(self) -> set[str]:

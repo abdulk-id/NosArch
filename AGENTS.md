@@ -5,9 +5,9 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by Decman
 ## Glossary
 
 - **Target system** refers to the arch linux system decman is going to apply all changes to.
-- **Deploying dotfiles** means installing files from `dotfiles` to the target system.
 - **Definition code** means the code defining how and where to deploy dotfiles, which packages to install, and
   managing systemd units.
+- **Deploying** means applying the results of the definition code to the target system.
 
 ## Project Structure
 

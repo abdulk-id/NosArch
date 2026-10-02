@@ -1,7 +1,7 @@
 # Files
 
-NosArch is responsible for deploying dotfiles to the system. The dotfiles all live under `/dotfiles`, with each module
-keeping a separate mirrored-root. For example: files managed by the desktop module are stored in
+NosArch is responsible for deploying dotfiles to the system. The dotfiles all live under `/dotfiles`, with each
+[module](modules.md) keeping a separate mirrored-root. For example: files managed by the desktop module are stored in
 `/dotfiles/desktop-root/...`, and dev module's files in `/dotfiles/dev-root/...`.
 
 Hidden files and directories are stored with a `dot_` prefix (For example: `dot_bashrc`, `dot_config/hypr/`)
@@ -17,7 +17,7 @@ explicitly.
 
 This is more verbose, and this is deliberate:
 
-- **A module is a manifest**: Reading `system.py` tells you every path NosArch writes to. With directories you would
+- **A module is a manifest**: Reading a module tells you every path that module deploys to. With directories you would
   have to read the repo tree instead, and the two can drift.
 - **Nothing deploys by accident:** A `Directory()` ships whatever is in the source tree, so an editor backup, a `.orig`
   from a merge, or a half-finished file lands on the system the moment it is saved. An undeclared file in `dotfiles/`
@@ -27,6 +27,9 @@ This is more verbose, and this is deliberate:
     - The plymouth theme (system module) is the concrete case for this. `bin_file=True` disables variable substitution
       (`core/fs.py:163`), so a single directory declaration would have forced a choice between corrupting the PNGs and
       leaving `%ACCENT%` unsubstituted in `nosarch.script`
+
+The only exception is the wallpapers directory in `ThemingModule`, because each theme can have a different number of
+wallpapers, and they don't have fixed names.
 
 ## Declaring
 

@@ -13,6 +13,9 @@ Each plugin exposes decorators. A module method annotated with one returns the s
 packages that module wants:
 
 ```python
+from decman.plugins import aur, flatpak, pacman
+from plugins import homebrew
+
 @pacman.packages
 def arch_pkgs(self) -> set[str]:
     return set(self._user_config.get_str_list("user_packages.arch"))

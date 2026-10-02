@@ -254,3 +254,4 @@ text around the version, and update the directive. Then bump as usual.
   ELF as a `.desktop` file and fail. Point the installed desktop entries at a suffix-free `/usr/bin` symlink instead.
     - Example: `opencode-desktop-nosarch`. Upstream naming the binary `ai.opencode.desktop` caused such a problem.
 
+TODO: Does `cursor-cli-nosarch` violate gotcha#4 with the `Cursor-TOS` file? Check

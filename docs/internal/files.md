@@ -119,8 +119,12 @@ files.update(
 
 Nothing is recorded during `--dry-run`.
 
-The same tracker also records package and unit changes; see
-[Tracking packages](packages.md#tracking-packages).
+Only track what a hook reacts to. A declaration with no action to take on change (a config its owner reads once at
+start, or a script run fresh on each use) should stay on `files()`, because an untracked declaration is one less
+thing to keep in step, and a trigger nobody reads only invites false positives.
+
+A tracker sees only its own module's files, so a directory trigger in one module can never fire for another module's
+declarations. Ownership of a directory's trigger belongs to whichever module actually writes there.
 
 ## Applying changes
 
@@ -175,6 +179,52 @@ Prompt with `decman.core.output.prompt_confirm`, guarded on `sys.stdin.isatty()`
 
 `on_change` is skipped under `--dry-run` (`app.py:343`), so hooks need no dry-run handling of their own.
 
+### Prompting ends the run
+
+Logging out or rebooting destroys the session decman is itself running in, so acting on a pending change from inside a
+hook kills the run partway through. That is worse than it looks, because applies are **edge-triggered**: a file is
+recorded only when it actually differed (`core/fs.py:124`), so an apply that never runs is not queued for later. It is
+simply lost, and no later run will notice the change again.
+
+It also takes the store down with it. `Store.save()` runs in `__exit__` (`core/store.py:49`), which is after every hook,
+so a run that dies mid-prompt leaves no record of `enabled_modules`, `all_files` or the per-module package sets. The
+next run then believes every package, unit and file is newly added.
+
+So a hook never acts on the change. It records it:
+
+```python
+utils.session_changes.defer(store, "reboot", "ZRAM configuration")
+```
+
+`tools/apply` is what offers the action, after decman has exited. That is the only point where every `on_change` and
+`after_update` has finished and the store is on disk, and it does not depend on where a module sits in the registration
+order. `tools/apply` reads the store, prompts once, and acts.
+
+### The notice belongs inside, the prompt belongs outside
+
+`defer` records the change, and the hook **also prints its own notice**. That is deliberate: running `decman` directly
+still informs the user, it just cannot offer the action. Moving the notice out to the wrapper would mean the information
+exists only when the wrapper is used.
+
+`utils.session_changes.reset()` runs from a `before_update` hook, so each run reports only what it deferred itself. Any
+module can do this reset, because `before_update` precedes every `on_change` for every module (`app.py:199-200`). That
+is the one thing that may rely on hook order, and it relies on the *phase*, not on a module's position.
+
+### Session-scoped changes
+
+Applying a change to a running desktop often means running a command that only the graphical session can reach.
+`hyprctl`, `waybar` and the rest need the session's Wayland socket, its Hyprland instance signature and its bus.
+decman runs as root, and root has none of those, so these applies go through `utils/session.py`.
+
+It finds the active graphical session with `loginctl`, reads that session's environment out of
+`systemctl --user -M <user>@ show-environment`, and runs the command as the session's owner. Reading the environment
+back is exact because Hyprland's autostart runs `systemctl --user import-environment`; reconstructing
+`WAYLAND_DISPLAY` or the instance signature would be a guess, so `run_in_session()` skips the action instead of
+acting on one. Report skipped actions to the user rather than dropping them, since they still apply on next login.
+
+Session applies are best-effort by nature: pass `check=False`, so a failed reload warns instead of failing the run.
+`utils/session.py` does this for every command it runs, and returns `False` when there is nothing to run in.
+
 ## Path checking
 
 Dotfiles can reference each other by path (For example: a unit file points at a script, a udev rule points at a helper
@@ -201,3 +251,20 @@ Manual `File` declarations ([Manually declaring files](#manually-declaring-files
       A bare `udevadm trigger` replays events for every device, which can rebind drivers and re-probe storage.
 - **`systemd-tmpfiles --remove` is not scoped to managed files**: It deletes every path marked `r`/`R` across all
   tmpfiles configs on the system. `--clean` should be used.
+- **systemd output parsed in a hook needs `pty=False`**: On a terminal, systemd colorizes `loginctl` and `systemctl`
+  output, and the escape codes land inside the fields being parsed.
+- **`systemctl --user -M <user>@` fails when the user manager is not running**: For example when applying from a TTY
+  or during a fresh install. Pass `check=False` rather than guarding every call site.
+- **Restart a unit the user may have turned off with `try-restart`**: `restart` would start a timer the user had
+  disabled (`nosarch-eyesight-reminder.timer` is enabled by default, but a hook cannot assume that stays true).
+- **Desktop daemons mostly have no reload request**: `swaync-client --reload-config`/`--reload-css` and waybar's
+  `SIGUSR2` are the exceptions. `hyprpaper`, `hyprsunset` and `hypridle` read their config once, at start, and
+  `hyprctl` has no request for them either, so they have to be restarted. Relaunch each with the command Hyprland's
+  autostart uses, or the session comes back with a different process layout than the user expects.
+- **`hyprctl reload` re-applies monitors**: Pass `config-only` when only the config changed. `hyprmoncfgd` owns the
+  monitor layout, and a full reload fights it.
+- **waybar's stylesheet needs no reload**: `reload_style_on_change` is set in its config. Its `config.jsonc` does.
+- **Ghostty has no `+reload-config` action**: A new window picks the config up, so there is nothing to apply.
+- **`hyprlock`'s config needs no apply at all**: `nosarch-lock-helper.sh` spawns a fresh hyprlock for every lock.
+- **`pkill` exits non-zero when the process is not running**: A session daemon is often absent (install time, a TTY,
+  the user closed it). Let the kill fail and let the relaunch decide the exit code, or every such run warns.

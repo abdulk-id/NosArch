@@ -1,5 +1,3 @@
-import os
-import sys
 from typing import override
 
 import decman
@@ -11,8 +9,9 @@ import utils.hardware.cpu_vendor
 import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.paths
+import utils.session_changes
 from decman import File, Store
-from decman.core.output import print_info, print_list, prompt_confirm
+from decman.core.output import print_info, print_list
 from decman.plugins import aur, pacman, systemd
 from utils.user_config_reader import UserConfigReader
 
@@ -142,70 +141,56 @@ class SystemModule(decman.Module):
 
     @override
     def on_change(self, store: Store) -> None:
-        changed_files: set[str] = self._tracker.changed_files
-
-        def changed_files_in(*target_dirs: str) -> bool:
-            for target_dir in target_dirs:
-                target_path: str = os.path.abspath(target_dir)
-
-                if any(os.path.commonpath([p, target_path]) == target_path for p in changed_files):
-                    return True
-            return False
-
-        def files_changed(*paths: str) -> bool:
-            return not changed_files.isdisjoint(paths)
-
-        if changed_files_in("/etc/systemd/system", "/usr/lib/systemd"):
+        if self._tracker.files_changed_in_dirs("/etc/systemd/system", "/usr/lib/systemd"):
             print_info("Reloading systemd.")
             _ = decman.prg(["systemctl", "daemon-reload"])
 
-        if changed_files_in("/etc/NetworkManager"):
+        if self._tracker.files_changed_in_dirs("/etc/NetworkManager"):
             print_info("Reloading NetworkManager.")
             _ = decman.prg(["systemctl", "reload", "NetworkManager"])
 
-        if changed_files_in("/etc/sysctl.d"):
+        if self._tracker.files_changed_in_dirs("/etc/sysctl.d"):
             print_info("Applying kernel parameters.")
             _ = decman.prg(["sysctl", "--system", "--quiet"])
 
-        if changed_files_in("/etc/systemd/journald.conf.d"):
+        if self._tracker.files_changed_in_dirs("/etc/systemd/journald.conf.d"):
             print_info("Restarting systemd-journald.")
             _ = decman.prg(["systemctl", "restart", "systemd-journald"])
 
-        if changed_files_in("/etc/systemd/system.conf.d", "/etc/systemd/user.conf.d") or files_changed(
-            "/etc/systemd/system.conf"
-        ):
+        if self._tracker.files_changed_in_dirs(
+            "/etc/systemd/system.conf.d", "/etc/systemd/user.conf.d"
+        ) or self._tracker.files_changed("/etc/systemd/system.conf"):
             print_info("Restarting systemd.")
             _ = decman.prg(["systemctl", "daemon-reexec"])
 
-        if changed_files_in("/etc/tmpfiles.d"):
+        if self._tracker.files_changed_in_dirs("/etc/tmpfiles.d"):
             print_info("Cleaning tmp files.")
             _ = decman.prg(["systemd-tmpfiles", "--create", "--clean"])
 
-        if changed_files_in("/etc/udev/rules.d"):
+        if self._tracker.files_changed_in_dirs("/etc/udev/rules.d"):
             print_info("Reloading udev.")
             _ = decman.prg(["udevadm", "control", "--reload"])
             _ = decman.prg(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
 
-        if changed_files_in("/etc/ufw"):
+        if self._tracker.files_changed_in_dirs("/etc/ufw"):
             print_info("Restarting firewall (ufw).")
             _ = decman.prg(["systemctl", "restart", "ufw"])
 
-        if (
-            changed_files_in("/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes")
-            or "/etc/mkinitcpio.conf" in changed_files
-        ):
+        if self._tracker.files_changed_in_dirs(
+            "/etc/plymouth", "/usr/share/plymouth/themes"
+        ) or self._tracker.files_changed("/etc/mkinitcpio.conf"):
             print_info("Rebuilding initramfs and updating Limine boot entries.")
             _ = decman.prg(["limine-mkinitcpio"])
 
         # Reboot requiring changes ---
         needs_reboot: list[str] = []
 
-        if files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
+        if self._tracker.files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
             # Applying these live means swapoff on an active zram device holding
             # compressed pages, which can OOM the machine under memory pressure.
             needs_reboot.append("ZRAM configuration")
 
-        if changed_files_in("/etc/systemd/logind.conf.d"):
+        if self._tracker.files_changed_in_dirs("/etc/systemd/logind.conf.d"):
             # systemd-logind has no ExecReload, and restarting it disturbs active sessions.
             needs_reboot.append("logind configuration")
 
@@ -214,8 +199,14 @@ class SystemModule(decman.Module):
 
         print_list("These changes will take effect after a reboot: ", needs_reboot, 1)
 
-        if sys.stdin.isatty() and prompt_confirm("Reboot now?", default=False):
-            _ = decman.prg(["/usr/local/bin/nosarch/nosarch-session", "restart"])
+        # The offer to act on it comes from `tools/apply`, once decman has exited. Logging out or
+        # rebooting here would kill the run, and with it the hooks that have not run yet.
+        for change in needs_reboot:
+            utils.session_changes.defer(store, "reboot", change)
+
+    @override
+    def before_update(self, store: Store) -> None:
+        utils.session_changes.reset(store)
 
     @override
     def after_update(self, store: Store) -> None:

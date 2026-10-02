@@ -1,12 +1,15 @@
 from typing import override
 
 import decman
+import decman.core.output
 import modules.theme
 import utils.change_tracker
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
 import utils.hardware.gpu_vendor
 import utils.paths
+import utils.session
+import utils.session_changes
 from decman import File
 from decman.plugins import aur, flatpak, pacman, systemd
 from utils.user_config_reader import UserConfigReader
@@ -28,12 +31,6 @@ class DesktopModule(decman.Module):
         self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
-    def on_change(self, store: decman.Store) -> None:
-        # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
-        # TODO only on glib schema file update
-        _ = decman.prg(cmd=["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
-
-    @override
     def file_variables(self) -> dict[str, str]:
         return modules.theme.get_current_theme()
 
@@ -44,26 +41,11 @@ class DesktopModule(decman.Module):
         # ~/ files
         files.update(self._userhome_dotfiles.files("/Templates/Textfile.txt"))
 
-        # ~/.config/ files
+        # ~/.config files that need a change applied after they are written
         files.update(
-            self._userhome_dotfiles.files(
-                "/.config/btop/btop.conf",
-                "/.config/elephant/menus/capture.lua",
-                "/.config/elephant/menus/main.lua",
-                "/.config/elephant/menus/packages.lua",
-                "/.config/elephant/menus/power.lua",
-                "/.config/elephant/menus/record.lua",
-                "/.config/elephant/menus/session.lua",
-                "/.config/elephant/menus/settings.lua",
-                "/.config/elephant/menus/share.lua",
-                "/.config/elephant/desktopapplications.toml",
-                "/.config/elephant/menus.toml",
-                "/.config/elephant/websearch.toml",
+            self._userhome_dotfiles.tracked_files(
+                self._tracker,
                 "/.config/environment.d/defaults.conf",
-                "/.config/ghostty/config",
-                "/.config/ghostty/theme.conf",
-                "/.config/gtk-3.0/settings.ini",
-                "/.config/gtk-4.0/settings.ini",
                 "/.config/hypr/app-windows/1password.lua",
                 "/.config/hypr/app-windows/bitwarden.lua",
                 "/.config/hypr/app-windows/browsers.lua",
@@ -78,24 +60,16 @@ class DesktopModule(decman.Module):
                 "/.config/hypr/binds/hyprbinds.lua",
                 "/.config/hypr/binds/mediabinds.lua",
                 "/.config/hypr/binds/userbinds.lua",
-                "/.config/hypr/.luarc.json",
-                "/.config/hypr/application-style.conf",
                 "/.config/hypr/autostart.lua",
                 "/.config/hypr/hypridle.conf",
                 "/.config/hypr/hyprland.lua",
-                "/.config/hypr/hyprlock.conf",
                 "/.config/hypr/hyprpaper.conf",
-                "/.config/hypr/hyprqt6engine.conf",
                 "/.config/hypr/hyprsunset.conf",
-                "/.config/hypr/hyprtoolkit.conf",
                 "/.config/hypr/input.lua",
                 "/.config/hypr/looknfeel.lua",
                 "/.config/hypr/permissions.lua",
                 "/.config/hypr/windows.lua",
                 "/.config/hypr/xdph.conf",
-                "/.config/hyprland-preview-share-picker/config.yaml",
-                "/.config/hyprland-preview-share-picker/style.css",
-                "/.config/satty/config.toml",
                 "/.config/swaync/config.json",
                 "/.config/swaync/style.css",
                 "/.config/swayosd/config.toml",
@@ -110,16 +84,47 @@ class DesktopModule(decman.Module):
                 "/.config/walker/themes/nosarch/layout.xml",
                 "/.config/walker/themes/nosarch/style.css",
                 "/.config/waybar/config.jsonc",
-                "/.config/waybar/style.css",
                 "/.config/xdg-desktop-portal/portals.conf",
+            )
+        )
+
+        # ~/.config files applied by the process that reads them
+        files.update(
+            self._userhome_dotfiles.files(
+                "/.config/btop/btop.conf",
+                "/.config/elephant/menus/capture.lua",
+                "/.config/elephant/menus/main.lua",
+                "/.config/elephant/menus/packages.lua",
+                "/.config/elephant/menus/power.lua",
+                "/.config/elephant/menus/record.lua",
+                "/.config/elephant/menus/session.lua",
+                "/.config/elephant/menus/settings.lua",
+                "/.config/elephant/menus/share.lua",
+                "/.config/elephant/desktopapplications.toml",
+                "/.config/elephant/menus.toml",
+                "/.config/elephant/websearch.toml",
+                "/.config/ghostty/config",
+                "/.config/ghostty/theme.conf",
+                "/.config/gtk-3.0/settings.ini",
+                "/.config/gtk-4.0/settings.ini",
+                "/.config/hypr/.luarc.json",
+                "/.config/hypr/application-style.conf",
+                "/.config/hypr/hyprlock.conf",
+                "/.config/hypr/hyprqt6engine.conf",
+                "/.config/hypr/hyprtoolkit.conf",
+                "/.config/hyprland-preview-share-picker/config.yaml",
+                "/.config/hyprland-preview-share-picker/style.css",
+                "/.config/satty/config.toml",
                 "/.config/user-dirs.dirs",
                 "/.config/xdg-terminals.list",
+                "/.config/waybar/style.css",  # waybar's stylesheet reloads on its own, `reload_style_on_change` is set.
             )
         )
 
         # ~/.local/ files
         files.update(
-            self._userhome_dotfiles.files(
+            self._userhome_dotfiles.tracked_files(
+                self._tracker,
                 "/.local/share/nautilus-python/extensions/localsend-share.py",
                 "/.local/share/nautilus-python/extensions/open-in-terminal.py",
             )
@@ -134,11 +139,11 @@ class DesktopModule(decman.Module):
 
         # /usr files
         files.update(
-            self._dotfiles.files(
-                "/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override",
-                "/usr/share/wayland-sessions/nosarch/nosarch-hyprland.desktop",
+            self._dotfiles.tracked_files(
+                self._tracker, "/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"
             )
         )
+        files.update(self._dotfiles.files("/usr/share/wayland-sessions/nosarch/nosarch-hyprland.desktop"))
 
         ## NosArch scripts
         files.update(
@@ -169,16 +174,160 @@ class DesktopModule(decman.Module):
             return nvidia_env_vars
 
         if _gpu_vendor == "nvidia_gsp" or _gpu_vendor == "nvidia_non_gsp":
-            files.update(self._dotfiles.files("/etc/mkinitcpio.conf.d/nvidia.conf", "/etc/modprobe.d/nvidia.conf"))
+            files.update(
+                self._dotfiles.tracked_files(
+                    self._tracker, "/etc/mkinitcpio.conf.d/nvidia.conf", "/etc/modprobe.d/nvidia.conf"
+                )
+            )
             files.update(
                 {
-                    f"/home/{self._username}/.config/uwsm/env-nvidia": File(
+                    f"/home/{self._username}/.config/uwsm/env-nvidia": self._tracker.file(
                         content=get_nvidia_uwsm_user_config(), owner=f"{self._username}"
                     )
                 }
             )
 
         return files
+
+    def _shell(self, command: str) -> list[str]:
+        """Runs a shell string, so only its last step decides the exit code."""
+        return ["/bin/sh", "-c", command]
+
+    def _restart_daemon(self, daemon: str, launch_command: str) -> list[str]:
+        """Restarts a session daemon the way Hyprland's autostart starts it."""
+        return self._shell(f"pkill --exact {daemon}; {launch_command}")
+
+    @override
+    def on_change(self, store: decman.Store) -> None:
+        home: str = f"/home/{self._username}"
+
+        # `daemon-reload` first, so the rest acts on what is now on disk.
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/systemd/user"):
+            decman.core.output.print_info("Reloading systemd user units.")
+            # `check=False`, because the user manager is not running when applying from a TTY.
+            _ = decman.prg(["systemctl", "--user", "-M", f"{self._username}@", "daemon-reload"], check=False)
+            # `try-restart`, so a timer the user turned off stays off.
+            _ = decman.prg(
+                ["systemctl", "--user", "-M", f"{self._username}@", "try-restart", "nosarch-eyesight-reminder.timer"],
+                check=False,
+            )
+
+        if self._tracker.files_changed("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"):
+            # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
+            decman.core.output.print_info("Rebuilding GSettings cache.")
+            _ = decman.prg(cmd=["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
+
+        session_changes: list[tuple[str, list[str]]] = []
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/hypr"):
+            # `config-only`, because a plain `reload` re-applies the monitor layout hyprmoncfgd owns.
+            session_changes.append(("Reloading Hyprland config", ["hyprctl", "reload", "config-only"]))
+
+        if self._tracker.files_changed(f"{home}/.config/waybar/config.jsonc"):
+            session_changes.append(("Reloading waybar", ["pkill", "--signal", "SIGUSR2", "waybar"]))
+
+        if self._tracker.files_changed(f"{home}/.config/swaync/config.json"):
+            session_changes.append(("Reloading swaync config", ["swaync-client", "--reload-config"]))
+
+        if self._tracker.files_changed(f"{home}/.config/swaync/style.css"):
+            session_changes.append(("Reloading swaync style", ["swaync-client", "--reload-css"]))
+
+        # Both files are read once, when the portal starts.
+        if self._tracker.files_changed(
+            f"{home}/.config/hypr/xdph.conf", f"{home}/.config/xdg-desktop-portal/portals.conf"
+        ):
+            session_changes.append(
+                (
+                    "Restarting the desktop portal",
+                    [
+                        "systemctl",
+                        "--user",
+                        "restart",
+                        "xdg-desktop-portal.service",
+                        "xdg-desktop-portal-hyprland.service",
+                    ],
+                )
+            )
+
+        # These have no reload command. Each is relaunched with the command Hyprland's autostart uses.
+        if self._tracker.files_changed(f"{home}/.config/hypr/hypridle.conf"):
+            session_changes.append(("Restarting hypridle", self._restart_daemon("hypridle", "uwsm-app -- hypridle")))
+
+        if self._tracker.files_changed(f"{home}/.config/hypr/hyprpaper.conf"):
+            session_changes.append(("Restarting hyprpaper", self._restart_daemon("hyprpaper", "uwsm-app -- hyprpaper")))
+
+        if self._tracker.files_changed(f"{home}/.config/hypr/hyprsunset.conf"):
+            session_changes.append(
+                ("Restarting hyprsunset", self._restart_daemon("hyprsunset", "uwsm-app -- hyprsunset"))
+            )
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/walker"):
+            session_changes.append(
+                ("Restarting walker", self._restart_daemon("walker", "walker --gapplication-service"))
+            )
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/swayosd"):
+            session_changes.append(
+                ("Restarting swayosd", self._restart_daemon("swayosd-server", "uwsm-app -- swayosd-server"))
+            )
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.local/share/nautilus-python"):
+            # Nautilus loads its Python extensions at start.
+            session_changes.append(("Quitting nautilus", self._shell("nautilus --quit || :")))
+            # TODO: Can potentially disrupt user's work, for example file operations like moving or copying.
+            #   Need safer option
+
+        if session_changes:
+            if utils.session.has_graphical_session():
+                for description, command in session_changes:
+                    decman.core.output.print_info(description)
+                    _ = utils.session.run_in_session(command)
+            else:
+                decman.core.output.print_list(
+                    "No graphical session found. These changes will apply on the next login: ",
+                    [description for description, _ in session_changes],
+                    1,
+                )
+
+        if self._tracker.files_changed_in_dirs("/etc/mkinitcpio.conf.d"):
+            decman.core.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
+            _ = decman.prg(["limine-mkinitcpio"])
+
+        # Logout requiring changes ---
+        needs_logout: list[str] = []
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/environment.d"):
+            # Read by `systemd-environment-d-generator` when the user manager starts.
+            needs_logout.append("environment.d variables")
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/uwsm"):
+            # Sourced by the compositor at session start.
+            needs_logout.append("uwsm session environment")
+
+        if needs_logout:
+            decman.core.output.print_list("These changes will take effect after logging out: ", needs_logout, 1)
+
+        # Reboot requiring changes ---
+        needs_reboot: list[str] = []
+
+        if self._tracker.files_changed("/etc/modprobe.d/nvidia.conf"):
+            # Module options are read when the module is loaded, so only a new boot picks them up.
+            needs_reboot.append("Nvidia module options")
+
+        if needs_reboot:
+            decman.core.output.print_list("These changes will take effect after a reboot: ", needs_reboot, 1)
+
+        # A reboot gives a fresh login, so it covers the logout cases too. Logging out instead would
+        # leave the reboot items unapplied until the next boot anyway.
+        #
+        # Both notices are printed above and the offer to act on them comes from `tools/apply`,
+        # once decman has exited. Logging out or rebooting from in here would kill the run, and
+        # with it the modules whose hooks have not run yet.
+        for change in needs_logout:
+            utils.session_changes.defer(store, "logout", change)
+
+        for change in needs_reboot:
+            utils.session_changes.defer(store, "reboot", change)
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

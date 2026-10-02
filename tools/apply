@@ -1,0 +1,127 @@
+#!/bin/sh
+# Managed by NosArch
+
+set -eu
+
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-apply [decman options]
+
+Applies the NosArch configuration with decman, then offers to log out or reboot when something
+that was deployed needs a new login to take effect.
+
+Everything decman can apply live is applied before the offer. Declining it is fine, the pending
+changes simply apply the next time you log out or reboot. Running decman directly applies them the
+same way, it just cannot offer the action.
+
+Options are passed to decman as they are, for example:
+    --dry-run          Show what would change, without applying anything
+    --only files       Run only the named steps
+EOF
+}
+
+## === Utilities ===
+_ensure_root() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "Error: nosarch-apply must be run as root." >&2
+        exit 1
+    fi
+}
+
+_store_file() {
+    # Asked for rather than hardcoded, so a decman that moves its store fails loudly here instead
+    # of quietly reporting nothing pending.
+    python3 -c 'import decman.app; print(decman.app._STORE_FILE)'
+}
+
+# Prints what this run could not apply live, ending with the action that would cover all of it, or
+# nothing at all when there is nothing pending. Read after decman exited: that is the point where
+# every hook has run and the store is on disk.
+_pending_report() {
+    python3 - "$(_store_file)" <<'PYTHON'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as store_file:
+    pending = json.load(store_file).get("nosarch_pending_session_changes", {})
+
+logout = pending.get("logout") or []
+reboot = pending.get("reboot") or []
+
+if not logout and not reboot:
+    sys.exit(0)
+
+if logout:
+    print("These changes will take effect after logging out:")
+    for change in logout:
+        print(f"    - {change}")
+
+if reboot:
+    print("These changes will take effect after a reboot:")
+    for change in reboot:
+        print(f"    - {change}")
+
+# A reboot gives a fresh login, so it covers the logout cases too.
+print("")
+print(f"ACTION={'restart' if reboot else 'logout'}")
+PYTHON
+}
+
+_prompt_confirm() {
+    if [ ! -t 0 ]; then
+        return 1
+    fi
+
+    printf '%s [y/N] ' "$1"
+    read -r answer || answer=""
+
+    case "$answer" in
+        [yY] | [yY][eE][sS]) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+## === Features ===
+_run_decman() {
+    decman "$@" || {
+        echo "Error: decman did not finish, skipping the restart offer." >&2
+        return 1
+    }
+}
+
+_offer_session_change() {
+    report=$(_pending_report) || return 0
+
+    [ -n "$report" ] || return 0
+
+    action=$(printf '%s\n' "$report" | tail -n 1 | cut -d= -f2)
+    printf '%s\n' "$report" | sed '$d'
+
+    if [ "$action" = "restart" ]; then
+        _prompt_confirm "Restart now?" || return 0
+        nosarch-session restart
+    else
+        _prompt_confirm "Log out now?" || return 0
+        nosarch-session logout
+    fi
+}
+
+## ===
+main() {
+    if [ "$#" -gt 0 ]; then
+        case "${1}" in
+            help | -h | --help)
+                show_help
+                return
+                ;;
+        esac
+    fi
+
+    _ensure_root
+    _run_decman "$@" || return $?
+
+    _offer_session_change
+}
+
+main "$@"

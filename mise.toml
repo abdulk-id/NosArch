@@ -1,11 +1,16 @@
-[tasks.dry-run-files]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files --dry-run"
-
-[tasks.dry-run-quick]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --dry-run"
+[tasks.apply]
+description = "Apply the configuration, then offer to log out or reboot if a change needs one"
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply"
 
 [tasks.apply-files]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files"
+description = "Apply only the file changes, then offer to log out or reboot if one needs it"
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --only files"
+
+[tasks.dry-run-files]
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --only files --dry-run"
+
+[tasks.dry-run-quick]
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --dry-run"
 
 [tasks.pkgchk]
 description = "Check all custom packages"

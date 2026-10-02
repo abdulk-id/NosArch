@@ -20,6 +20,8 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by Decman
 - Dotfiles to be deployed by Decman live in `dotfiles/`, with separate mirrored root per module.
 - JSON schema for NosArch's config is in `config.schema.json`.
 - Repo maintenence and test scripts live in `tools/`.
+- `tools/apply` is the entrypoint for deploying. It runs decman, then offers to log out or reboot for the changes that
+  need a new login. Decman on its own applies everything it can live, but cannot offer that action.
 
 ## Documentation
 
@@ -32,5 +34,5 @@ Most code changes do not need an internal documentation update.
 - To test shell scripts, use shellcheck.
 - To test PKGBUILDs of custom packages: `python3 tools/check_custom_packages.py` (pass `--build` to audit `depends`
   of PKGBUILDs).
-- The definition code can be tested by dry-running decman. It requires root access so ask the user to do so and report
-  back any errors.
+- The definition code can be tested by dry-running decman, through `tools/apply --dry-run` or `mise run dry-run-quick`.
+  It requires root access so ask the user to do so and report back any errors.

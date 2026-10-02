@@ -45,7 +45,7 @@ class ChangeTracker:
         return False
 
     def files_changed(self, *paths: str) -> bool:
-        """TODO: Add Doc"""
+        """Checks whether any of the `paths` was written to this run."""
         return not self.changed_files.isdisjoint(paths)
 
     def snapshot_packages(self, store: Store, module_name: str) -> None:

@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Lock, log out, restart, shutdown, and manage idle-lock
 
 set -eu
 
@@ -21,7 +22,7 @@ Idle-Lock actions:
     enable                  Enable Idle-Lock
     disable                 Disable idle-lock
     status                  Check idle-lock state (outputs "true" if enabled, "false" otherwise)
-        status-waybar           Check idle-lock state (outputs JSON for waybar)
+    status-waybar           Check idle-lock state (outputs JSON for waybar)
 EOF
 }
 
@@ -109,6 +110,9 @@ _reexec_in_graphical_session() {
 ## === Features ===
 IDLE_LOCK_UNIT="nosarch-idle-inhibit.service"
 
+# Deployed by the desktop module; absent on system-only machines.
+WELLBEING_BIN="/usr/local/bin/nosarch/nosarch-wellbeing"
+
 enable_idle_lock() {
     ## TODO: Second line: use IDLE_LOCK_UNIT in the --unit argument as well
     systemd-run --user \
@@ -161,8 +165,10 @@ session_lock() {
     # Set keyboard layout to default (first layout)
     hyprctl switchxkblayout all 0 > /dev/null 2>&1
 
-    # Stop the eyesight reminder timer
-    nosarch-wellbeing eyesight stop
+    # Stop the eyesight reminder timer (desktop module; skip when absent)
+    if [ -x "$WELLBEING_BIN" ]; then
+        "$WELLBEING_BIN" eyesight stop
+    fi
 
     # Lock the screen (use lock helper script to avoid blocking)
     if ! pidof hyprlock >/dev/null; then
@@ -171,9 +177,8 @@ session_lock() {
 }
 session_after_unlock() {
     # Start the eyesight reminder timer if enabled
-
-    if [ "$(nosarch-wellbeing eyesight status)" = "true" ]; then
-        nosarch-wellbeing eyesight start
+    if [ -x "$WELLBEING_BIN" ] && [ "$("$WELLBEING_BIN" eyesight status)" = "true" ]; then
+        "$WELLBEING_BIN" eyesight start
     fi
 }
 
@@ -304,7 +309,7 @@ main() {
                     idle_lock_status_waybar
                     ;;
                 *)
-                    echo "Unknown idle-lock action: $2"
+                    echo "Unknown idle-lock action: ${2:-}"
                     show_help
                     exit 1
                     ;;
@@ -333,4 +338,7 @@ main() {
     esac
 }
 
-main "$@"
+# Run main only when executed directly; when sourced (nosarch-lock-helper.sh), this file must only define functions.
+case "${0##*/}" in
+    nosarch-session) main "$@" ;;
+esac

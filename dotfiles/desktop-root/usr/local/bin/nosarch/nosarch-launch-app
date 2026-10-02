@@ -1,7 +1,12 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Launch default browser, editor, files, or terminal
 
 set -eu
+
+# Defaults for environments that do not export these (environment.d sets them only for profiles NosArch ships them in).
+: "${VISUAL:=${EDITOR:-nano}}"
+: "${TERMINAL:=xdg-terminal-exec}"
 
 show_help() {
     cat <<EOF

@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Install, update, and remove packages and AppImages
 
 set -eu
 
@@ -14,13 +15,22 @@ Commands:
     install <action>        Install packages
     update                  Update packages (Arch and AUR, and Flatpak and Homebrew if installed)
     remove                  Remove packages (Arch and AUR, and Flatpak and Homebrew if installed)
-    remove-unused           Remove unused packages (Arch and AUR)
+    remove-unused           Remove unused packages (Arch and AUR, and Flatpak and Homebrew if installed)
+    list                    List installed AppImages
     help                    Show this help message
 
 Install actions:
     arch                    Install packages from Arch repositories
     aur                     Install packages from AUR
     flatpak                 Install Flatpak packages
+    appimage [path...]      Install AppImages from files, or ask for files when given none
+
+AppImage options:
+    --confirm               Ask before installing each file, then install it
+
+
+AppImages are installed per user and are not updated in place. To update an AppImage,
+install the new file and remove the old one.
 EOF
 }
 
@@ -38,8 +48,55 @@ update_db() {
     fi
 }
 
+TAB_CHAR=$(printf '\t')
+
+# Where installed AppImages live, and the registry that tracks them. AppImages are
+# per-user: installing one needs no sudo, and no install can touch another user's copy.
+APPIMAGE_STORE="$HOME/.local/share/appimages"
+APPIMAGE_REGISTRY="$HOME/.local/share/nosarch/appimages.list"
+APPIMAGE_APPLICATIONS="$HOME/.local/share/applications"
+APPIMAGE_ICONS="$HOME/.local/share/icons/hicolor"
+APPIMAGE_BIN="$HOME/.local/bin"
+
+# Report a result to the user.
+#
+# Installing an AppImage can run with no terminal attached. A .desktop entry or a menu can launch it detached, and
+# gum's output then goes nowhere. Fall back to a dialog in that case, and stay quiet when there is no dialog to show.
+_notify_dialog() {
+    kind=$1
+    message=$2
+
+    if [ -t 1 ]; then
+        return 0
+    fi
+
+    if ! command -v zenity >/dev/null 2>&1; then
+        return 0
+    fi
+
+    zenity --"$kind" \
+        --title="NosArch packages" \
+        --text="$message" \
+        --width=400 \
+        >/dev/null 2>&1 || true
+}
+
+report_ok() {
+    gum style --foreground 10 "✓ $1"
+    _notify_dialog "info" "$1"
+}
+
+report_error() {
+    gum style --foreground 9 "x $1"
+    _notify_dialog "error" "$1"
+}
+
 ## === Features ===
 install_arch_packages() {
+    for cmd in gum fzf; do
+        _ensure_command "$cmd"
+    done
+
     fzf_output=$(
         pacman -Slq | fzf \
         --multi \
@@ -57,10 +114,8 @@ install_arch_packages() {
 
     if [ -n "$pkg_names" ]; then
         gum style --foreground 10 "▸ Authenticating..."
-        echo
 
         if ! start_sudo_keepalive; then
-            echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
@@ -68,15 +123,13 @@ install_arch_packages() {
         echo
 
         gum style --foreground 10 "▸ Installing packages..."
-        echo
 
+        # shellcheck disable=SC2086
         if sudo pacman -S --needed --noconfirm $pkg_names; then
             update_db
 
-            echo
             gum style --foreground 10 "✓ Installation complete!"
         else
-            echo
             gum style --foreground 9 "x Installation failed."
         fi
 
@@ -86,6 +139,10 @@ install_arch_packages() {
 }
 
 install_aur_packages() {
+    for cmd in gum fzf yay; do
+        _ensure_command "$cmd"
+    done
+
     fzf_output=$(
         yay -Slqa | fzf \
             --multi \
@@ -105,10 +162,8 @@ install_aur_packages() {
 
     if [ -n "$pkg_names" ]; then
         gum style --foreground 10 "▸ Authenticating..."
-        echo
 
         if ! start_sudo_keepalive; then
-            echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
@@ -116,12 +171,11 @@ install_aur_packages() {
         echo
 
         gum style --foreground 10 "▸ Installing AUR packages..."
-        echo
 
+        # shellcheck disable=SC2086
         if yay -S --noconfirm $pkg_names; then
             update_db
 
-            echo
             gum style --foreground 10 "✓ Installation complete!"
         else
             echo
@@ -135,116 +189,647 @@ install_aur_packages() {
 }
 
 install_flatpak_packages() {
-    TAB_CHAR=$(printf '\t')
+    if command -v flatpak >/dev/null 2>&1; then
+        for cmd in gum fzf; do
+            _ensure_command "$cmd"
+        done
 
-    # APP_ID<TAB>NAME<TAB>DESCRIPTION
-    pkg_selection=$(
-        flatpak remote-ls --app --columns=application,name,description | \
-        awk -F "$TAB_CHAR" '
-            !seen[$1]++ {
-                printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
-            }
-        ' | \
-        sort -t "$TAB_CHAR" -k2,2f |
-        fzf \
-            --multi \
-            --delimiter="$TAB_CHAR" \
-            --with-nth=2 \
-            --preview 'printf "%s\n" "{}" | cut -f3' \
-            --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos 'bottom' \
-            --preview-window 'down:55%:wrap' \
-            --bind 'alt-p:toggle-preview' \
-            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-            --bind 'alt-k:preview-up,alt-j:preview-down' \
-            --color 'pointer:green,marker:green'
-    ) || return 0
+        # APP_ID<TAB>NAME<TAB>DESCRIPTION
+        pkg_selection=$(
+            flatpak remote-ls --app --columns=application,name,description | \
+            awk -F "$TAB_CHAR" '
+                !seen[$1]++ {
+                    printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
+                }
+            ' | \
+            sort -t "$TAB_CHAR" -k2,2f |
+            fzf \
+                --multi \
+                --delimiter="$TAB_CHAR" \
+                --with-nth=2 \
+                --preview 'printf "%s\n" "{}" | cut -f3' \
+                --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
+                --preview-label-pos 'bottom' \
+                --preview-window 'down:55%:wrap' \
+                --bind 'alt-p:toggle-preview' \
+                --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+                --bind 'alt-k:preview-up,alt-j:preview-down' \
+                --color 'pointer:green,marker:green'
+        ) || return 0
 
-    if [ -n "$pkg_selection" ]; then
-        pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
+        if [ -n "$pkg_selection" ]; then
+            pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
 
-        gum style --foreground 10 "▸ Installing Flatpak packages..."
-        echo
+            gum style --foreground 10 "▸ Installing Flatpak packages..."
 
-        if flatpak install --assumeyes $pkg_ids; then
-            echo
-            gum style --foreground 10 "✓ Installation complete!"
-        else
-            echo
-            gum style --foreground 9 "x Installation failed."
+            # shellcheck disable=SC2086
+            if flatpak install --assumeyes $pkg_ids; then
+                gum style --foreground 10 "✓ Installation complete!"
+            else
+                gum style --foreground 9 "x Installation failed."
+            fi
         fi
+    else
+        gum style --foreground 9 "x Flatpak is not available on this system."
     fi
 }
 
+# --- AppImages ---
+#
+# Installed per user, so none of this needs sudo. See docs/internal/appimages.md.
+
+# One TSV record per installed AppImage:
+#   id, display name, AppImage path, .desktop file, icon file
+#
+# The id is the slug every path is built from, which is what lets a removal delete
+# exactly what the install created.
+_appimage_records() {
+    if [ -f "$APPIMAGE_REGISTRY" ]; then
+        cat -- "$APPIMAGE_REGISTRY"
+    fi
+}
+
+# Replace the registry with whatever arrives on stdin, so an interrupted run can never
+# leave a half-written registry behind.
+_appimage_registry_replace() {
+    _ensure_command mktemp
+
+    mkdir -p -- "$(dirname -- "$APPIMAGE_REGISTRY")"
+
+    registry_tmp=$(mktemp)
+    cat > "$registry_tmp"
+    mv -- "$registry_tmp" "$APPIMAGE_REGISTRY"
+}
+
+_appimage_record_register() {
+    record_id=$1
+    record=$2
+
+    {
+        _appimage_records | awk -F "$TAB_CHAR" -v id="$record_id" '$1 != id'
+        printf '%s\n' "$record"
+    } | _appimage_registry_replace
+}
+
+_appimage_record_forget() {
+    _appimage_records | awk -F "$TAB_CHAR" -v id="$1" '$1 != id' | _appimage_registry_replace
+}
+
+# A slug that is safe to build a filename and a desktop entry filename from.
+_appimage_slug() {
+    printf '%s' "$1" |
+        tr '[:upper:]' '[:lower:]' |
+        tr -c 'a-z0-9._-' '-' |
+        sed 's/-\{2,\}/-/g; s/^-//; s/-$//'
+}
+
+# A .desktop Name is one line of plain text and the registry is tab-separated, so drop
+# what would break either.
+_appimage_display_name() {
+    printf '%s' "$1" |
+        tr '\t\n\r' '   ' |
+        tr -d "\"\\'" |
+        sed 's/  */ /g; s/^ //; s/ $//'
+}
+
+# Pull the bundle's .desktop file and candidate icons out of an AppImage.
+#
+# Pattern extraction keeps this cheap: a bare `--appimage-extract` writes the whole
+# bundle, often hundreds of megabytes, into a tmpfs. Type 1 AppImages and anything
+# non-conforming fail here, which is what the generated-entry fallback is for.
+_appimage_extract() {
+    appimage=$1
+    workdir=$2
+
+    (
+        cd -- "$workdir" &&
+            "$appimage" --appimage-extract \
+                '*.desktop' '*.png' '*.svg' '*.xpm' 'usr/share/icons/*' >/dev/null 2>&1
+    )
+}
+
+# The bundle's .desktop file, shallowest match first: the AppImage spec puts one at the
+# root, most toolchains ship it under usr/share/applications.
+_appimage_find_desktop_file() {
+    find "$1" -type f -name '*.desktop' 2>/dev/null |
+        awk -F '/' '{ print NF "\t" $0 }' |
+        sort -k 1,1n -k 2 |
+        head -n 1 |
+        cut -f 2-
+}
+
+# Value of a key in a .desktop file, first match only. Prints nothing when given no file,
+# which is the normal case for an AppImage that ships no entry. The keys are literals
+# chosen by this script rather than input, so interpolating one into the pattern is safe.
+_desktop_field() {
+    if [ -z "$1" ]; then
+        return 0
+    fi
+
+    sed -n "s/^$2=//p" "$1" 2>/dev/null | head -n 1 | sed 's/[[:space:]]*$//'
+}
+
+# The icon the bundle's .desktop file names, else the first image at the root of the bundle.
+_appimage_find_icon() {
+    squashfs_root=$1
+    icon_name=$2
+
+    if [ -n "$icon_name" ]; then
+        icon_file=$(
+            find "$squashfs_root" -type f \
+                \( -name "$icon_name.png" -o -name "$icon_name.svg" -o -name "$icon_name.xpm" \) 2>/dev/null |
+                sort |
+                head -n 1
+        )
+
+        if [ -n "$icon_file" ]; then
+            printf '%s' "$icon_file"
+            return 0
+        fi
+    fi
+
+    find "$squashfs_root" -maxdepth 1 -type f \
+        \( -name '*.png' -o -name '*.svg' -o -name '*.xpm' \) 2>/dev/null |
+        sort |
+        head -n 1
+}
+
+# hicolor indexes icons by their real pixel size. `file` is not part of any package
+# NosArch requires, so fall back to the size most AppImages ship.
+_appimage_icon_dir() {
+    icon=$1
+
+    case "$icon" in
+        *.svg)
+            printf 'scalable'
+            return 0
+            ;;
+    esac
+
+    if command -v file >/dev/null 2>&1; then
+        size=$(file --brief -- "$icon" 2>/dev/null | sed -n 's/.*[ ,]\([0-9]\{1,4\}\) x \([0-9]\{1,4\}\).*/\1x\2/p')
+
+        if [ -n "$size" ]; then
+            printf '%s' "$size"
+            return 0
+        fi
+    fi
+
+    printf '512x512'
+}
+
+# The icon name for an app's id, whether or not an icon was found for it. Shared with
+# hicolor, where the file has to be named after it.
+_appimage_icon_name() {
+    printf 'nosarch-appimage-%s' "$1"
+}
+
+# Rewrite the three keys in a bundled entry that name something inside the AppImage, and
+# pass everything else through. Only the command is swapped out: the arguments and any
+# field codes belong to the app, so %U still passes files and a [Desktop Action] keeps its
+# own flags. The command is the first whitespace-delimited token after `Exec=`.
+_appimage_adapt_desktop_file() {
+    awk -v exec_path="$2" -v icon_name="$3" '
+        /^Exec=/ {
+            sub(/^Exec=[^[:space:]]*/, "Exec=" exec_path)
+            print
+            next
+        }
+        /^TryExec=/ { next }
+        /^DBusActivatable=/ { print "DBusActivatable=false"; next }
+        # The bundled name resolves only inside the mounted bundle. Naming no icon is
+        # honest here: a menu shows a generic icon rather than a broken one.
+        /^Icon=/ {
+            if (icon_name != "") print "Icon=" icon_name
+            next
+        }
+        { print }
+    ' "$1"
+}
+
+# The launcher entry for an installed AppImage, adapted from the one in the bundle.
+#
+# The bundle's entry is the app's own and carries what only the app knows: StartupWMClass
+# (without which no window rule can match it), MimeType, StartupNotify, the %U/%F field
+# codes, localized names, and any [Desktop Action ...] groups. All of that is kept, so
+# this is a rewrite of three keys rather than a new file:
+#   Exec                 points at AppRun inside the bundle
+#   TryExec              likewise, and a launcher that cannot find it hides the entry
+#   DBusActivatable=true tells the launcher to ignore Exec and D-Bus activate a service
+#                        that only exists while the AppImage is mounted
+#
+# A bundle with no usable entry still gets one, generated rather than adapted. Prints the
+# path written.
+_appimage_write_desktop_file() {
+    id=$1
+    name=$2
+    appimage_path=$3
+    icon_path=$4
+    desktop_source=$5
+    desktop_file="$APPIMAGE_APPLICATIONS/nosarch-appimage-$id.desktop"
+
+    mkdir -p -- "$APPIMAGE_APPLICATIONS"
+
+    if [ -n "$desktop_source" ]; then
+        _appimage_adapt_desktop_file "$desktop_source" "$appimage_path" "$(_appimage_icon_name "$id")" \
+            > "$desktop_file"
+
+        # A bundle can ship a malformed entry, and passing it through verbatim would leave
+        # an entry no menu can read. desktop-file-utils is not a package NosArch requires,
+        # so this is best-effort: without it, the adapted entry is used unchecked.
+        if ! command -v desktop-file-validate >/dev/null 2>&1 ||
+            desktop-file-validate "$desktop_file" >/dev/null 2>&1; then
+            printf '%s' "$desktop_file"
+            return 0
+        fi
+    fi
+
+    # No bundled entry, or one that does not validate. Deliberately minimal: every key here
+    # is one whose absence the desktop entry spec allows.
+    {
+        printf '[Desktop Entry]\n'
+        printf 'Type=Application\n'
+        printf 'Name=%s\n' "$name"
+        printf 'Exec=%s\n' "$appimage_path"
+
+        if [ -n "$icon_path" ]; then
+            printf 'Icon=%s\n' "$(_appimage_icon_name "$id")"
+        fi
+
+        printf 'Terminal=false\n'
+        printf 'DBusActivatable=false\n'
+        printf '\n'
+    } > "$desktop_file"
+
+    printf '%s' "$desktop_file"
+}
+
+# Install an app's icon into hicolor, and print where it landed. Prints nothing when the
+# bundle ships no icon, which is not an error: the entry is simply written without one.
+_appimage_install_icon() {
+    icon_source=$1
+    id=$2
+
+    if [ -z "$icon_source" ]; then
+        return 0
+    fi
+
+    # hicolor is keyed on the file extension, and a bundled icon can have none.
+    extension=${icon_source##*.}
+    extension=${extension##*.}
+
+    case "$extension" in
+        png|svg|xpm)
+            extension=".$extension"
+            ;;
+        *)
+            extension=".png"
+            ;;
+    esac
+
+    icon_path="$APPIMAGE_ICONS/$(_appimage_icon_dir "$icon_source")/apps/$(_appimage_icon_name "$id")$extension"
+
+    mkdir -p -- "$(dirname -- "$icon_path")"
+    cp -- "$icon_source" "$icon_path"
+
+    printf '%s' "$icon_path"
+}
+
+# Keep the desktop and icon caches in step with what was just written.
+_appimage_refresh_caches() {
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "$APPIMAGE_APPLICATIONS" >/dev/null 2>&1 || true
+    fi
+
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache --force --quiet "$APPIMAGE_ICONS" >/dev/null 2>&1 || true
+    fi
+}
+
+# What the app calls itself: the Name from its own .desktop file, else the filename with
+# the AppImage suffix dropped. A Type 1 AppImage cannot be extracted at all, and this is
+# the path that keeps it installable.
+_appimage_resolve_name() {
+    desktop_source=$1
+    source_file=$2
+
+    name=""
+
+    if [ -n "$desktop_source" ]; then
+        name=$(_desktop_field "$desktop_source" Name)
+    fi
+
+    if [ -z "$name" ]; then
+        name=$(basename -- "$source_file")
+        name=${name%.AppImage}
+        name=${name%.appimage}
+    fi
+
+    _appimage_display_name "$name"
+}
+
+# Install one AppImage: store the binary, integrate it with the desktop, record it.
+_install_appimage() (
+    # A subshell, so the work directory is cleaned up on every exit path.
+    source_file=$1
+
+    if [ ! -f "$source_file" ]; then
+        report_error "Not a file: $source_file"
+        return 1
+    fi
+
+    workdir=$(mktemp --directory)
+    trap 'rm -rf -- "$workdir"' 0
+
+    # Extracted from a copy, so a bundle that misbehaves on --appimage-extract cannot
+    # touch the file the user still has.
+    bundle="$workdir/$(basename -- "$source_file")"
+    cp -- "$source_file" "$bundle"
+    chmod 0755 -- "$bundle"
+
+    squashfs_root=""
+    desktop_source=""
+
+    if _appimage_extract "$bundle" "$workdir"; then
+        squashfs_root="$workdir/squashfs-root"
+        desktop_source=$(_appimage_find_desktop_file "$squashfs_root")
+    fi
+
+    name=$(_appimage_resolve_name "$desktop_source" "$source_file")
+    id=$(_appimage_slug "$name")
+
+    if [ -z "$id" ]; then
+        id="appimage"
+    fi
+
+    # Re-installing an app reuses its id, so the new binary replaces the old one. An upstream that renames the app
+    # between releases gets a new id, and its predecessor is then a separate entry to remove.
+    appimage_path="$APPIMAGE_STORE/$id.AppImage"
+
+    mkdir -p -- "$APPIMAGE_STORE" "$APPIMAGE_APPLICATIONS" "$APPIMAGE_BIN"
+    mv -- "$bundle" "$appimage_path"
+
+    icon_source=""
+    icon_name=""
+
+    if [ -n "$squashfs_root" ]; then
+        icon_name=$(_desktop_field "$desktop_source" Icon)
+        icon_source=$(_appimage_find_icon "$squashfs_root" "$icon_name")
+    fi
+
+    icon_path=$(_appimage_install_icon "$icon_source" "$id")
+    desktop_file=$(_appimage_write_desktop_file \
+        "$id" "$name" "$appimage_path" "$icon_path" "$desktop_source")
+
+    ln -sfn -- "$appimage_path" "$APPIMAGE_BIN/$id"
+
+    _appimage_record_register "$id" \
+        "$id$TAB_CHAR$name$TAB_CHAR$appimage_path$TAB_CHAR$desktop_file$TAB_CHAR$icon_path"
+
+    _appimage_refresh_caches
+
+    report_ok "Installed $name"
+)
+
+# The files to install, when the user has not named any. Exits non-zero when the dialog
+# is cancelled, which the caller reads as "install nothing".
+#
+# The zenity check lives in the caller: a command substitution runs in a subshell, so an
+# exit from in here would be swallowed by the caller's `|| return 0` and the user would get
+# silence instead of the reason.
+_pick_appimages() {
+    separator='
+'
+    # GTK's own complaints go with it: with no display there is no dialog to show.
+    zenity --file-selection \
+        --multiple \
+        --separator="$separator" \
+        --title="Install AppImage" \
+        --file-filter="*.AppImage *.appimage" \
+        --file-filter="* | All files" 2>/dev/null
+}
+
+# Ask before installing one file. Returns non-zero when the user declines.
+_confirm_appimage() {
+    zenity --question \
+        --title="Install AppImage" \
+        --text="Install $(basename -- "$1")?" \
+        --width=400 \
+        --ok-label="Install" \
+        --cancel-label="Cancel" \
+        >/dev/null 2>&1
+}
+
+install_appimages() {
+    _ensure_command gum
+
+    confirm=false
+
+    # Option first, so the file list can be empty and the dialog can ask for it.
+    if [ "${1:-}" = "--confirm" ]; then
+        confirm=true
+        shift
+    fi
+
+    if [ "$#" -eq 0 ]; then
+        _ensure_command zenity
+
+        selection=$(_pick_appimages) || return 0
+
+        if [ -z "$selection" ]; then
+            return 0
+        fi
+
+        # One path per line becomes one argument per path. This has to be inline rather than a helper: `set --` inside
+        # a function would replace that function's own parameters, which are restored on return, and the file list
+        # would be lost.
+        old_ifs=$IFS
+        IFS='
+'
+        set -f
+
+        # shellcheck disable=SC2086
+        set -- $selection
+
+        IFS=$old_ifs
+        set +f
+    fi
+
+    if $confirm; then
+        _ensure_command zenity
+    fi
+
+    success=true
+
+    for source_file in "$@"; do
+        if $confirm; then
+            # A declined file is skipped, not an error: declining is a valid answer.
+            _confirm_appimage "$source_file" || continue
+        fi
+
+        _install_appimage "$source_file" || success=false
+        echo
+    done
+
+    $success
+}
+
+list_appimages() {
+    _ensure_command gum
+
+    records=$(_appimage_records)
+
+    if [ -z "$records" ]; then
+        gum style --foreground 10 "No AppImages installed."
+        return 0
+    fi
+
+    # A registry record per row, plus whether the file it points at is still there.
+    rows=$(
+        printf '%s\n' "$records" |
+            while IFS="$TAB_CHAR" read -r id name appimage_path desktop_file icon_path; do
+                if [ -f "$appimage_path" ]; then
+                    status="installed"
+                else
+                    status="missing"
+                fi
+
+                printf '%s\t%s\t%s\n' "$name" "$appimage_path" "$status"
+            done
+    )
+
+    printf '%s\n' "$rows" | gum table --print --separator "$TAB_CHAR" --columns "Name,Path,Status"
+}
+
+# Rows for the remove list.
+#
+# Two trailing fields, not one: the id for the removal, and the entry's own path for the
+# preview. Carrying the path beats having the preview rebuild it, because the naming
+# belongs to _appimage_write_desktop_file and a preview that spells it out again is a
+# second place to get it wrong.
+_appimage_entries() {
+    _appimage_records |
+        awk -F "$TAB_CHAR" -v OFS="$TAB_CHAR" '{ print "[appimage]\tappimage\t" $2 "\t" $1 "\t" $4 }'
+}
+
+# Delete a file an install created. Only paths the registry still points at are removed,
+# so a file the user has since moved elsewhere is left alone rather than deleted from its
+# new location. Returns non-zero when there was a file to delete and it would not go.
+_appimage_delete() {
+    if [ -z "$1" ] || [ ! -f "$1" ]; then
+        return 0
+    fi
+
+    rm --force -- "$1"
+}
+
+remove_appimages() {
+    gum style --foreground 10 "▸ Removing AppImages..."
+
+    success=true
+
+    # Ids are slugs, so splitting on whitespace cannot cut one in half.
+    for id in $1; do
+        record=$(_appimage_records | awk -F "$TAB_CHAR" -v id="$id" '$1 == id')
+
+        if [ -z "$record" ]; then
+            continue
+        fi
+
+        name=$(printf '%s' "$record" | cut -f 2)
+
+        _appimage_delete "$(printf '%s' "$record" | cut -f 3)" || success=false
+        _appimage_delete "$(printf '%s' "$record" | cut -f 4)" || success=false
+        _appimage_delete "$(printf '%s' "$record" | cut -f 5)" || success=false
+
+        if [ -L "$APPIMAGE_BIN/$id" ]; then
+            rm --force -- "$APPIMAGE_BIN/$id" || success=false
+        fi
+
+        _appimage_record_forget "$id"
+
+        gum style --foreground 10 "✓ Removed $name"
+    done
+
+    _appimage_refresh_caches
+
+    if $success; then
+        gum style --foreground 10 "✓ AppImages removed!"
+    else
+        gum style --foreground 9 "x AppImage removal failed."
+    fi
+
+    $success
+}
+
 update_packages() {
+    for cmd in gum yay; do
+        _ensure_command "$cmd"
+    done
+
     gum style --foreground 10 "▸ Authenticating..."
-    echo
 
     if ! start_sudo_keepalive; then
-        echo
         gum style --foreground 9 "x Authentication failed."
         return 1
     fi
     trap 'stop_sudo_keepalive' 0
+    echo
 
-    echo
     gum style --foreground 10 "▸ Updating Arch and AUR packages..."
-    echo
 
     if yay -Syu; then
         # yay -Syu = yay --sync --refresh --sysupgrade
-        # Also add:
         update_db
 
-        echo
         gum style --foreground 10 "✓ Arch and AUR packages updated!"
     else
-        echo
         gum style --foreground 9 "x Arch and AUR package update failed."
-    fi
-
-    if command -v flatpak >/dev/null 2>&1; then
-        echo
-        gum style --foreground 10 "▸ Updating Flatpak packages..."
-        echo
-
-        if flatpak update --assumeyes; then
-            echo
-            gum style --foreground 10 "✓ Flatpak packages updated!"
-        else
-            echo
-            gum style --foreground 9 "x Flatpak package update failed."
-        fi
     fi
 
     stop_sudo_keepalive
     trap - 0
 
+    # Flatpak does not require sudo
+    if command -v flatpak >/dev/null 2>&1; then
+        echo
+        gum style --foreground 10 "▸ Updating Flatpak packages..."
+
+        if flatpak update --assumeyes; then
+            gum style --foreground 10 "✓ Flatpak packages updated!"
+        else
+            gum style --foreground 9 "x Flatpak package update failed."
+        fi
+    fi
+
     # Homebrew does not require sudo
     if command -v brew >/dev/null 2>&1; then
         echo
         gum style --foreground 10 "▸ Updating Homebrew packages..."
-        echo
 
-        if brew update; then
-            echo
+        if brew upgrade; then
             gum style --foreground 10 "✓ Homebrew packages updated!"
         else
-            echo
             gum style --foreground 9 "x Homebrew package update failed."
         fi
     fi
 }
 
 remove_packages() {
-    TAB_CHAR=$(printf '\t')
+    for cmd in gum fzf yay; do
+        _ensure_command "$cmd"
+    done
 
     # entry format: "[display type] - \t - internal type - \t - package name"
     # Internal type is for separating homebrew casks and formulae. It is not displayed.
+    # AppImage rows carry the registry id in a fourth field, so the preview and the
+    # removal address the same record.
     entries=$(
         {
             yay -Qeqn | awk '{print "[arch]\tarch\t" $0}'
             yay -Qeqm | awk '{print "[aur]\taur\t" $0}'
+
+            _appimage_entries
 
             if command -v flatpak >/dev/null 2>&1; then
                 flatpak list --app --columns=application | awk '{print "[flatpak]\tflatpak\t" $0}'
@@ -258,6 +843,9 @@ remove_packages() {
         } | sort -t"$TAB_CHAR" -k3,3 -f
     )
 
+    # The fzf preview below runs in fzf's own shell, so its placeholders and its
+    # reference to the home directory are meant to stay unexpanded here.
+    # shellcheck disable=SC2016
     selected=$(
         printf '%s\n' "$entries" |
         fzf \
@@ -271,6 +859,12 @@ remove_packages() {
                         ;;
                     "[flatpak]")
                         flatpak info {3}
+                        ;;
+                    "[appimage]")
+                        # The path is its own field and its own word here on purpose. fzf
+                        # quotes a {n} for the shell, so a placeholder inside a quoted
+                        # string would have those quotes land in the filename.
+                        grep -E "^(Name|Exec|Icon)=" {5}
                         ;;
                     "[brew]")
                         case {2} in
@@ -319,13 +913,42 @@ remove_packages() {
         tr '\n' ' '
     )
 
-    # Flatpak & Homebrew don't require sudo, so only authenticate for Arch/AUR removals.
+    appimage_ids=$(
+        printf '%s\n' "$selected" |
+        awk -F '\t' '$1 == "[appimage]" { print $4 }' |
+        tr '\n' ' '
+    )
+
+    # === Entry columns, for reference ===
+    #
+    # Every row of `entries` above is tab-separated, and each packaging method fills in
+    # the columns it needs. {n} below is how fzf addresses them, so the numbering is the
+    # one that matters when reading the --preview block:
+    #
+    #   1  display type   "[arch]", "[aur]", "[flatpak]", "[appimage]", "[brew]"
+    #                     Tag shown in the fzf list, and what the preview switches on.
+    #   2  internal type  "arch", "aur", "flatpak", "appimage", "formula", "cask"
+    #                     Hidden from the list (--with-nth 1,3). Only Homebrew needs it,
+    #                     to tell a cask from a formula; for everything else it repeats
+    #                     column 1 without the brackets.
+    #   3  name           The package name, or the display name for AppImages. This is
+    #                     what the user sees, what the list is sorted by (-k3,3), and
+    #                     what gets passed to the package manager. Used by every method.
+    #   4  (AppImages)    Registry id, used to delete the ~/.local/bin symlink. Only
+    #                     AppImage rows carry it.
+    #   5  (AppImages)    Path to the generated .desktop file, so the preview can show
+    #                     the entry rather than rebuild its path. Only AppImage rows
+    #                     carry it.
+    #
+    # Columns 4 and 5 are unset for the other methods, which need only the name.
+    #
+    # Each method's selection is then pulled out by the awk calls above: column 3 for
+    # everything passed to a package manager, and column 4 for AppImages.
+
     if [ -n "$pacman_pkgs" ]; then
         gum style --foreground 10 "▸ Authenticating..."
-        echo
 
         if ! start_sudo_keepalive; then
-            echo
             gum style --foreground 9 "x Authentication failed."
             return 1
         fi
@@ -338,14 +961,25 @@ remove_packages() {
 
     if [ -n "$pacman_pkgs" ]; then
         gum style --foreground 10 "▸ Removing Arch/AUR packages..."
-        echo
 
+        # shellcheck disable=SC2086
         if yay -Rns --noconfirm $pacman_pkgs; then
-            echo
             gum style --foreground 10 "✓ Arch/AUR packages removed!"
         else
-            echo
             gum style --foreground 9 "x Arch/AUR removal failed."
+            success=false
+        fi
+        echo
+    fi
+
+    # Flatpak, Homebrew & AppImages don't require sudo, so only authenticate for Arch/AUR removals.
+    stop_sudo_keepalive
+    trap - 0
+
+    if [ -n "$appimage_ids" ]; then
+        if remove_appimages "$appimage_ids"; then
+            success=true
+        else
             success=false
         fi
         echo
@@ -353,13 +987,11 @@ remove_packages() {
 
     if [ -n "$flatpak_pkgs" ]; then
         gum style --foreground 10 "▸ Removing Flatpak packages..."
-        echo
 
+        # shellcheck disable=SC2086
         if flatpak uninstall --assumeyes $flatpak_pkgs; then
-            echo
             gum style --foreground 10 "✓ Flatpak packages removed!"
         else
-            echo
             gum style --foreground 9 "x Flatpak removal failed."
             success=false
         fi
@@ -368,13 +1000,11 @@ remove_packages() {
 
     if [ -n "$homebrew_formulae" ]; then
         gum style --foreground 10 "▸ Removing Homebrew formulae..."
-        echo
 
+        # shellcheck disable=SC2086
         if brew uninstall --formula $homebrew_formulae; then
-            echo
             gum style --foreground 10 "✓ Homebrew formulae removed!"
         else
-            echo
             gum style --foreground 9 "x Homebrew formula removal failed."
             success=false
         fi
@@ -385,53 +1015,48 @@ remove_packages() {
         gum style --foreground 10 "▸ Removing Homebrew casks..."
         echo
 
+        # shellcheck disable=SC2086
         if brew uninstall --cask $homebrew_casks; then
-            echo
             gum style --foreground 10 "✓ Homebrew casks removed!"
         else
-            echo
             gum style --foreground 9 "x Homebrew cask removal failed."
             success=false
         fi
         echo
     fi
 
-    stop_sudo_keepalive
-    trap - 0
 
     $success
 }
 
 remove_unused_packages() {
-    gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
-    echo
+    _ensure_command gum
 
-    if pacman -Qdtq | sudo pacman -Rns --noconfirm -; then
-        echo
+    gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
+
+    orphans=$(pacman -Qdtq || true)
+
+    if [ -z "$orphans" ]; then
+        gum style --foreground 10 "✓ No unused Arch/AUR packages found!"
+    elif printf '%s\n' "$orphans" | sudo pacman -Rns --noconfirm -; then
         gum style --foreground 10 "✓ Unused Arch/AUR packages removed!"
     else
-        echo
         gum style --foreground 9 "x Removing unused Arch/AUR packages failed."
     fi
 
     if command -v flatpak >/dev/null 2>&1; then
         echo
         gum style --foreground 10 "▸ Removing unused Flatpak packages..."
-        echo
 
         if flatpak uninstall --system --unused --assumeyes; then
-            echo
             gum style --foreground 10 "✓ Unused Flatpak packages removed!"
         else
-            echo
             gum style --foreground 9 "x Removing unused Flatpak packages failed."
         fi
 
         if flatpak uninstall --user --unused --assumeyes; then
-            echo
             gum style --foreground 10 "✓ Unused Flatpak user packages removed!"
         else
-            echo
             gum style --foreground 9 "x Removing unused Flatpak user packages failed."
         fi
     fi
@@ -439,13 +1064,10 @@ remove_unused_packages() {
     if command -v brew >/dev/null 2>&1; then
         echo
         gum style --foreground 10 "▸ Removing unused Homebrew packages..."
-        echo
 
         if brew cleanup; then
-            echo
             gum style --foreground 10 "✓ Unused Homebrew packages removed!"
         else
-            echo
             gum style --foreground 9 "x Removing unused Homebrew packages failed."
         fi
     fi
@@ -471,8 +1093,12 @@ main() {
                 flatpak)
                     install_flatpak_packages
                     ;;
+                appimage)
+                    shift 2
+                    install_appimages "$@"
+                    ;;
                 *)
-                    echo "Unknown install action: $2"
+                    echo "Unknown install action: ${2:-}"
                     show_help
                     exit 1
                     ;;
@@ -487,6 +1113,9 @@ main() {
         remove-unused)
             remove_unused_packages
             ;;
+        list)
+            list_appimages
+            ;;
         help|-h|--help)
             show_help
             ;;
@@ -497,9 +1126,5 @@ main() {
             ;;
     esac
 }
-
-for cmd in gum fzf yay; do
-    _ensure_command "$cmd"
-done
 
 main "$@"

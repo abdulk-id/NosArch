@@ -122,6 +122,7 @@ class SystemModule(decman.Module):
         files.update(
             self._dotfiles.tracked_files(
                 self._tracker,
+                "/usr/local/bin/nosarch/nosarch",
                 "/usr/local/bin/nosarch/nosarch-battery",
                 "/usr/local/bin/nosarch/nosarch-package",
                 "/usr/local/bin/nosarch/nosarch-session",

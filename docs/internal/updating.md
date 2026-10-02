@@ -33,8 +33,9 @@ config NosArch ships is fine (the whole file is replaced), while renaming a key 
 config the user owns is not expressible at all.
 
 **State outside the filesystem.** Flatpak remotes and installations, `yay`'s package
-database, snapper metadata, anything a package's own hooks wrote. decman coordinates the
-tools that own these; it does not model their contents.
+database, installed AppImages (`appimages.md`), snapper metadata, anything a package's
+own hooks wrote. decman coordinates the tools that own these; it does not model their
+contents.
 
 ## When migrations will be needed
 

@@ -36,6 +36,9 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by Decman
       `utils/paths.py` helpers, and what each deployed path needs reloaded afterwards.
     - `docs/internal/updating.md` covers moving a machine between NosArch versions: what decman's
       convergence already handles, what it cannot reach, and when a migration mechanism is warranted.
+    - `docs/internal/appimages.md` covers AppImage management in `nosarch-package`: the per-user
+      layout and registry, how an install reads an app's own metadata, and why there is no update
+      command. It replaced GearLever, which required Flatpak on every machine.
 
 ## Testing Guidelines
 

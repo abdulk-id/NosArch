@@ -168,7 +168,7 @@ class DevModule(decman.Module):
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        aur_pkgs: set[str] = set()
+        aur_pkgs: set[str] = {"github-desktop-bin"}
 
         if "codium" in self._editors:
             aur_pkgs.add("vscodium-bin")
@@ -180,10 +180,6 @@ class DevModule(decman.Module):
             aur_pkgs.add("visual-studio-code-bin")
 
         return aur_pkgs
-
-    @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
-    def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-        return {f"{self._username}": {"me.iepure.devtoolbox", "io.github.shiftey.Desktop"}}
 
     @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
     def desktop_user_services(self) -> dict[str, set[str]]:

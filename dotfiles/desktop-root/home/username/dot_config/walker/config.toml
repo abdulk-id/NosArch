@@ -142,9 +142,13 @@ clipboard = [
 
 # Emergency mode entries
 [[emergencies]]
-text = "Open Files"
-command = "uwsm-app -- \"$FILE_MANAGER\" --new-window"
+text = "Open Default Browser"
+command = "nosarch-launch-app browser"
 
 [[emergencies]]
-text = "Open Default Browser"
-command = "nosarch-launch-browser"
+text = "Open Files"
+command = "nosarch-launch-app files"
+
+[[emergencies]]
+text = "Open Terminal"
+command = "nosarch-launch-app terminal"

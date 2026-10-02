@@ -203,6 +203,7 @@ class DesktopModule(decman.Module):
             "hyprpolkitagent",
             "hyprshutdown",
             "hyprsunset",
+            "inter-font",
             "noto-fonts",
             "noto-fonts-cjk",
             "noto-fonts-emoji",
@@ -305,8 +306,7 @@ class DesktopModule(decman.Module):
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        # Packages that are no longer used by NosArch.
-        # Config files of these packages are still present in the repo.
+        # Packages that are no longer used by NosArch. Config files of these packages are still present in the repo.
         # unused_aur_pkgs: set[str] = {"vicinae-bin"}
 
         desktop_set: set[str] = {

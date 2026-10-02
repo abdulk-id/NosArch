@@ -120,6 +120,7 @@ class DesktopModule(decman.Module):
         # ~/.local/ files
         files.update(
             self._userhome_dotfiles.files(
+                "/.local/share/applications/nosarch-appimage-installer.desktop",
                 "/.local/share/nautilus-python/extensions/localsend-share.py",
                 "/.local/share/nautilus-python/extensions/open-in-terminal.py",
             )

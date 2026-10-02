@@ -19,6 +19,10 @@ function GetEntries()
             Value = "nosarch-launch-tui nosarch-package install aur"
         },
         {
+            Text = "󰣇    Install AppImage",
+            Value = "nosarch-package install appimage"
+        },
+        {
             Text = "    Install Flatpak package",
             Value = "nosarch-launch-tui nosarch-package install flatpak"
         },

@@ -35,12 +35,18 @@ class ChangeTracker:
         self.removed_pkgs: dict[str, set[str]] = {kind: set() for kind in _PACKAGE_STORE_KEYS}
         self._previous_pkgs: dict[str, Any] = {}
 
-    def changed_files_under(self, *target_dirs: str) -> bool:
+    def files_changed_in_dirs(self, *target_dirs: str) -> bool:
+        """Checks whether any file inside one of the `target_dirs` was written to this run."""
+
         for target_dir in target_dirs:
             target: str = os.path.abspath(target_dir)
             if any(os.path.commonpath([p, target]) == target for p in self.changed_files):
                 return True
         return False
+
+    def files_changed(self, *paths: str) -> bool:
+        """TODO: Add Doc"""
+        return not self.changed_files.isdisjoint(paths)
 
     def snapshot_packages(self, store: Store, module_name: str) -> None:
         """Call from `before_update`, before the plugins overwrite last run's entries."""

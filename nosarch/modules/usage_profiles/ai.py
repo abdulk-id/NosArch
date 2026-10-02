@@ -28,6 +28,10 @@ class AIModule(decman.Module):
         )
 
     @override
+    def file_variables(self) -> dict[str, str]:
+        return {"%USER%": self._username}
+
+    @override
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {}
 

@@ -79,6 +79,16 @@ if user_config.get_bool("enable_homebrew"):
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.insert(decman.execution_order.index("systemd"), "homebrew")
+
+if not user_config.get_bool("packaging.flatpak"):
+    # Warn instead of exiting. The listed apps stay installed on disk, so re-enabling Flatpak later brings them back.
+    _skipped_flatpak: list[str] = user_config.get_str_list("user_packages.flatpak") + user_config.get_str_list(
+        "user_packages.flatpak_user"
+    )
+    if _skipped_flatpak:
+        decman.core.output.print_warning(
+            "[PACKAGING] Flatpak is disabled, ignoring packages from `user_packages.flatpak` and `user_packages.flatpak_user`."
+        )
 # ===
 
 # User and Group management ===

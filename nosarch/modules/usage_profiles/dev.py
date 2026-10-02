@@ -5,7 +5,7 @@ import decman
 import utils.dotfile.dev_lang_config
 import utils.paths
 from decman import File, Store
-from decman.plugins import aur, flatpak, pacman, systemd
+from decman.plugins import aur, pacman, systemd
 from utils.user_config_reader import UserConfigReader
 
 # decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its directory,

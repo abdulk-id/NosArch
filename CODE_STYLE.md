@@ -34,3 +34,7 @@
     - `main()`: global option parsing and command dispatch.
 - The `main "$@"` call should be at the end of the script, along with any finalization.
 - User-facing scripts should provide `help`, `-h`, and `--help` for the help message.
+- A `nosarch-*` script is discovered by the `nosarch` CLI, which reads its leading comment block for
+  `nosarch:summary=`, `nosarch:hidden=true`, and optionally `nosarch:name=` / `nosarch:group=` when the
+  filename stem does not split into a group and a name. Without a `summary` the command still routes, but
+  it is listed with an empty description.

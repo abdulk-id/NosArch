@@ -384,7 +384,7 @@ _appimage_icon_name() {
     printf 'nosarch-appimage-%s' "$1"
 }
 
-# Rewrite the three keys in a bundled entry that name something inside the AppImage, and
+# Rewrite the four keys in a bundled entry that name something inside the AppImage, and
 # pass everything else through. Only the command is swapped out: the arguments and any
 # field codes belong to the app, so %U still passes files and a [Desktop Action] keeps its
 # own flags. The command is the first whitespace-delimited token after `Exec=`.
@@ -412,11 +412,12 @@ _appimage_adapt_desktop_file() {
 # The bundle's entry is the app's own and carries what only the app knows: StartupWMClass
 # (without which no window rule can match it), MimeType, StartupNotify, the %U/%F field
 # codes, localized names, and any [Desktop Action ...] groups. All of that is kept, so
-# this is a rewrite of three keys rather than a new file:
+# this is a rewrite of four keys rather than a new file:
 #   Exec                 points at AppRun inside the bundle
 #   TryExec              likewise, and a launcher that cannot find it hides the entry
 #   DBusActivatable=true tells the launcher to ignore Exec and D-Bus activate a service
 #                        that only exists while the AppImage is mounted
+#   Icon                 the bundled name resolves only inside the mount
 #
 # A bundle with no usable entry still gets one, generated rather than adapted. Prints the
 # path written.

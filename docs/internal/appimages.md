@@ -127,6 +127,6 @@ This is inherent to the format rather than a property of this implementation.
 ## State outside the filesystem
 
 Installed AppImages are not declared by any module, so decman does not converge them.
-This is the same category as Flatpak installations and `yay`'s package database
-(`updating.md`): state that exists because a user acted, not because a module says so.
-Uninstalling means `nosarch-package remove`, not a change to the repo.
+This is the same category as Flatpak installations and `yay`'s package database: state
+that exists because a user acted, not because a module says so. Uninstalling means
+`nosarch-package remove`, not a change to the repo.

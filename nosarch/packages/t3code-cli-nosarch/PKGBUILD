@@ -4,7 +4,7 @@
 
 pkgname=t3code-cli-nosarch
 pkgdesc="Run the T3 Code server and web client"
-pkgver=0.0.42
+pkgver=0.0.45
 pkgrel=1
 url="https://t3.codes"
 license=('MIT')
@@ -18,7 +18,7 @@ source=(
     "LICENSE::https://raw.githubusercontent.com/pingdotgg/t3code/v$pkgver/LICENSE"
 )
 sha256sums=(
-    'f504e931ee4406bfe76754147cb0e2a0f300d75c6c505a0e174a1e79f65ceea3'
+    '10505ae74bc6a43cfab0fde0bf06a0e0d6862f74030591be994a640d48a0d6bd'
     '935d8f2af0c703f9c39517ee57cc4930b19d02d533be930b63f0e82f93614b43'
 )
 

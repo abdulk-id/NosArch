@@ -22,14 +22,13 @@ This is more verbose, and this is deliberate:
 - **Nothing deploys by accident:** A `Directory()` ships whatever is in the source tree, so an editor backup, a `.orig`
   from a merge, or a half-finished file lands on the system the moment it is saved. An undeclared file in `dotfiles/`
   is inert.
-- **Settings are per file, not per tree:** `Directory` applies one `owner`, one `permissions` and one `bin_files` to
-  everything it walks (`core/fs.py:429`). That cannot express a directory holding both templated text and binaries.
-    - The plymouth theme (system module) is the concrete case for this. `bin_file=True` disables variable substitution
-      (`core/fs.py:163`), so a single directory declaration would have forced a choice between corrupting the PNGs and
-      leaving `%ACCENT%` unsubstituted in `nosarch.script`
+- **Settings are per file, not per tree:** `Directory` applies one `owner`, `permissions` and `bin_files` to all files
+  it walks. That cannot express a directory holding both templated text and binaries.
+    - Example: The plymouth theme (system module). `bin_file=True` disables variable substitution so a single directory
+      declaration would mean corrupting the PNGs or leaving `%ACCENT%` unsubstituted in `nosarch.script`
 
-The only exception is the wallpapers directory in `ThemingModule`, because each theme can have a different number of
-wallpapers, and they don't have fixed names.
+Exception: The wallpapers directory in `ThemingModule`, because each theme can have a different number of wallpapers,
+and they don't have fixed names.
 
 ## Declaring
 
@@ -136,7 +135,7 @@ in `on_change` hooks.
 
 1. **`systemctl daemon-reload` first**: Everything below it reloads or restarts a unit, and those act on the manager's
    loaded state rather than on what is now on disk.
-2. **`systemctl daemon-reexec` next**:, for manager-level defaults.
+2. **`systemctl daemon-reexec` next**: for manager-level defaults.
 3. Everything cheap and independent, in any order.
 4. **`limine-mkinitcpio` second last:** It is a slow step (~30 seconds, doubled when the LTS kernel is enabled). If
    there are several triggers calling this, gather them rather than rebuilding per trigger.

@@ -5,7 +5,7 @@ NosArch is responsible for managing packages on the system. The kinds of package
 - Arch and AUR,
 - Homebrew (via NosArch's own `plugins/homebrew.py`, if enabled by user),
 - Flatpak (system and per-user),
-- and custom pacman packages ([Custom Packages](#custom-packages)).
+- Custom pacman packages ([Custom Packages](custom-packages.md)).
 
 ## Declaring
 
@@ -39,14 +39,12 @@ def brew_formulae(self) -> set[str]:
 
 ## Tracking package changes
 
-Decman provides the `Store` in `on_change` hooks from which package changes can be tracked. But the store only holds
-the current run's entries per plugin, and a hook still has to know each plugin's store key and per-user shape to make
-sense of it.
+Decman gives each `on_change` hook the `Store`, but the store only holds the current run's entries per plugin, and a
+hook still has to know each plugin's store key and per-user shape to make sense of it.
 
-`utils/change_tracker.py`'s `ChangeTracker` makes tracking package changes easy. It snapshots every plugin's entries
-in `before_update`, diffs them against what's there after, records which packages were added or removed on a run,
-across every plugin (pacman, AUR, custom, flatpak, homebrew). It normalizes user-scoped kinds into a flat set of
-names. `on_change` hooks only need `package_changed(...)` instead of reaching into the store itself.
+`ChangeTracker` (`utils/change_tracker.py`) does that work: it snapshots every plugin's entries in `before_update`,
+diffs them after, and records which packages were added or removed across every plugin (pacman, AUR, custom,
+flatpak, homebrew), normalizing user-scoped kinds into a flat set of names. Hooks just call `package_changed(...)`.
 
 ```python
 self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
@@ -81,7 +79,3 @@ def on_change(self, store: Store) -> None:
 recorded as `"<user>:<pkg>"`. A module enabled for the first time sees everything as added.
 
 `ChangeTracker` can also track `"systemd"` and `"systemd_user"` units.
-
-## Custom packages
-
-Documentation on custom packages lives at `docs/internal/custom-packages.md`.

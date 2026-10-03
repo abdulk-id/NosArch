@@ -4,7 +4,7 @@ NosArch is responsible for managing packages on the system. The kinds of package
 
 - Arch and AUR,
 - Homebrew (via NosArch's own `plugins/homebrew.py`, if enabled by user),
-- Flatpak (system and per-user),
+- Flatpak (system and per-user, if enabled by user),
 - and custom pacman packages ([Custom Packages](#custom-packages)).
 
 ## Declaring

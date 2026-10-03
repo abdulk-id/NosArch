@@ -20,10 +20,16 @@ class UserDefinedModule(decman.Module):
 
     @flatpak.packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_pkgs(self) -> set[str]:
+        if not self._user_config.get_bool("packaging.flatpak"):
+            return set()
+
         return set(self._user_config.get_str_list("user_packages.flatpak"))
 
     @flatpak.user_packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_user_pkgs(self) -> dict[str, set[str]]:
+        if not self._user_config.get_bool("packaging.flatpak"):
+            return {}
+
         return {self._username: set(self._user_config.get_str_list("user_packages.flatpak_user"))}
 
     @homebrew.formulae  # pyright: ignore[reportUnknownMemberType]

@@ -55,6 +55,17 @@
             "description": "Enable to setup Homebrew",
             "default": false
         },
+        "packaging": {
+            "type": "object",
+            "description": "Choose which packaging formats NosArch supports on this system",
+            "properties": {
+                "flatpak": {
+                    "type": "boolean",
+                    "description": "Install Flatpak and manage Flatpak packages listed in `user_packages`",
+                    "default": false
+                }
+            }
+        },
         "ai": {
             "type": "object",
             "properties": {

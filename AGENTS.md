@@ -21,3 +21,9 @@ Most code changes do not need an internal documentation change. Agents can read 
 
 - Testing the definition code requires a decman dry-run as root, which you cannot do yourself. Ask the user to run
   it and report back any errors rather than attempting it.
+
+## Formatting
+
+- Run `mise run format` before committing Python changes, or `mise run lint` to only report. Both are Ruff, the same
+  formatter Zed runs on save, so an unformatted file never turns into a reformat-only commit.
+

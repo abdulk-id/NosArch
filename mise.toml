@@ -1,12 +1,34 @@
-[tasks.dry-run-files]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files --dry-run"
+[tools]
+ruff = "latest"
+pre-commit = "latest"
 
-[tasks.dry-run-quick]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --dry-run"
+[tasks.setup]
+description = "Set up the development environment"
+run = "pre-commit install"
 
-[tasks.apply-files]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files"
+# Formatting ===
+[tasks.lint]
+description = "Report Ruff violations"
+run = "ruff check ."
 
+[tasks.format]
+description = "Apply Ruff's lint fixes and formatting"
+run = "ruff check --fix . && ruff format ."
+
+# Checks ===
 [tasks.pkgchk]
 description = "Check all custom packages"
 run = "python3 tools/check_custom_packages.py"
+
+# Dry Run tasks ===
+[tasks.dry-run-files]
+description = "Dry run Decman for file changes only (skipping checks)"
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files --dry-run"
+
+[tasks.dry-run-quick]
+description = "Dry run Decman (skipping checks)"
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --dry-run"
+
+[tasks.apply-files]
+description = "Deploy Decman file changes (skipping checks)"
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files"

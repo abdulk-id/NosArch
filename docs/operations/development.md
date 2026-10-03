@@ -1,6 +1,11 @@
 # Development
 
-## NosArch Works
+## Setting up workspace
+
+- `mise install`.
+- `mise run setup`.
+
+### NosArch Works
 
 NosArch Works sets up your machine to work on NosArch. It installs the packages used for NosArch development, and
 enables prechecks that are run on every invocation of decman.

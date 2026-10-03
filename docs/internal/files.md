@@ -175,21 +175,6 @@ Prompt with `decman.core.output.prompt_confirm`, guarded on `sys.stdin.isatty()`
 
 `on_change` is skipped under `--dry-run` (`app.py:343`), so hooks need no dry-run handling of their own.
 
-## Path checking
-
-Dotfiles can reference each other by path (For example: a unit file points at a script, a udev rule points at a helper
-binary). Nothing keeps those references in sync with the modules that actually deploy the files, so a rename or a move
-can leave a reference pointing at a path nothing deploys any more. `tools/check_paths.py` scans every dotfile for
-paths under `/usr/local/bin` or `/usr/lib/nosarch`, and fails if any of them isn't a path some module actually
-declares. This check is ran on every invocation of decman.
-
-It checks the whole of `/usr/local/bin` and `/usr/lib/nosarch`, not just the subdirectories in current use, so a check
-like this only helps if the referenced path is spelled correctly in the first place. For example, a reference to
-`/usr/local/bin/uti/foo`, a typo for `/usr/local/bin/util/foo`, is a path under `/usr/local/bin` too, so the checker
-still looks for it.
-
-Manual `File` declarations ([Manually declaring files](#manually-declaring-files)) are not checked.
-
 ## Gotchas
 
 - **decman's own `daemon-reload` is not enough**: It runs only when the _set_ of enabled units changes

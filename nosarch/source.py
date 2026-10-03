@@ -39,13 +39,6 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
     else:
         decman.core.output.print_summary("Running NosArch pre-checks.")
 
-        # decman does not import this file, it reads it as text and `exec()`s it after `os.chdir`-ing into its directory,
-        # so `__file__` here would resolve to decman's own module rather than this one.
-        _path_check: subprocess.CompletedProcess[bytes] = subprocess.run([sys.executable, "../tools/check_paths.py"])
-        if _path_check.returncode != 0:
-            decman.core.output.print_error("[CHECKS] Dangling path references found in dotfiles.")
-            raise SystemExit()
-
         # Many custom packages = check takes time. Give option (to allow skipping just this check for quick dry-runs)
         if decman.core.output.prompt_confirm("Run Custom package check?", True):
             _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(

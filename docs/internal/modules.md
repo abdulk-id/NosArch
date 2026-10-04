@@ -21,20 +21,18 @@ AI, Creative, Dev, and Gaming live in `nosarch/modules/usage_profiles/`. The oth
 
 `Enabled by` is the key in `config.schema.json`. The module is registered when that key is true.
 
-The `UserDefinedModule` (`nosarch/modules/user_defined.py`) is for managing packages defined by the user in the config
-file. This allows users to install packages not defined in the definition code and not worry about them being removed
-by decman.
+The `UserDefinedModule` (`nosarch/modules/user_defined.py`) installs packages the user listed in the config file, so
+decman does not remove them.
 
 ## Registration
 
-System, Desktop, Theming, and User packages are always registered.
-
-Setup, AI, Creative, Dev, and Gaming register only when their `profiles.*` key is true. They extend the desktop, so
-`source.py` exits if no registered module is named `desktop`. Desktop is currently always registered, so that exit
-does not happen on a normal run. This guard is in place for when NosArch allows headless installs.
+System, Desktop, Theming, and User packages are always registered. The others register when their `profiles.*` or
+`enable_homebrew` key is true. They extend the desktop, so `source.py` exits if no registered module is named
+`desktop`. Desktop is currently always registered, so this never trips on a normal run — the guard is there for when
+NosArch allows headless installs.
 
 ## Module names are store keys
 
 A module's `name` is its key in decman's store. Per-module package, unit, and flatpak entries, the `enabled_modules`
-list, and `ChangeTracker` diffs all use it. Renaming a module leaves the old entries in place. On the next run,
+list, and `ChangeTracker` diffs all use it. Renaming a module leaves the old entries in place, and on the next run
 `ChangeTracker` treats everything that module declares as newly added.

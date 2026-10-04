@@ -1,36 +1,29 @@
 # NosArch
 
-NosArch is an Arch Linux dotfile and system configuration repo managed by Decman.
-
-## Glossary
-
-- **Target system** refers to the arch linux system decman is going to apply all changes to.
-- **Definition code** means the code defining how and where to deploy dotfiles, which packages to install, and
-  managing systemd units.
-- **Deploying** means applying the results of the definition code to the target system.
-
-## Project Structure
-
-- The entrypoint is `nosarch/source.py`, which configures decman behavior.
-- Definition code lives in `nosarch/modules/`.
-- Themes for the system live in `nosarch/themes`.
-- Custom Decman plugins live in `nosarch/plugins`.
-- Helpers used by Decman's source live in `nosarch/utils`.
-- PKGBUILDs of custom packages live in `nosarch/packages`.
-- Dotfiles to be deployed by Decman live in `dotfiles/`, with separate mirrored root per module.
-- JSON schema for NosArch's config is in `config.schema.json`.
-- Repo maintenence and test scripts live in `tools/`.
+NosArch is an Arch Linux dotfile and system configuration repo managed by Decman. See `docs/README.md` for the
+project overview and structure, `docs/operations/` for maintainer procedures, and `docs/internal/` for design
+decisions and traps.
 
 ## Documentation
 
-- `docs/internal/` is for code decisions and their reasons, and implementation traps that are hard to discover from the source.
+Most code changes do not need an internal documentation change. Agents can read the code.
 
-Most code changes do not need an internal documentation update.
+- `docs/internal/` is for decisions and their reasons, constraints that span components, and traps that are hard to
+  discover from the source. Before adding a paragraph, ask what a maintainer would get wrong without it. If reading
+  the code answers the question, leave it out.
+- Do not document every feature, enumerate fields, narrate control flow, or maintain file catalogs. Types, tests, and
+  code already record the implementation.
+- When a documented decision or constraint changes, rewrite or remove the affected text. Do not append another
+  account of the new behavior. A new internal page needs a distinct, durable reason to exist.
+- `docs/operations/` holds maintainer setup, release, and debugging procedures.
 
 ## Testing
 
-- To test shell scripts, use shellcheck.
-- To test PKGBUILDs of custom packages: `python3 tools/check_custom_packages.py` (pass `--build` to audit `depends`
-  of PKGBUILDs).
-- The definition code can be tested by dry-running decman. It requires root access so ask the user to do so and report
-  back any errors.
+- Testing the definition code requires a decman dry-run as root, which you cannot do yourself. Ask the user to run
+  it and report back any errors rather than attempting it.
+
+## Formatting
+
+- Run `mise run format` before committing Python changes, or `mise run lint` to only report. Both are Ruff, the same
+  formatter Zed runs on save, so an unformatted file never turns into a reformat-only commit.
+

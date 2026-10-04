@@ -5,6 +5,8 @@
 
 ## Python style
 
+- Ruff owns the mechanical style. Run `mise run format` before committing Python changes, and use `mise run lint` to
+  check without changing anything. The pre-commit hook runs the same passes, so nothing reaches a commit unformatted.
 - Prefer module-qualified local imports so call sites show where names come from:
 
     ```python

@@ -1,5 +1,6 @@
 __pycache__
 .worktrees/
+mise.local.toml
 
 TASKS.md
 .drafts/

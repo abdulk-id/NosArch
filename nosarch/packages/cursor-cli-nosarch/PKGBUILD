@@ -4,7 +4,7 @@
 
 pkgname=cursor-cli-nosarch
 pkgdesc="Cursor Agent - Cursor's terminal-based AI coding agent"
-pkgver=2026.09.26.dd393fe
+pkgver=2026.10.01.e373342
 pkgrel=2
 url="https://cursor.com/cli"
 license=('LicenseRef-Cursor-EULA')
@@ -23,9 +23,9 @@ source=(
     "pin-channel.js"
 )
 sha256sums=(
-    '8085fd120f5c71f4eae7fea26a043718e5644e3071e4fab3220a0e58c51f9593'
-    '47ce687589fa92af3070251288cfdac9b2ec8637e16744a4acbf2d348508ffe5'
-    'f778400fa584ef13efe6408a1e08436e0eb73f359cad180ecc244fd4c2c0a59d'
+    'a79726c6e644520e993970be4c45775a6889802b67abe461a677a53219ae28e8'
+    'SKIP'
+    'SKIP'
 )
 
 package() {

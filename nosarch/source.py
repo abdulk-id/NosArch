@@ -77,9 +77,7 @@ if utils.aur_chroot.is_available():
 # stays true. If the signal is missing, assume a dry run
 _dry_run: bool = getattr(locals().get("args"), "dry_run", True)
 
-_flatpak_enabled: bool = user_config.get_bool("packaging.flatpak")
-
-if _flatpak_enabled:
+if user_config.get_bool("packaging.flatpak"):
     # Register the plugin here manually. decman only consults a plugin's `available()` when it is imported, which
     # happens before pacman installs the runtime, so on the run that enables Flatpak the plugin isn't registered yet
     # and its step would be skipped.
@@ -94,7 +92,7 @@ else:
     if _skipped_flatpak:
         decman.core.output.print_warning("[PACKAGING] Flatpak is disabled. Ignoring user packages")
 
-    # Runs before pacman, so the runtime is still installed and can uninstall the apps itself.
+    # Runs before pacman, so flatpak is still installed and can uninstall the apps itself.
     utils.flatpak_data.offer_cleanup(_username, dry_run=_dry_run)
 
 
@@ -168,7 +166,6 @@ if user_config.get_bool("profiles.ai"):
     if desktop_enabled:
         decman.modules += {AIModule(user_config)}
     else:
-        # TODO: Only show error if desktop apps for AI are enabled
         decman.core.output.print_error("[PROFILES] AI module requires Desktop module to be enabled.")
         raise SystemExit()
 

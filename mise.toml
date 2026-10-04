@@ -18,7 +18,7 @@ run = "ruff check --fix . && ruff format ."
 # Checks ===
 [tasks.pkgchk]
 description = "Check all custom packages"
-run = "python3 tools/check_custom_packages.py"
+run = "python3 tools/manage_custom_packages.py validate"
 
 # Dry Run tasks ===
 [tasks.dry-run-files]

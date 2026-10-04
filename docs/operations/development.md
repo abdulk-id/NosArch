@@ -16,5 +16,5 @@ NosArch Works can be enabled by setting `advanced.enable_nosarch_works` to `true
 ## Testing
 
 - Shell scripts: `shellcheck`.
-- Custom package PKGBUILDs: `python3 tools/check_custom_packages.py` (pass `--build` to audit `depends`).
+- Custom package PKGBUILDs: `python3 tools/manage_custom_packages.py validate` (pass `--build` to audit `depends`).
 - Definition code: dry-run decman. It requires root access.

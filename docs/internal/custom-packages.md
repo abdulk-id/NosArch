@@ -4,6 +4,7 @@ Custom packages allows installing any app as a pacman package. This allows decma
 This is useful for AppImages, `curl https://... | bash` installers, and vendor tarballs.
 
 Custom packages are defined by a PKGBUILD placed in `nosarch/packages/<pkgname>`.
+Examples: `cursor-desktop-nosarch`, `grok-build-nosarch`, `devin-cli-nosarch`, `opencode-desktop-nosarch`.
 
 ## Why not the AUR
 
@@ -11,13 +12,15 @@ Custom packages are defined by a PKGBUILD placed in `nosarch/packages/<pkgname>`
   is a guarantee `curl | bash` cannot offer, since an install script fetches whatever is at the URL at the time.
 - **Reliability**: Nothing resolves through the AUR, so a package cannot be orphaned or deleted out from under a run.
 
-The cost is that we have to manage version bumps. `tools/check_custom_packages.py` checks for outdated versions.
+The cost is that we have to manage version bumps. `tools/manage_custom_packages.py refresh` checks for outdated
+versions, and `tools/manage_custom_packages.py update` applies and verifies the bumps.
 
 ## Upstream Directives
 
-Upstream directives tell the checker how to find the current version of the app.
+Upstream directives tell the refresher how to find the current version of the app.
 
-Add one `# nosarch-upstream:` directive near the top of the PKGBUILD so the checker can tell when the package
+Add one `# nosarch-upstream:` directive near the top of the PKGBUILD so `manage_custom_packages.py refresh` can tell
+when the package
 version is old:
 
 ```bash
@@ -42,9 +45,9 @@ The directive is optional. Without it the package is not version-checked.
 > or updater reads, so they are much more stable. `regex` scrapes a page meant for a browser, and any restyle can
 > move or reword the surrounding text. Use `regex` only when a page is truly the only place the version is published.
 
-The checker fetches `<url>` as plain text (the raw HTML) and runs `<pattern>` against it as a Python regex.
+The refresher fetches `<url>` as plain text (the raw HTML) and runs `<pattern>` against it as a Python regex.
 Whatever the single capture group `(...)` matches is treated as the current upstream version. Keep exactly one
-capture group — the checker uses group 1 and ignores the rest.
+capture group — the refresher uses group 1 and ignores the rest.
 
 Example: a vendor's download page contains `href="/dl/Example-2.4.1-x86_64.AppImage"`. The directive
 `# nosarch-upstream: regex https://example.com/download Example-([0-9.]+)-x86_64` matches that text and captures
@@ -118,7 +121,7 @@ When `updpkgsums` changes a hash for a file whose URL did not change, look at wh
 The regex gives you a version, but nothing about the URL. Open the page the directive scrapes and check that the
 download link still has the shape `source=()` expects.
 
-If the checker reports the lookup failed (exit `2`, "lookup failed") instead of a version, the page changed and the
+If `refresh` reports the lookup failed (exit `2`, "lookup failed") instead of a version, the page changed and the
 pattern no longer matches. Fix the pattern first: open the raw HTML (`curl --location "<url>" | less`), find the new
 text around the version, and update the directive. Then bump as usual.
 
@@ -180,7 +183,7 @@ Add the `# nosarch-upstream:` directive described in [Upstream Directives](#upst
 
 ### 5. Test it
 
-1. Verify the PKGBUILD is valid: `python3 tools/check_custom_packages.py --package <package-name>`
+1. Verify the PKGBUILD is valid: `python3 tools/manage_custom_packages.py validate --package <package-name>`
     - Pass `--build` so namcap can audit `depends` (slower process).
 2. Check that the package actually installs to only the intended paths: `pacman --query --list --file *.pkg.tar.zst`
 
@@ -204,17 +207,17 @@ _PACKAGES_DIR: str = os.path.abspath("packages")
         }
 ```
 
-## The checker
+## The tool
 
-`tools/check_custom_packages.py` checks whether each package is outdated, and whether the PKGBUILD itself is valid and
-builds successfully.
+`tools/manage_custom_packages.py` manages the PKGBUILDs: `validate` checks correctness (parse, fields, namcap,
+build), `refresh` reports which packages are outdated, `update` bumps and verifies them.
 
-The checker exits with the following codes:
+`validate` and `refresh` exit with the following codes:
 
 | Exit Code | Meaning                                                                                                             |
 | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| `0`       | Every package is valid and current.                                                                                 |
-| `1`       | At least one **error**: PKGBUILD does not parse, fails validation, or trips namcap. Builds will fail.               |
+| `0`       | Every package is valid / current.                                                                                   |
+| `1`       | At least one **error**: PKGBUILD does not parse, fails validation, trips namcap, or has a broken upstream directive. |
 | `2`       | At least one **warning**: package is outdated, no upstream is declared, or the lookup failed. Builds still succeed. |
 
 Errors outrank warnings, so a run with both exits `1`.
@@ -226,20 +229,35 @@ If the package self-updates on its own, block that as best-effort.
 A common approach to block self-updates of CLI packages is to add a thin wrapper script that blocks `update` and
 `uninstall` commands with a message that it is being managed by a pacman package.
 
-To upgrade PKGBUILDs of custom packages:
+To upgrade PKGBUILDs of custom packages, run:
 
-1. Run `python3 tools/check_custom_packages.py` to see which packages are behind.
+```sh
+python3 tools/manage_custom_packages.py update             # everything
+python3 tools/manage_custom_packages.py update -p <pkgname>
+```
+
+It resolves the upstream version (same directives `refresh` uses), sets `pkgver`, resets `pkgrel=1`,
+and refreshes checksums with `updpkgsums`. On failure it restores the PKGBUILD. Run `validate` (and
+`validate --build` for the full `depends` audit) and `refresh` afterwards to verify. `--dry-run` previews
+without changing anything.
+
+For `json` directives it also syncs extra variables like `_commit` from URL fields in the endpoint
+response, so `source=()` still points at a real artifact. What it cannot map, it reports.
+
+When it cannot finish a bump (a changed URL shape, a broken directive), do it manually:
+
+1. Run `python3 tools/manage_custom_packages.py refresh` to see which packages are behind.
 2. Set `pkgver` to that version and reset `pkgrel=1`.
 3. Update any other variable the `source=()` URLs depend on (see [What a bump changes](#what-a-bump-changes-per-directive)).
 4. Refresh the checksums from inside the package directory: `cd nosarch/packages/<pkgname> && updpkgsums`.
-5. Run `python3 tools/check_custom_packages.py --package <pkgname> --build` to make sure it still builds and passes
-   namcap audit.
+5. Run `python3 tools/manage_custom_packages.py validate --package <pkgname> --build` to make sure it still builds
+   and passes namcap audit.
 
 Only `pkgver`, `pkgrel`, the hashes, and whatever was changed in step 3 should have moved.
 
 ## Custom Package Gotchas
 
-- **Pin every remote source**: `SKIP` checksum is only for files shipped alongside the PKGBUILD. The checker treats
+- **Pin every remote source**: `SKIP` checksum is only for files shipped alongside the PKGBUILD. `validate` treats
   `SKIP` on an `http(s)`/`git+` source as an error.
 - **namcap requires installing non-standard (`LicenseRef-`) licenses**.
 - **Not every AppImage bundles a `.desktop` entry and icons**: Run `--appimage-extract` and check.
@@ -247,7 +265,7 @@ Only `pkgver`, `pkgrel`, the hashes, and whatever was changed in step 3 should h
   (namcap rejects `custom`) and install a short README that records the status.
     - Example: `devin-cli-nosarch`.
 - **Expect namcap noise on repackaged binaries**: Unstripped ELFs, files outside FHS paths, and missing hardening
-  flags are properties of a binary we did not compile. The checker already excludes those rules. Do not "fix" them.
+  flags are properties of a binary we did not compile. `validate` already excludes those rules. Do not "fix" them.
 - **An executable whose name ends in `.desktop` breaks `uwsm` launches**: `uwsm app` treats any argument ending in
   `.desktop` as a desktop entry file, so a launcher that passes the entry's `Exec` line verbatim makes uwsm parse the
   ELF as a `.desktop` file and fail. Point the installed desktop entries at a suffix-free `/usr/bin` symlink instead.

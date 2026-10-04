@@ -42,7 +42,7 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
         # Many custom packages = check takes time. Give option (to allow skipping just this check for quick dry-runs)
         if decman.core.output.prompt_confirm("Run Custom package check?", True):
             _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
-                [sys.executable, "../tools/check_custom_packages.py"]
+                [sys.executable, "../tools/manage_custom_packages.py", "refresh"]
             )
             if _custom_package_check.returncode == 1:
                 decman.core.output.print_error("[CHECKS] Custom package check failed with error(s).")

@@ -57,11 +57,16 @@
         },
         "packaging": {
             "type": "object",
-            "description": "Choose which packaging formats NosArch supports on this system",
+            "description": "Choose which packaging formats NosArch should support.",
             "properties": {
                 "flatpak": {
                     "type": "boolean",
-                    "description": "Install Flatpak and manage Flatpak packages listed in `user_packages`",
+                    "description": "Add support for Flatpak packages to NosArch",
+                    "default": false
+                },
+                "snap": {
+                    "type": "boolean",
+                    "description": "Add support for Snap packages to NosArch",
                     "default": false
                 }
             }
@@ -244,6 +249,26 @@
                         "type": "string"
                     },
                     "uniqueItems": true
+                },
+                "snap": {
+                    "type": "object",
+                    "description": "Add any other Snap packages not installed by Decman, mapped from the package name to the channel it should track",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "propertyNames": {
+                        "type": "string"
+                    }
+                },
+                "classic_snap": {
+                    "type": "object",
+                    "description": "Add any other Snap (classic) packages not installed by Decman, mapped from the package name to the channel it should track",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "propertyNames": {
+                        "type": "string"
+                    }
                 }
             }
         },

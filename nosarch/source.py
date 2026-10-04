@@ -11,6 +11,7 @@ from decman.plugins import flatpak as flatpak_plugin
 from modules.desktop import DesktopModule
 from modules.homebrew import HomebrewModule
 from modules.setup import SetupModule
+from modules.snap import SnapModule
 from modules.system import SystemModule
 from modules.theme import ThemingModule
 from modules.usage_profiles.ai import AIModule
@@ -19,6 +20,7 @@ from modules.usage_profiles.dev import DevModule
 from modules.usage_profiles.gaming import GamingModule
 from modules.user_defined import UserDefinedModule
 from plugins import homebrew
+from plugins import snap as snap_plugin
 from utils.user_config_reader import UserConfigReader
 
 # User config
@@ -100,6 +102,23 @@ if user_config.get_bool("enable_homebrew"):
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.append("homebrew")
+
+
+if user_config.get_bool("packaging.snap"):
+    # Registered here directly rather than left to `available()`, which decman only consults when it
+    # imports a plugin. That happens before the AUR step installs snapd, so on the run that enables
+    # Snap the plugin isn't registered yet and its step would be skipped. The plugin reports a missing
+    # `snap` itself, which is what a dry run of that first run will see.
+    decman.plugins["snap"] = snap_plugin.plugin
+    decman.execution_order.append("snap")
+else:
+    # Dropping the module is what runs `SnapModule.on_disable`, which offers to delete what snap
+    # left behind. It cannot be driven from here: decman only runs that script when a registered
+    # module disappears.
+    _skipped_snaps: dict[str, str] = user_config.get_str_dict("user_packages.snap")
+    _skipped_snaps |= user_config.get_str_dict("user_packages.classic_snap")
+    if _skipped_snaps:
+        decman.core.output.print_warning("[PACKAGING] Snap is disabled. Ignoring user packages")
 # ===
 
 # User and Group management ===
@@ -132,6 +151,9 @@ decman.modules += {SystemModule(user_config), DesktopModule(user_config), Themin
 
 if user_config.get_bool("enable_homebrew"):
     decman.modules += {HomebrewModule(_username)}
+
+if user_config.get_bool("packaging.snap"):
+    decman.modules += {SnapModule()}
 
 desktop_enabled: bool = any(module.name == "desktop" for module in decman.modules)
 

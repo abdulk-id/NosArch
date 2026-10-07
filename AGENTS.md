@@ -27,3 +27,7 @@ Most code changes do not need an internal documentation change. Agents can read 
 - Run `mise run format` before committing Python changes, or `mise run lint` to only report. Both are Ruff, the same
   formatter Zed runs on save, so an unformatted file never turns into a reformat-only commit.
 
+## Searching
+
+- Ignore `.drafts/` and `.worktrees/` when searching the repo. They contain stale copies of docs and code, not the
+  current state.

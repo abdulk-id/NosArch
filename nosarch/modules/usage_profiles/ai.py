@@ -35,52 +35,6 @@ class AIModule(decman.Module):
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {}
 
-        files.update(self._userhome_dotfiles.files("/.agents/skills/bro/SKILL.md", "/.agents/skills/unslop/SKILL.md"))
-
-        if "claude-code" in self._agents:
-            files.update(
-                {
-                    f"/home/{self._username}/.claude/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.claude/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
-        if "codex" in self._agents:
-            # Codex can have issues with reading skills from `~/.agents/skills`
-            files.update(
-                {
-                    f"/home/{self._username}/.codex/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.codex/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
-        if "cursor-cli" in self._agents or "cursor-desktop" in self._apps:
-            # Cursor can read skills from `~/.agents/skills` but cannot sync them for Cursor Cloud Agents
-            files.update(
-                {
-                    f"/home/{self._username}/.cursor/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.cursor/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
         if "t3code-desktop" in self._control_planes:
             files.update(
                 self._userhome_dotfiles.files(

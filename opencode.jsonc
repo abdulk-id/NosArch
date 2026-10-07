@@ -21,8 +21,11 @@
         { "action": "shell", "resource": "*", "effect": "ask" },
         { "action": "shell", "resource": "git status *", "effect": "allow" },
         { "action": "shell", "resource": "git diff *", "effect": "allow" },
-        { "action": "shell", "resource": "git push *", "effect": "ask" },
         { "action": "shell", "resource": "ls*", "effect": "allow" },
+        { "action": "shell", "resource": "mise run lint", "effect": "allow" },
+        { "action": "shell", "resource": "mise run format", "effect": "allow" },
+        { "action": "shell", "resource": "mise run pkgchk*", "effect": "ask" },
+        { "action": "shell", "resource": "git push *", "effect": "ask" },
         { "action": "shell", "resource": "sudo *", "effect": "deny" },
         // external_directory
         { "action": "external_directory", "resource": "*", "effect": "ask" },

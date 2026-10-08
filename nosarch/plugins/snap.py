@@ -1,11 +1,5 @@
 """Decman plugin for managing Snap packages.
 
-- Snap has no per-user installs (the ArchWiki is explicit that they are not possible yet), so
-  everything here is system-wide, and every `snap` invocation runs as root. That is the one
-  thing that sets this plugin apart from `homebrew`, which cannot run as root at all.
-- The structure mirrors decman's own flatpak plugin: command builders, an interface that runs
-  them, and a `Plugin` that decides what to run.
-
 Register it as follows, since it is not installed as a Python package:
 ```
     import decman
@@ -16,36 +10,27 @@ Register it as follows, since it is not installed as a Python package:
 ```
 """
 
-import os
 import shutil
 from typing import override
 
 import decman
-import decman.core.command as command
-import decman.core.error as errors
-import decman.core.module as module
-import decman.core.output as output
-import decman.core.store as _store
-
-# Imported by name: decman's package rebinds the `decman.plugins` attribute to a
-# dict, so `import decman.plugins as plugins` would not yield the submodule.
+import decman.core.command
+import decman.core.error
+import decman.core.module
+import decman.core.output
+import decman.core.store
 from decman.plugins import Plugin, run_methods_with_attribute
 
-# Snaps snapd manages on its own behalf. They are the base every other snap is built on, so
-# removing one breaks the rest. `snap list` marks them `base` in its Notes column; the name
-# check stands on its own so a removal decision never rests on a single column.
+# Base snaps every other snap is built on. Removing one breaks the rest. `snap list` marks them `base` in its Notes
+# column. The name check stands on its own so a removal decision never rests on a single column.
 _BASE_SNAP_NAMES: tuple[str, ...] = ("bare", "snapd")
 _BASE_SNAP_PREFIXES: tuple[str, ...] = ("core", "kernel-")
-
-# What `snap` connects to. snapd.socket is socket-activated, so the socket only exists once that
-# unit is started.
-_SNAPD_SOCKET: str = "/run/snapd.socket"
 
 
 def snaps(fn):
     """
-    Annotate that this function returns the snap names that should be installed with their default
-    confinement, mapped to the channel each should track.
+    Annotate that this function returns the snap names that should be installed with default confinement, mapped to
+    the channel each should track.
 
     Return type of `fn`: `dict[str, str]`
     """
@@ -55,9 +40,8 @@ def snaps(fn):
 
 def classic_snaps(fn):
     """
-    Annotate that this function returns the snap names that should be installed with classic
-    confinement, which is what snaps needing access to the host's files and directories need,
-    mapped to the channel each should track.
+    Annotate that this function returns the snap names that should be installed with `classic` confinement, mapped to
+    the channel each should track.
 
     Return type of `fn`: `dict[str, str]`
     """
@@ -69,9 +53,7 @@ def _is_valid_channel(channel: str) -> bool:
     """
     Whether a channel can be passed to `snap install --channel`.
 
-    Channels are whatever the publisher defines, so there is no list to check against. Only the
-    shape matters: it has to be a single word that cannot read as a flag, or it could turn into an
-    option nobody wrote.
+    Channels are defined by publishers, not a fixed list. It has to be a single word that cannot read as a flag.
     """
     return bool(channel) and not channel.startswith("-") and not any(c.isspace() for c in channel)
 
@@ -79,6 +61,14 @@ def _is_valid_channel(channel: str) -> bool:
 def _is_base_snap(name: str, notes: str) -> bool:
     """Whether a snap is one snapd needs for itself, and must never be removed."""
     return notes == "base" or name in _BASE_SNAP_NAMES or name.startswith(_BASE_SNAP_PREFIXES)
+
+
+def _is_socket_active() -> bool:
+    """
+    Whether snapd's socket is accepting connections.
+    """
+    code, _ = decman.core.command.run(["systemctl", "is-active", "--quiet", "snapd.socket"])
+    return code == 0
 
 
 def _parse_list(output: str) -> dict[str, str]:
@@ -101,10 +91,8 @@ def _parse_list(output: str) -> dict[str, str]:
 
 class Snap(Plugin):
     """
-    Plugin that manages snaps added directly to the plugin's collections or declared by modules
-    via `@snap.snaps` and `@snap.classic_snaps`.
-
-    Snap installs system-wide as root, so this plugin needs no user to run as.
+    Plugin that manages snaps added directly to the plugin's collections or declared by modules via `@snap.snaps` and
+    `@snap.classic_snaps`.
     """
 
     NAME: str = "snap"
@@ -114,8 +102,8 @@ class Snap(Plugin):
         self.classic_snaps: dict[str, str] = {}
         self.ignored_snaps: set[str] = set()
 
-        # When True, run `snap refresh` on every apply. Off by default: `snapd.timer` already
-        # refreshes on its own schedule, so this would only duplicate that work.
+        # When True, run `snap refresh` on every apply. Off by default.
+        # `snapd.timer` already refreshes on its own schedule, so this would only duplicate that work.
         self.upgrade: bool = False
 
     @override
@@ -123,10 +111,7 @@ class Snap(Plugin):
         return shutil.which("snap") is not None
 
     @override
-    def process_modules(self, store: _store.Store, modules: list[module.Module]) -> None:
-        # These store keys track each module's declared snaps so that a module can be marked as
-        # changed when its snap declarations change between runs. Confinement is tracked
-        # separately, since changing it has to mark the module changed too.
+    def process_modules(self, store: decman.core.store.Store, modules: list[decman.core.module.Module]) -> None:
         store.ensure("snaps_for_module", {})
         store.ensure("classic_snaps_for_module", {})
 
@@ -147,11 +132,11 @@ class Snap(Plugin):
 
             if store["snaps_for_module"][mod.name] != mod_snaps:
                 mod._changed = True
-                output.print_debug(f"Module '{mod.name}' set to changed due to modified snaps.")
+                decman.core.output.print_debug(f"Module '{mod.name}' set to changed due to modified snaps.")
 
             if store["classic_snaps_for_module"][mod.name] != mod_classic:
                 mod._changed = True
-                output.print_debug(f"Module '{mod.name}' set to changed due to modified classic snaps.")
+                decman.core.output.print_debug(f"Module '{mod.name}' set to changed due to modified classic snaps.")
 
             self.snaps.update(mod_snaps)
             self.classic_snaps.update(mod_classic)
@@ -160,28 +145,27 @@ class Snap(Plugin):
             store["classic_snaps_for_module"][mod.name] = mod_classic
 
     @override
-    def apply(self, store: _store.Store, dry_run: bool = False, params: list[str] | None = None) -> bool:
+    def apply(self, store: decman.core.store.Store, dry_run: bool = False, params: list[str] | None = None) -> bool:
         snap_bin: str | None = shutil.which("snap")
         if snap_bin is None:
             if dry_run:
                 # snapd arrives during this very run, so a dry run of a first apply has nothing
                 # to compare against. Report that instead of failing the run.
-                output.print_warning("Snap plugin: snapd is not installed, so snaps cannot be checked.")
+                decman.core.output.print_warning("Snap plugin: snapd is not installed, so snaps cannot be checked.")
                 return True
 
-            output.print_error("Snap plugin: could not find the 'snap' executable.")
+            decman.core.output.print_error("Snap plugin: could not find the 'snap' executable.")
             return False
 
         declared: dict[str, tuple[bool, str]] = {name: (False, channel) for name, channel in self.snaps.items()}
         declared |= {name: (True, channel) for name, channel in self.classic_snaps.items()}
 
-        # Enabling a unit does not start it, and decman's systemd plugin only enables, so on the
-        # run that installs snapd nothing is listening on the socket yet and every snap command
-        # fails to reach the daemon. The system module enables snapd.socket for the next boot; the
-        # daemon is needed now.
-        if not os.path.exists(_SNAPD_SOCKET):
+        # Decman's systemd plugin only enables units, which does not start it, so on the run that installs snapd,
+        # nothing is listening on the socket yet and every snap command fails to reach the daemon. The module enables
+        # snapd.socket for the next boot but the daemon is needed now.
+        if not _is_socket_active():
             if dry_run:
-                output.print_warning("Snap plugin: snapd is not running, so snaps cannot be checked.")
+                decman.core.output.print_warning("Snap plugin: snapd is not running, so snaps cannot be checked.")
                 return True
 
             self._start_daemon()
@@ -190,26 +174,26 @@ class Snap(Plugin):
         # confinement to reconcile against, so this is caught before anything is installed.
         both: set[str] = self.snaps.keys() & self.classic_snaps.keys()
         if both:
-            output.print_error(
+            decman.core.output.print_error(
                 f"Snap plugin: these snaps are declared both confined and classic: {', '.join(sorted(both))}"
             )
             return False
 
         for name, (_, channel) in sorted(declared.items()):
             if not _is_valid_channel(channel):
-                output.print_error(f"Snap plugin: snap '{name}' has an invalid channel '{channel}'.")
+                decman.core.output.print_error(f"Snap plugin: snap '{name}' has an invalid channel '{channel}'.")
                 return False
 
         interface = SnapInterface(SnapCommands(snap_bin))
 
         try:
             self._apply_snaps(interface, declared, dry_run)
-        except errors.CommandFailedError as error:
-            output.print_error("Running a snap command failed.")
-            output.print_error(str(error))
+        except decman.core.error.CommandFailedError as error:
+            decman.core.output.print_error("Running a snap command failed.")
+            decman.core.output.print_error(str(error))
             if error.output:
-                output.print_command_output(error.output)
-            output.print_traceback()
+                decman.core.output.print_command_output(error.output)
+            decman.core.output.print_traceback()
             return False
         return True
 
@@ -218,13 +202,11 @@ class Snap(Plugin):
         """
         Starts snapd's socket so the client has something to connect to.
 
-        The socket is all that is needed: it is socket-activated, so starting it brings up the
-        daemon on the first connection. The AppArmor unit is started too since it is a oneshot
-        that only loads profiles once, and leaving it for the next boot means snaps run unconfined
-        until then.
+        The AppArmor unit is started too since it is a oneshot that only loads profiles once, and leaving it for the
+        next boot means snaps run unconfined until then.
 
-        `check=False` because the daemon not coming up is reported by the first snap command,
-        which fails with a better message than systemctl's would give here.
+        `check=False` because the daemon not coming up is reported by the first snap command, which fails with a
+        better message than systemctl's would give here.
         """
         _ = decman.prg(["systemctl", "start", "snapd.socket", "snapd.apparmor.service"], check=False)
 
@@ -242,12 +224,12 @@ class Snap(Plugin):
         }
 
         if to_remove:
-            output.print_list("Removing snap packages:", sorted(to_remove))
+            decman.core.output.print_list("Removing snap packages:", sorted(to_remove))
             if not dry_run:
                 interface.remove(to_remove)
 
         if to_install:
-            output.print_list("Installing snap packages:", sorted(to_install))
+            decman.core.output.print_list("Installing snap packages:", sorted(to_install))
             if not dry_run:
                 # The first snap command on a fresh install has to wait out snapd's base snaps
                 # anyway, and installing into an unseeded store can fail. Wait for it explicitly.
@@ -257,7 +239,7 @@ class Snap(Plugin):
 
         # Refreshed last, since installing already brings a snap to its newest revision.
         if self.upgrade and not dry_run:
-            output.print_summary("Refreshing snap packages.")
+            decman.core.output.print_summary("Refreshing snap packages.")
             interface.refresh()
 
 
@@ -298,8 +280,8 @@ class SnapInterface:
     On failure methods raise a `CommandFailedError`.
     """
 
-    # Snap localises its output. Pinning the locale keeps parsing stable whatever the system is
-    # set to, and drops snap's progress spinners out of what we read back.
+    # Snap localises its output. Pinning the locale keeps parsing stable whatever the system is set to.
+    # Also drops snap's progress spinners out of what we read back.
     _ENV: dict[str, str] = {"LC_ALL": "C"}
 
     def __init__(self, commands: SnapCommands) -> None:
@@ -308,21 +290,21 @@ class SnapInterface:
     def installed_snaps(self) -> dict[str, str]:
         """Returns the installed snaps, each mapped to the value of its Notes column."""
         cmd = self._commands.list_snaps()
-        _, out = command.check_run_result(cmd, command.run(cmd, env_overrides=self._ENV))
+        _, out = decman.core.command.check_run_result(cmd, decman.core.command.run(cmd, env_overrides=self._ENV))
         return _parse_list(out)
 
     def wait_seeded(self) -> None:
-        _ = command.prg(self._commands.wait_seeded(), env_overrides=self._ENV)
+        _ = decman.core.command.prg(self._commands.wait_seeded(), env_overrides=self._ENV)
 
     def install(self, name: str, classic: bool, channel: str) -> None:
-        _ = command.prg(self._commands.install(name, classic, channel), env_overrides=self._ENV)
+        _ = decman.core.command.prg(self._commands.install(name, classic, channel), env_overrides=self._ENV)
 
     def remove(self, pkgs: set[str]) -> None:
         if pkgs:
-            _ = command.prg(self._commands.remove(pkgs), env_overrides=self._ENV)
+            _ = decman.core.command.prg(self._commands.remove(pkgs), env_overrides=self._ENV)
 
     def refresh(self) -> None:
-        _ = command.prg(self._commands.refresh(), env_overrides=self._ENV)
+        _ = decman.core.command.prg(self._commands.refresh(), env_overrides=self._ENV)
 
 
 # Singleton instance. Register it (see the module docstring).

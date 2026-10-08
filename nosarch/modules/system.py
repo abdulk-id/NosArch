@@ -16,8 +16,6 @@ from decman.core.output import print_info, print_list, prompt_confirm
 from decman.plugins import aur, pacman, systemd
 from utils.user_config_reader import UserConfigReader
 
-_cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
-
 
 class SystemModule(decman.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
@@ -261,18 +259,19 @@ class SystemModule(decman.Module):
             system_set.add("linux-lts")
             system_set.add("linux-lts-headers")
 
-        # Only the `linux-firmware-*` splits this machine's hardware needs.
-        # The `linux-firmware` meta package pulls every vendor split (~410 MiB).
         system_set |= utils.hardware.firmware_vendors.get_firmware_packages()
 
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             system_set.add("power-profiles-daemon")
 
-        if _cpu_vendor == "GenuineIntel":
+        if utils.hardware.cpu_vendor.is_cpu_intel():
             system_set.add("intel-ucode")
-            system_set.add("intel-lpmd")
             system_set.add("thermald")
-        elif _cpu_vendor == "AuthenticAMD":
+
+            if utils.hardware.cpu_vendor.is_intel_hybrid():
+                system_set.add("intel-lpmd")
+
+        elif utils.hardware.cpu_vendor.is_cpu_amd():
             system_set.add("amd-ucode")
 
         security_set: set[str] = {"apparmor", "firewalld", "ufw"}
@@ -327,9 +326,11 @@ class SystemModule(decman.Module):
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             systemd_set.add("power-profiles-daemon.service")
 
-        if _cpu_vendor == "GenuineIntel":
-            systemd_set.add("intel_lpmd.service")
+        if utils.hardware.cpu_vendor.is_cpu_intel():
             systemd_set.add("thermald.service")
+
+            if utils.hardware.cpu_vendor.is_intel_hybrid():
+                systemd_set.add("intel_lpmd.service")
 
         return systemd_set
 

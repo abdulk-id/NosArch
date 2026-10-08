@@ -1,6 +1,6 @@
-// Managed by NosArch
-
 {
+    "_comment": "Managed by NosArch",
+
     "$schema": "/etc/xdg/swaync/configSchema.json",
     "ignore-gtk-theme": true,
     "positionX": "right",

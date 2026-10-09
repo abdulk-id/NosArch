@@ -51,6 +51,9 @@ class AIModule(decman.Module):
         if self._agents.__contains__("opencode"):
             pkgs.add("opencode")
 
+        if "gemini-cli" in self._agents:
+            pkgs.add("gemini-cli")
+
         return pkgs
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
@@ -150,9 +153,6 @@ class AIModule(decman.Module):
         if "crush" in self._agents:
             brew_formulae.add("charmbracelet/tap/crush")
 
-        if "gemini-cli" in self._agents:
-            brew_formulae.add("gemini-cli")
-
         if "omp" in self._agents:
             brew_formulae.add("can1357/tap/omp")
 
@@ -171,7 +171,7 @@ class AIModule(decman.Module):
 # - crush -> homebrew.formulae + taps
 # - cursor-cli -> aur.custom_packages
 # - devin-cli -> aur.custom_packages
-# - gemini-cli -> homebrew.formulae
+# - gemini-cli -> pacman.packages
 # - grok-build -> aur.custom_packages
 # - kilocode -> aur.packages
 # - omp -> homebrew.formulae + taps

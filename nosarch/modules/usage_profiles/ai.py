@@ -5,7 +5,6 @@ import utils.custom_packages
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman
-from plugins import homebrew
 from utils.user_config_reader import UserConfigReader
 
 
@@ -106,6 +105,12 @@ class AIModule(decman.Module):
         if "pi" in self._agents:
             custom_pkgs.add(utils.custom_packages.package("pi-nosarch"))
 
+        if "crush" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("crush-nosarch"))
+
+        if "omp" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("omp-nosarch"))
+
         # Apps
         if "cursor-desktop" in self._apps:
             custom_pkgs.add(utils.custom_packages.package("cursor-desktop-nosarch"))
@@ -128,32 +133,6 @@ class AIModule(decman.Module):
 
         return custom_pkgs
 
-    @homebrew.taps  # pyright: ignore[reportUnknownMemberType]
-    def brew_taps(self) -> set[str]:
-        brew_taps: set[str] = set()
-
-        # Agents
-        if "crush" in self._agents:
-            brew_taps.add("charmbracelet/tap")
-
-        if "omp" in self._agents:
-            brew_taps.add("can1357/tap")
-
-        return brew_taps
-
-    @homebrew.formulae  # pyright: ignore[reportUnknownMemberType]
-    def brew_formulae(self) -> set[str]:
-        brew_formulae: set[str] = set()
-
-        # Agents
-        if "crush" in self._agents:
-            brew_formulae.add("charmbracelet/tap/crush")
-
-        if "omp" in self._agents:
-            brew_formulae.add("can1357/tap/omp")
-
-        return brew_formulae
-
 
 # For reference
 # Agents:
@@ -161,13 +140,13 @@ class AIModule(decman.Module):
 # - claude-code -> homebrew.casks
 # - codex -> pacman.packages
 # - copilot-cli -> homebrew.formulae
-# - crush -> homebrew.formulae + taps
+# - crush -> aur.custom_packages
 # - cursor-cli -> aur.custom_packages
 # - devin-cli -> aur.custom_packages
 # - gemini-cli -> pacman.packages
 # - grok-build -> aur.custom_packages
 # - kilocode -> aur.packages
-# - omp -> homebrew.formulae + taps
+# - omp -> aur.custom_packages
 # - opencode -> pacman.packages
 # - pi -> aur.custom_packages
 #

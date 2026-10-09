@@ -88,6 +88,12 @@ class AIModule(decman.Module):
         if "antigravity-cli" in self._agents:
             custom_pkgs.add(utils.custom_packages.package("antigravity-cli-nosarch"))
 
+        if "claude-code" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("claude-code-nosarch"))
+
+        if "copilot-cli" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("github-copilot-cli-nosarch"))
+
         if "cursor-cli" in self._agents:
             custom_pkgs.add(utils.custom_packages.package("cursor-cli-nosarch"))
 
@@ -122,16 +128,6 @@ class AIModule(decman.Module):
 
         return custom_pkgs
 
-    @homebrew.casks  # pyright: ignore[reportUnknownMemberType]
-    def brew_casks(self) -> set[str]:
-        brew_casks: set[str] = set()
-
-        # Agents
-        if "claude-code" in self._agents:
-            brew_casks.add("claude-code@latest")
-
-        return brew_casks
-
     @homebrew.taps  # pyright: ignore[reportUnknownMemberType]
     def brew_taps(self) -> set[str]:
         brew_taps: set[str] = set()
@@ -155,9 +151,6 @@ class AIModule(decman.Module):
 
         if "omp" in self._agents:
             brew_formulae.add("can1357/tap/omp")
-
-        if "copilot-cli" in self._agents:
-            brew_formulae.add("copilot-cli")
 
         return brew_formulae
 

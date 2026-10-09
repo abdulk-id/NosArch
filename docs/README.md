@@ -12,8 +12,8 @@ It is recommended to work on NosArch from a machine running NosArch so changes c
 
 `nosarch/source.py` configures decman: it registers the modules in `nosarch/modules/`, which declare which dotfiles,
 packages, and systemd units each one deploys. On a run, decman installs what modules declare and removes what no
-module declares anymore. Custom packages are regular pacman packages built from PKGBUILDs in `nosarch/packages/`, so
-decman manages them the same way.
+module declares anymore. Custom packages are regular pacman packages built from PKGBUILDs in
+[NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages) so decman manages them the same way.
 
 ### Project structure
 
@@ -22,7 +22,6 @@ decman manages them the same way.
 - Themes: `nosarch/themes/`.
 - Custom decman plugins: `nosarch/plugins/`.
 - Helpers used by the decman source: `nosarch/utils/`.
-- PKGBUILDs of custom packages: `nosarch/packages/`.
 - Dotfiles deployed by decman: `dotfiles/`, with a separate mirrored root per module.
 - JSON schema for the NosArch config: `config.schema.json`.
 - Repo maintenance and test scripts: `tools/`.
@@ -37,7 +36,7 @@ in [AGENTS.md](../AGENTS.md#documentation).
 - [Modules](internal/modules.md) — the module table and what registers what.
 - [Files](internal/files.md) — how dotfiles are declared, tracked, and how changes are applied.
 - [Packages](internal/packages.md) — declaring and tracking package changes.
-- [Custom packages](internal/custom-packages.md) — PKGBUILD conventions, upstream directives, bumping.
+- [Custom packages](internal/custom-packages.md) — where the PKGBUILDs live, and how a module declares one.
 - [AppImages](internal/appimages.md) — how nosarch-package installs and removes AppImages.
 
 ### Operations

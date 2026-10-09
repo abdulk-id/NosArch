@@ -1,7 +1,3 @@
-import os
-import subprocess
-import sys
-
 import decman.config
 import decman.core.output
 import utils.aur_chroot
@@ -31,6 +27,7 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
     # Machine setup ---
     decman.pacman.packages |= {"lynis", "namcap", "pacman-contrib", "shellcheck"}
 
+    """
     # Checks ---
     DISABLE_CHECKS_PARAM: bool = os.environ.get("NOSARCH_DECMAN_SKIP_CHECKS") == "1"
 
@@ -38,29 +35,17 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
         decman.core.output.print_warning("Skipping NosArch pre-checks.")
     else:
         decman.core.output.print_summary("Running NosArch pre-checks.")
+    """
 
-        # Many custom packages = check takes time. Give option (to allow skipping just this check for quick dry-runs)
-        if decman.core.output.prompt_confirm("Run Custom package check?", True):
-            _custom_package_check: subprocess.CompletedProcess[bytes] = subprocess.run(
-                [sys.executable, "../tools/manage_custom_packages.py", "refresh"]
-            )
-            if _custom_package_check.returncode == 1:
-                decman.core.output.print_error("[CHECKS] Custom package check failed with error(s).")
-                raise SystemExit()
-            elif _custom_package_check.returncode == 2:
-                decman.core.output.print_warning("[CHECKS] Custom package check has unresolved warnings.")
-        else:
-            decman.core.output.print_warning("[CHECKS] Custom package check manually skipped for this run.")
 else:
     decman.config.debug_output = False
-    decman.config.quiet_output = True  # Disable info messages
+    decman.config.quiet_output = True
 # ===
 
 # Decman configuration ===
 decman.config.arch = "x86_64"
 decman.execution_order = ["files", "pacman", "aur", "flatpak", "systemd"]
 
-# decman builds in /tmp by default, which is a tmpfs. Build on disk instead
 decman.aur.build_dir = "/var/cache/decman/build"
 
 if utils.aur_chroot.is_available():

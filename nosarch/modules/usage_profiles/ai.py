@@ -1,16 +1,12 @@
-import os
 from typing import override
 
 import decman
+import utils.custom_packages
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman
 from plugins import homebrew
 from utils.user_config_reader import UserConfigReader
-
-# decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its directory,
-# so package paths are resolved relative to `nosarch/`, not to this file.
-_PACKAGES_DIR: str = os.path.abspath("packages")
 
 
 class AIModule(decman.Module):
@@ -87,85 +83,39 @@ class AIModule(decman.Module):
 
         # Agents
         if "antigravity-cli" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="antigravity-cli-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "antigravity-cli-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("antigravity-cli-nosarch"))
 
         if "cursor-cli" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="cursor-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-cli-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("cursor-cli-nosarch"))
 
         if "grok-build" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="grok-build-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "grok-build-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("grok-build-nosarch"))
 
         if "devin-cli" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="devin-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "devin-cli-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("devin-cli-nosarch"))
 
         if "pi" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(pkgname="pi-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "pi-nosarch"))
-            )
+            custom_pkgs.add(utils.custom_packages.package("pi-nosarch"))
 
         # Apps
         if "cursor-desktop" in self._apps:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="cursor-desktop-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-desktop-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("cursor-desktop-nosarch"))
 
         if "opencode-desktop" in self._apps:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="opencode-desktop-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "opencode-desktop-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("opencode-desktop-nosarch"))
 
         if "github-copilot-app" in self._apps:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="github-copilot-app-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "github-copilot-app-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("github-copilot-app-nosarch"))
 
         # Control planes
         if "openchamber" in self._control_planes:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="openchamber-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "openchamber-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("openchamber-nosarch"))
 
         if "t3code-cli" in self._control_planes:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="t3code-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "t3code-cli-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("t3code-cli-nosarch"))
 
         if "zeron" in self._control_planes:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="zeron-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "zeron-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("zeron-nosarch"))
 
         return custom_pkgs
 

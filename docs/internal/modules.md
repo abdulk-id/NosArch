@@ -15,6 +15,7 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 | Dev           | `DevModule`         | `profiles.dev`      | `dotfiles/dev-root`      |
 | Gaming        | `GamingModule`      | `profiles.gaming`   | `dotfiles/gaming-root`   |
 | Homebrew      | `HomebrewModule`    | `enable_homebrew`   | generated at run time    |
+| Flatpak       | `FlatpakModule`     | `packaging.flatpak` | none                     |
 | Snap          | `SnapModule`        | `packaging.snap`    | none                     |
 | User packages | `UserDefinedModule` | always              | none                     |
 

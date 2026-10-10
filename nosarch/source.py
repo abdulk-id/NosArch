@@ -5,10 +5,10 @@ import sys
 import decman.config
 import decman.core.output
 import utils.aur_chroot
-import utils.flatpak_data
 from decman.extras.users import User, UserManager
 from decman.plugins import flatpak as flatpak_plugin
 from modules.desktop import DesktopModule
+from modules.flatpak import FlatpakModule
 from modules.homebrew import HomebrewModule
 from modules.setup import SetupModule
 from modules.snap import SnapModule
@@ -73,10 +73,6 @@ if utils.aur_chroot.is_available():
 # ===
 
 # Packaging ===
-# decman `exec()`s this source in its own frame, so `args` is normally in scope here, but nothing guarantees that
-# stays true. If the signal is missing, assume a dry run
-_dry_run: bool = getattr(locals().get("args"), "dry_run", True)
-
 if user_config.get_bool("packaging.flatpak"):
     # Register the plugin here manually. decman only consults a plugin's `available()` when it is imported, which
     # happens before pacman installs the runtime, so on the run that enables Flatpak the plugin isn't registered yet
@@ -86,14 +82,14 @@ if user_config.get_bool("packaging.flatpak"):
 
     decman.execution_order.append("flatpak")
 else:
+    # Dropping the module is what runs `FlatpakModule.on_disable`, which offers to delete what the runtime
+    # left behind. It cannot be driven from here: decman only runs that script when a registered module
+    # disappears.
     _skipped_flatpak: list[str] = user_config.get_str_list("user_packages.flatpak") + user_config.get_str_list(
         "user_packages.flatpak_user"
     )
     if _skipped_flatpak:
         decman.core.output.print_warning("[PACKAGING] Flatpak is disabled. Ignoring user packages")
-
-    # Runs before pacman, so flatpak is still installed and can uninstall the apps itself.
-    utils.flatpak_data.offer_cleanup(_username, dry_run=_dry_run)
 
 
 if user_config.get_bool("enable_homebrew"):
@@ -149,6 +145,9 @@ decman.modules += {SystemModule(user_config), DesktopModule(user_config), Themin
 
 if user_config.get_bool("enable_homebrew"):
     decman.modules += {HomebrewModule(_username)}
+
+if user_config.get_bool("packaging.flatpak"):
+    decman.modules += {FlatpakModule()}
 
 if user_config.get_bool("packaging.snap"):
     decman.modules += {SnapModule()}

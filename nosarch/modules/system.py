@@ -261,9 +261,6 @@ class SystemModule(decman.Module):
             system_set.add("linux-lts")
             system_set.add("linux-lts-headers")
 
-        if self._user_config.get_bool("packaging.flatpak"):
-            system_set.add("flatpak")
-
         # Only the `linux-firmware-*` splits this machine's hardware needs.
         # The `linux-firmware` meta package pulls every vendor split (~410 MiB).
         system_set |= utils.hardware.firmware_vendors.get_firmware_packages()

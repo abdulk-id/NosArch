@@ -779,7 +779,7 @@ update_packages() {
 
     gum style --foreground 10 "▸ Updating Arch and AUR packages..."
 
-    if yay -Syu; then
+    if yay -Syu --noconfirm; then
         # yay -Syu = yay --sync --refresh --sysupgrade
         update_db
 
@@ -808,7 +808,7 @@ update_packages() {
         echo
         gum style --foreground 10 "▸ Updating Homebrew packages..."
 
-        if brew upgrade; then
+        if HOMEBREW_NO_ENV_HINTS=1 brew upgrade --greedy --yes --quiet; then
             gum style --foreground 10 "✓ Homebrew packages updated!"
         else
             gum style --foreground 9 "x Homebrew package update failed."

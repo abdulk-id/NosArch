@@ -4,18 +4,19 @@ NosArch is responsible for managing packages on the system. The kinds of package
 
 - Arch and AUR,
 - Homebrew (via NosArch's own `plugins/homebrew.py`, if enabled by user),
-- Flatpak (system and per-user),
+- Flatpak (system and per-user, if enabled by user),
+- Snap (via NosArch's own `plugins/snap.py`, if enabled by user. See [Snap](snap.md)),
 - Custom pacman packages ([Custom Packages](custom-packages.md)), built from
   [NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages).
 
 ## Declaring
 
-Each plugin exposes decorators. A module method annotated with one returns the set (or dict, for user-scoped kinds) of
-packages that module wants:
+Each plugin exposes decorators. A module method annotated with one returns the set (or dict, for user-scoped kinds and
+for kinds that carry per-package detail) of packages that module wants:
 
 ```python
 from decman.plugins import aur, flatpak, pacman
-from plugins import homebrew
+from plugins import homebrew, snap
 
 @pacman.packages
 def arch_pkgs(self) -> set[str]:
@@ -36,7 +37,14 @@ def flatpak_user_pkgs(self) -> dict[str, set[str]]:
 @homebrew.formulae
 def brew_formulae(self) -> set[str]:
     return set(self._user_config.get_str_list("user_packages.homebrew_formulae"))
+
+@snap.snaps
+def snap_pkgs(self) -> dict[str, str]:
+    return self._user_config.get_str_dict("user_packages.snap")
 ```
+
+A gated packaging method's declarations return nothing while its key is false, so a config listing packages for a
+disabled method is inert rather than an error.
 
 ## Tracking package changes
 
@@ -76,7 +84,8 @@ def on_change(self, store: Store) -> None:
 ```
 
 `self._tracker.added_pkgs` and `self._tracker.removed_pkgs` map each kind (`"pacman"`, `"aur"`, `"custom"`,
-`"flatpak"`, `"flatpak_user"`, `"brew_formula"`, `"brew_cask"`, `"brew_tap"`) to a set of names. User-scoped kinds are
+`"flatpak"`, `"flatpak_user"`, `"brew_formula"`, `"brew_cask"`, `"brew_tap"`, `"snap"`, `"snap_classic"`) to a set of
+names. User-scoped kinds are
 recorded as `"<user>:<pkg>"`. A module enabled for the first time sees everything as added.
 
 `ChangeTracker` can also track `"systemd"` and `"systemd_user"` units.

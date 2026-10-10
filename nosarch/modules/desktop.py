@@ -187,8 +187,6 @@ class DesktopModule(decman.Module):
             "fcitx5-gtk",
             "fcitx5-qt",
             "ffmpeg",  # Used for webcam recording
-            "flatpak",
-            "flatseal",  # Flatpak permission manager
             "ghostty",
             "gnome-text-editor",
             "gpu-screen-recorder",  # Used for screen recording

@@ -16,12 +16,17 @@ _PACKAGE_STORE_KEYS: dict[str, str] = {
     "brew_formula": "brew_formulae_for_module",
     "brew_cask": "brew_casks_for_module",
     "brew_tap": "brew_taps_for_module",
+    "snap": "snaps_for_module",
+    "snap_classic": "classic_snaps_for_module",
 }
 
 
 def _flatten(value: Any) -> set[str]:
+    # Kinds carrying per-package detail are stored as {name: detail}, where only the key identifies the package.
     # User-scoped kinds are stored as {user: {names}}.
     if isinstance(value, dict):
+        if all(isinstance(detail, str) for detail in value.values()):
+            return set(value)
         return {f"{user}:{name}" for user, names in value.items() for name in names}
     return set(value or ())
 

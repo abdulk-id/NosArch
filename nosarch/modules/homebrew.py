@@ -65,7 +65,6 @@ class HomebrewModule(decman.Module):
             mimic_login=True,
         )
 
-    @override
     @staticmethod
     def on_disable() -> None:
         import shutil

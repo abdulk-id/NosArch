@@ -1,16 +1,11 @@
-import os
 from typing import override
 
 import decman
+import utils.custom_packages
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman
-from plugins import homebrew
 from utils.user_config_reader import UserConfigReader
-
-# decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its directory,
-# so package paths are resolved relative to `nosarch/`, not to this file.
-_PACKAGES_DIR: str = os.path.abspath("packages")
 
 
 class AIModule(decman.Module):
@@ -35,52 +30,6 @@ class AIModule(decman.Module):
     def files(self) -> dict[str, File]:
         files: dict[str, File] = {}
 
-        files.update(self._userhome_dotfiles.files("/.agents/skills/bro/SKILL.md", "/.agents/skills/unslop/SKILL.md"))
-
-        if "claude-code" in self._agents:
-            files.update(
-                {
-                    f"/home/{self._username}/.claude/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.claude/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
-        if "codex" in self._agents:
-            # Codex can have issues with reading skills from `~/.agents/skills`
-            files.update(
-                {
-                    f"/home/{self._username}/.codex/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.codex/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
-        if "cursor-cli" in self._agents or "cursor-desktop" in self._apps:
-            # Cursor can read skills from `~/.agents/skills` but cannot sync them for Cursor Cloud Agents
-            files.update(
-                {
-                    f"/home/{self._username}/.cursor/skills/bro/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/bro/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                    f"/home/{self._username}/.cursor/skills/unslop/SKILL.md": File(
-                        source_file="../dotfiles/ai-root/home/username/dot_agents/skills/unslop/SKILL.md",
-                        owner=f"{self._username}",
-                    ),
-                }
-            )
-
         if "t3code-desktop" in self._control_planes:
             files.update(
                 self._userhome_dotfiles.files(
@@ -100,6 +49,9 @@ class AIModule(decman.Module):
 
         if self._agents.__contains__("opencode"):
             pkgs.add("opencode")
+
+        if "gemini-cli" in self._agents:
+            pkgs.add("gemini-cli")
 
         return pkgs
 
@@ -133,129 +85,53 @@ class AIModule(decman.Module):
 
         # Agents
         if "antigravity-cli" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="antigravity-cli-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "antigravity-cli-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("antigravity-cli-nosarch"))
+
+        if "claude-code" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("claude-code-nosarch"))
+
+        if "copilot-cli" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("github-copilot-cli-nosarch"))
 
         if "cursor-cli" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="cursor-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-cli-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("cursor-cli-nosarch"))
 
         if "grok-build" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="grok-build-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "grok-build-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("grok-build-nosarch"))
 
         if "devin-cli" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="devin-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "devin-cli-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("devin-cli-nosarch"))
 
         if "pi" in self._agents:
-            custom_pkgs.add(
-                aur.CustomPackage(pkgname="pi-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "pi-nosarch"))
-            )
+            custom_pkgs.add(utils.custom_packages.package("pi-nosarch"))
+
+        if "crush" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("crush-nosarch"))
+
+        if "omp" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("omp-nosarch"))
 
         # Apps
         if "cursor-desktop" in self._apps:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="cursor-desktop-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "cursor-desktop-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("cursor-desktop-nosarch"))
 
         if "opencode-desktop" in self._apps:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="opencode-desktop-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "opencode-desktop-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("opencode-desktop-nosarch"))
 
         if "github-copilot-app" in self._apps:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="github-copilot-app-nosarch",
-                    pkgbuild_directory=os.path.join(_PACKAGES_DIR, "github-copilot-app-nosarch"),
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("github-copilot-app-nosarch"))
 
         # Control planes
         if "openchamber" in self._control_planes:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="openchamber-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "openchamber-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("openchamber-nosarch"))
 
         if "t3code-cli" in self._control_planes:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="t3code-cli-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "t3code-cli-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("t3code-cli-nosarch"))
 
         if "zeron" in self._control_planes:
-            custom_pkgs.add(
-                aur.CustomPackage(
-                    pkgname="zeron-nosarch", pkgbuild_directory=os.path.join(_PACKAGES_DIR, "zeron-nosarch")
-                )
-            )
+            custom_pkgs.add(utils.custom_packages.package("zeron-nosarch"))
 
         return custom_pkgs
-
-    @homebrew.casks  # pyright: ignore[reportUnknownMemberType]
-    def brew_casks(self) -> set[str]:
-        brew_casks: set[str] = set()
-
-        # Agents
-        if "claude-code" in self._agents:
-            brew_casks.add("claude-code@latest")
-
-        return brew_casks
-
-    @homebrew.taps  # pyright: ignore[reportUnknownMemberType]
-    def brew_taps(self) -> set[str]:
-        brew_taps: set[str] = set()
-
-        # Agents
-        if "crush" in self._agents:
-            brew_taps.add("charmbracelet/tap")
-
-        if "omp" in self._agents:
-            brew_taps.add("can1357/tap")
-
-        return brew_taps
-
-    @homebrew.formulae  # pyright: ignore[reportUnknownMemberType]
-    def brew_formulae(self) -> set[str]:
-        brew_formulae: set[str] = set()
-
-        # Agents
-        if "crush" in self._agents:
-            brew_formulae.add("charmbracelet/tap/crush")
-
-        if "gemini-cli" in self._agents:
-            brew_formulae.add("gemini-cli")
-
-        if "omp" in self._agents:
-            brew_formulae.add("can1357/tap/omp")
-
-        if "copilot-cli" in self._agents:
-            brew_formulae.add("copilot-cli")
-
-        return brew_formulae
 
 
 # For reference
@@ -264,13 +140,13 @@ class AIModule(decman.Module):
 # - claude-code -> homebrew.casks
 # - codex -> pacman.packages
 # - copilot-cli -> homebrew.formulae
-# - crush -> homebrew.formulae + taps
+# - crush -> aur.custom_packages
 # - cursor-cli -> aur.custom_packages
 # - devin-cli -> aur.custom_packages
-# - gemini-cli -> homebrew.formulae
+# - gemini-cli -> pacman.packages
 # - grok-build -> aur.custom_packages
 # - kilocode -> aur.packages
-# - omp -> homebrew.formulae + taps
+# - omp -> aur.custom_packages
 # - opencode -> pacman.packages
 # - pi -> aur.custom_packages
 #

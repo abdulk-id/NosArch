@@ -6,7 +6,8 @@ NosArch is responsible for managing packages on the system. The kinds of package
 - Homebrew (via NosArch's own `plugins/homebrew.py`, if enabled by user),
 - Flatpak (system and per-user, if enabled by user),
 - Snap (via NosArch's own `plugins/snap.py`, if enabled by user. See [Snap](snap.md)),
-- Custom pacman packages ([Custom Packages](custom-packages.md)).).
+- Custom pacman packages ([Custom Packages](custom-packages.md)), built from
+  [NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages).
 
 ## Declaring
 

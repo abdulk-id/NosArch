@@ -1,4 +1,3 @@
-import os
 from typing import override
 
 import decman
@@ -7,10 +6,6 @@ import utils.paths
 from decman import File, Store
 from decman.plugins import aur, pacman, systemd
 from utils.user_config_reader import UserConfigReader
-
-# decman reads `source.py` as text and `exec()`s it after `os.chdir`-ing into its directory,
-# so package paths are resolved relative to `nosarch/`, not to this file.
-_PACKAGES_DIR: str = os.path.abspath("packages")
 
 
 class DevModule(decman.Module):

@@ -78,10 +78,20 @@ else:
         decman.core.output.print_warning("[PACKAGING] Flatpak is disabled. Ignoring user packages")
 
 
-if user_config.get_bool("enable_homebrew"):
+if user_config.get_bool("packaging.homebrew"):
+    # Registered here directly rather than left to `available()`, which decman only consults when it imports
+    # a plugin. That happens before `HomebrewModule` bootstraps brew in `before_update`, so on the run that
+    # enables Homebrew the plugin isn't registered yet and its step would be skipped.
     homebrew.plugin.user = _username  # brew cannot run as root
     decman.plugins["homebrew"] = homebrew.plugin
     decman.execution_order.append("homebrew")
+else:
+    # Dropping the module is what runs `HomebrewModule.on_disable`, which removes the prefix. It cannot be
+    # driven from here: decman only runs that script when a registered module disappears.
+    _skipped_homebrew: list[str] = user_config.get_str_list("user_packages.homebrew_formulae")
+    _skipped_homebrew += user_config.get_str_list("user_packages.homebrew_casks")
+    if _skipped_homebrew:
+        decman.core.output.print_warning("[PACKAGING] Homebrew is disabled. Ignoring user packages")
 
 
 if user_config.get_bool("packaging.snap"):
@@ -129,7 +139,7 @@ decman.modules += {userManager}
 # Decman modules ===
 decman.modules += {SystemModule(user_config), DesktopModule(user_config), ThemingModule(user_config)}
 
-if user_config.get_bool("enable_homebrew"):
+if user_config.get_bool("packaging.homebrew"):
     decman.modules += {HomebrewModule(_username)}
 
 if user_config.get_bool("packaging.flatpak"):

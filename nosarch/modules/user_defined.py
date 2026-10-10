@@ -34,10 +34,16 @@ class UserDefinedModule(decman.Module):
 
     @homebrew.formulae  # pyright: ignore[reportUnknownMemberType]
     def brew_formulae(self) -> set[str]:
+        if not self._user_config.get_bool("packaging.homebrew"):
+            return set()
+
         return set(self._user_config.get_str_list("user_packages.homebrew_formulae"))
 
     @homebrew.casks  # pyright: ignore[reportUnknownMemberType]
     def brew_casks(self) -> set[str]:
+        if not self._user_config.get_bool("packaging.homebrew"):
+            return set()
+
         return set(self._user_config.get_str_list("user_packages.homebrew_casks"))
 
     @snap.snaps  # pyright: ignore[reportUnknownMemberType]

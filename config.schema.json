@@ -50,11 +50,6 @@
             },
             "required": ["setup", "ai", "creative", "dev", "gaming"]
         },
-        "enable_homebrew": {
-            "type": "boolean",
-            "description": "Enable to setup Homebrew",
-            "default": false
-        },
         "packaging": {
             "type": "object",
             "description": "Choose which packaging formats NosArch should support.",
@@ -62,6 +57,11 @@
                 "flatpak": {
                     "type": "boolean",
                     "description": "Add support for Flatpak packages to NosArch",
+                    "default": false
+                },
+                "homebrew": {
+                    "type": "boolean",
+                    "description": "Add support for Homebrew packages to NosArch",
                     "default": false
                 },
                 "snap": {

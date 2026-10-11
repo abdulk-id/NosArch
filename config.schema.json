@@ -74,6 +74,7 @@
                             { "const": "gemini-cli", "title": "Gemini CLI" },
                             { "const": "grok-build", "title": "Grok Build" },
                             { "const": "kilocode", "title": "Kilo Code" },
+                            { "const": "mimocode", "title": "MiMo-Code" },
                             { "const": "omp", "title": "Oh My Pi" },
                             { "const": "opencode", "title": "OpenCode" },
                             { "const": "pi", "title": "Pi" }

@@ -111,6 +111,9 @@ class AIModule(decman.Module):
         if "omp" in self._agents:
             custom_pkgs.add(utils.custom_packages.package("omp-nosarch"))
 
+        if "mimocode" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("mimocode-nosarch"))
+
         # Apps
         if "cursor-desktop" in self._apps:
             custom_pkgs.add(utils.custom_packages.package("cursor-desktop-nosarch"))

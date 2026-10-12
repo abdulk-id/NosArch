@@ -60,8 +60,8 @@ homebrew_available() {
     _homebrew_resolve_brew
 }
 
-# brew search lists names only, so the summary comes from the preview. Formulae come first because that is what
-# installs cleanly on Linux. A cask is a macOS application, and brew refuses most of them here.
+# `brew formulae` and `brew casks` list installable names; the summary comes from the preview. Formulae come first
+# because that is what installs cleanly on Linux. A cask is a macOS application, and brew refuses most of them here.
 homebrew_install() {
     _ensure_command gum
 
@@ -76,9 +76,9 @@ homebrew_install() {
 
     candidates=$(
         {
-            "$brew" search --formula 2>/dev/null |
+            "$brew" formulae 2>/dev/null |
                 awk 'NF { print "formula\t" $1 }'
-            "$brew" search --cask 2>/dev/null |
+            "$brew" casks 2>/dev/null |
                 awk 'NF { print "cask\t" $1 }'
         } | sort -u
     )

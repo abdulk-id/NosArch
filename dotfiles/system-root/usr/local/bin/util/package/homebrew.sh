@@ -74,22 +74,23 @@ homebrew_install() {
 
     _ensure_command fzf
 
+    # Column 1 is the kind (preview + install). Column 2 is what fzf lists. Column 3 is the brew name.
     candidates=$(
         {
             "$brew" formulae 2>/dev/null |
-                awk 'NF { print "formula\t" $1 }'
+                awk -v tab="$TAB_CHAR" 'NF { print "formula" tab "[formula] " $1 tab $1 }'
             "$brew" casks 2>/dev/null |
-                awk 'NF { print "cask\t" $1 }'
-        } | sort -u
+                awk -v tab="$TAB_CHAR" 'NF { print "cask" tab "[cask] " $1 tab $1 }'
+        } | sort -t "$TAB_CHAR" -k3,3f
     )
 
     selection=$(
         fzf_select "$candidates" "case {1} in
             formula)
-                $brew info --formula {2}
+                $brew info --formula {3}
                 ;;
             cask)
-                $brew info --cask {2}
+                $brew info --cask {3}
                 ;;
         esac" \
             --delimiter="$TAB_CHAR" \
@@ -101,13 +102,13 @@ homebrew_install() {
 
     formulae=$(
         printf '%s\n' "$selection" |
-            awk -F "$TAB_CHAR" '$1 == "formula" { print $2 }' |
+            awk -F "$TAB_CHAR" '$1 == "formula" { print $3 }' |
             tr '\n' ' '
     )
 
     casks=$(
         printf '%s\n' "$selection" |
-            awk -F "$TAB_CHAR" '$1 == "cask" { print $2 }' |
+            awk -F "$TAB_CHAR" '$1 == "cask" { print $3 }' |
             tr '\n' ' '
     )
 

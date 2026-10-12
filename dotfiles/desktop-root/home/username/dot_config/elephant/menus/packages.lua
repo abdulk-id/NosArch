@@ -11,20 +11,8 @@ Action = "%VALUE%"
 function GetEntries()
     return {
         {
-            Text = "󰣇    Install Arch package",
-            Value = "nosarch-launch-tui nosarch-package install arch"
-        },
-        {
-            Text = "󰣇    Install AUR package",
-            Value = "nosarch-launch-tui nosarch-package install aur"
-        },
-        {
-            Text = "󰣇    Install AppImage",
-            Value = "nosarch-package install appimage"
-        },
-        {
-            Text = "    Install Flatpak package",
-            Value = "nosarch-launch-tui nosarch-package install flatpak"
+            Text = "󰐕    Install package",
+            Value = "walker -m menus:installing"
         },
         {
             Text = "    Update packages",
@@ -35,8 +23,12 @@ function GetEntries()
             Value = "nosarch-launch-tui nosarch-package remove"
         },
         {
-            Text = "    Clean system",
+            Text = "󰩹    Remove unused packages",
             Value = "nosarch-launch-tui nosarch-package remove-unused"
-        }
+        },
+        {
+            Text = "    Clean uninstalled package data",
+            Value = "nosarch-launch-tui nosarch-package cleanup"
+        },
     }
 end

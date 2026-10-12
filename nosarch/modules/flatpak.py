@@ -1,4 +1,8 @@
+from typing import override
+
 import decman
+import utils.paths
+from decman import File
 from decman.plugins import pacman
 
 
@@ -12,6 +16,12 @@ class FlatpakModule(decman.Module):
 
     def __init__(self) -> None:
         super().__init__(name="flatpak")
+
+    @override
+    def files(self) -> dict[str, File]:
+        # nosarch-package sources this when it exists and skips Flatpak when it does not, which is how the CLI
+        # follows this module being enabled or disabled.
+        return utils.paths.Dotfiles("../dotfiles/system-root").files("/usr/local/bin/util/package/flatpak.sh")
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_runtime(self) -> set[str]:

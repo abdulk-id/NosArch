@@ -1,7 +1,8 @@
 from typing import override
 
 import decman
-from decman import Symlink
+import utils.paths
+from decman import File, Symlink
 from decman.plugins import aur, systemd
 
 
@@ -18,6 +19,12 @@ class SnapModule(decman.Module):
 
     def __init__(self) -> None:
         super().__init__(name="snap")
+
+    @override
+    def files(self) -> dict[str, File]:
+        # nosarch-package sources this when it exists and skips Snap when it does not, which is how the CLI follows
+        # this module being enabled or disabled.
+        return utils.paths.Dotfiles("../dotfiles/system-root").files("/usr/local/bin/util/package/snap.sh")
 
     @override
     def symlinks(self) -> dict[str, str | Symlink]:

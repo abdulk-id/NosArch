@@ -2,6 +2,7 @@ import os
 from typing import override
 
 import decman
+import utils.paths
 from decman import File
 from decman.plugins import pacman
 
@@ -22,6 +23,12 @@ class HomebrewModule(decman.Module):
 
     @override
     def files(self) -> dict[str, File]:
+        # nosarch-package sources this when it exists and skips Homebrew when it does not, which is how the CLI
+        # follows this module being enabled or disabled.
+        files: dict[str, File] = utils.paths.Dotfiles("../dotfiles/system-root").files(
+            "/usr/local/bin/util/package/homebrew.sh"
+        )
+
         homebrew_bashrc_contents: str = (
             "#\n"
             + "# .bashrc for homebrew\n"
@@ -31,7 +38,7 @@ class HomebrewModule(decman.Module):
             + 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
         )
 
-        return {
+        return files | {
             f"/home/{self._username}/.bashrc.d/homebrew.bashrc": File(
                 content=homebrew_bashrc_contents, owner=f"{self._username}"
             )

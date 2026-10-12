@@ -14,9 +14,9 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 | Creative      | `CreativeModule`    | `profiles.creative`  | `dotfiles/creative-root` |
 | Dev           | `DevModule`         | `profiles.dev`       | `dotfiles/dev-root`      |
 | Gaming        | `GamingModule`      | `profiles.gaming`    | `dotfiles/gaming-root`   |
-| Homebrew      | `HomebrewModule`    | `packaging.homebrew` | generated at run time    |
-| Flatpak       | `FlatpakModule`     | `packaging.flatpak`  | none                     |
-| Snap          | `SnapModule`        | `packaging.snap`     | none                     |
+| Homebrew      | `HomebrewModule`    | `packaging.homebrew` | `dotfiles/system-root`   |
+| Flatpak       | `FlatpakModule`     | `packaging.flatpak`  | `dotfiles/system-root`   |
+| Snap          | `SnapModule`        | `packaging.snap`     | `dotfiles/system-root`   |
 | User packages | `UserDefinedModule` | always               | none                     |
 
 AI, Creative, Dev, and Gaming live in `nosarch/modules/usage_profiles/`. The others are one file each in `nosarch/modules/`.
@@ -25,6 +25,9 @@ AI, Creative, Dev, and Gaming live in `nosarch/modules/usage_profiles/`. The oth
 
 The `UserDefinedModule` (`nosarch/modules/user_defined.py`) installs packages the user listed in the config file, so
 decman does not remove them.
+
+Homebrew, Flatpak, and Snap each ship a `nosarch-package` library, which is what makes those methods appear in the CLI.
+`SystemModule` ships the ones no module gates: the shared helpers and AppImages.
 
 ## Registration
 

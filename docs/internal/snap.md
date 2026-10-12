@@ -70,5 +70,4 @@ inside its own body: no module-level constants, no calls to anything defined at 
 
 It stops `snapd.socket` before deleting anything, since the daemon holds squashfs mounts of its own.
 
-The prompt appears once, on the run that disables Snap. Declining leaves the data in place, on the assumption that
-`nosarch-package cleanup` can offer again later.
+The prompt appears once, on the run that disables Snap. Declining leaves the data in place, and `nosarch-package cleanup` offers to delete it later, until it is declined there too. Homebrew and Flatpak leftovers come to the same place.

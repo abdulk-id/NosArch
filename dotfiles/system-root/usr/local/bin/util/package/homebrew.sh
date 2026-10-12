@@ -118,7 +118,7 @@ homebrew_install() {
         gum style --foreground 10 "▸ Installing Homebrew formulae..."
 
         # shellcheck disable=SC2086
-        if HOMEBREW_NO_ENV_HINTS=1 "$brew" install --formula $formulae; then
+        if HOMEBREW_NO_ENV_HINTS=1 "$brew" install --formula $formulae --yes; then
             gum style --foreground 10 "✓ Homebrew formulae installed!"
         else
             gum style --foreground 9 "x Homebrew formula installation failed."
@@ -130,7 +130,7 @@ homebrew_install() {
         gum style --foreground 10 "▸ Installing Homebrew casks..."
 
         # shellcheck disable=SC2086
-        if HOMEBREW_NO_ENV_HINTS=1 "$brew" install --cask $casks; then
+        if HOMEBREW_NO_ENV_HINTS=1 "$brew" install --cask $casks --yes; then
             gum style --foreground 10 "✓ Homebrew casks installed!"
         else
             gum style --foreground 9 "x Homebrew cask installation failed."

@@ -57,6 +57,92 @@ _snap_installed() {
     snap list 2>/dev/null | awk 'NR > 1 && NF >= 5 { print $1 "\t" $5 }'
 }
 
+# Public snap names from snapd's store catalog. snapd refreshes this file on a timer and replaces it atomically. The
+# snap CLI uses it for tab completion too.
+SNAP_STORE_NAMES=/var/cache/snapd/names
+
+_snap_user_catalog() {
+    printf '%s/nosarch/snap-store-names\n' "${XDG_CACHE_HOME:-$HOME/.cache}"
+}
+
+_snap_catalog_ready() {
+    [ -r "$SNAP_STORE_NAMES" ] && [ -s "$SNAP_STORE_NAMES" ]
+}
+
+# Same endpoint and confinement filter snapd uses in catalog refresh; kept under the user's cache when snapd has not
+# written its copy yet.
+_snap_download_user_catalog() {
+    _ensure_command curl
+    _ensure_command python3
+    _ensure_command mktemp
+
+    cache=$(_snap_user_catalog)
+    cache_dir=$(dirname -- "$cache")
+    json_tmp=$(mktemp)
+    names_tmp=$(mktemp)
+
+    mkdir -p -- "$cache_dir"
+
+    user_agent=$(snap version 2>/dev/null | awk '/^snap / { print "Snap/" $2; exit }')
+    architecture=$(snap version 2>/dev/null | awk '/^architecture / { print $2; exit }')
+    [ -n "$user_agent" ] || user_agent="Snap/unknown"
+    [ -n "$architecture" ] || architecture="amd64"
+
+    if ! curl -fsS \
+        -H "Accept: application/hal+json" \
+        -H "User-Agent: $user_agent" \
+        -H "Snap-Device-Series: 16" \
+        -H "Snap-Device-Architecture: $architecture" \
+        -H "Snap-Classic: true" \
+        -H "X-Ubuntu-Wire-Protocol: 1" \
+        "https://api.snapcraft.io/api/v1/snaps/names?confinement=strict,classic" \
+        -o "$json_tmp"
+    then
+        rm -f -- "$json_tmp" "$names_tmp"
+        return 1
+    fi
+
+    if ! python3 - "$json_tmp" >"$names_tmp" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as catalog:
+    payload = json.load(catalog)
+
+for item in payload["_embedded"]["clickindex:package"]:
+    name = item.get("package_name")
+    if name:
+        print(name)
+PY
+    then
+        rm -f -- "$json_tmp" "$names_tmp"
+        return 1
+    fi
+
+    rm -f -- "$json_tmp"
+    mv -- "$names_tmp" "$cache"
+}
+
+_snap_store_names() {
+    if _snap_catalog_ready; then
+        cat -- "$SNAP_STORE_NAMES"
+        return 0
+    fi
+
+    user_catalog=$(_snap_user_catalog)
+    if [ -r "$user_catalog" ] && [ -s "$user_catalog" ]; then
+        cat -- "$user_catalog"
+        return 0
+    fi
+
+    gum style --foreground 10 "▸ Downloading snap store catalog..."
+    if ! _snap_download_user_catalog; then
+        return 1
+    fi
+
+    cat -- "$user_catalog"
+}
+
 snap_install() {
     _ensure_command gum
 
@@ -73,7 +159,15 @@ snap_install() {
         return 1
     fi
 
-    candidates=$(snap find 2>/dev/null | awk 'NR > 1 && NF { print $1 }' | sort -u)
+    if ! candidates=$(_snap_store_names); then
+        report_error "Could not load the snap store catalog. Check your network connection and try again."
+        return 1
+    fi
+
+    if [ -z "$candidates" ]; then
+        report_error "Snap store catalog is empty."
+        return 1
+    fi
 
     selection=$(
         fzf_select "$candidates" 'snap info {1}' \

@@ -74,7 +74,7 @@ def get_mimeapps_content() -> str:
     for mime, app in desktop_mimes.items():
         lines.append(f"{mime}={app}")
 
-    if UserConfigReader().get_bool("profiles.dev"):
+    if UserConfigReader().get_bool("setups.dev.enabled"):
         lines.append("\t")
         for mime, app in dev_mimes.items():
             lines.append(f"{mime}={app}")

@@ -14,9 +14,9 @@ class AISetupModule(decman.Module):
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
-        self._agents: list[str] = self._user_config.get_str_list("ai.agents")
-        self._apps: list[str] = self._user_config.get_str_list("ai.apps")
-        self._control_planes: list[str] = self._user_config.get_str_list("ai.control-planes")
+        self._agents: list[str] = self._user_config.get_str_list("setups.ai.agents")
+        self._apps: list[str] = self._user_config.get_str_list("setups.ai.apps")
+        self._control_planes: list[str] = self._user_config.get_str_list("setups.ai.control-planes")
 
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/ai-setup-root", self._username

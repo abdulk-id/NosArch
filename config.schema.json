@@ -24,159 +24,276 @@
             },
             "required": ["username", "fullname"]
         },
-        "profiles": {
+        "setups": {
             "type": "object",
             "properties": {
-                "setup": {
-                    "type": "boolean",
-                    "description": "Enable to install the full setup"
+                "basic": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable Basic Setup",
+                            "default": false
+                        },
+                        "enable_virtualization": {
+                            "type": "boolean",
+                            "description": "Enable to setup NosArch for running Virtual Machines",
+                            "default": false
+                        }
+                    }
                 },
                 "ai": {
-                    "type": "boolean",
-                    "description": "Enable to setup NosArch for AI and Agentic work"
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Setup NosArch for AI and Agentic work",
+                            "default": false
+                        },
+                        "agents": {
+                            "type": "array",
+                            "description": "List of AI agents to install",
+                            "items": {
+                                "type": "string",
+                                "anyOf": [
+                                    { "const": "antigravity-cli", "title": "Antigravity CLI" },
+                                    { "const": "claude-code", "title": "Claude Code" },
+                                    { "const": "codex", "title": "OpenAI Codex" },
+                                    { "const": "copilot-cli", "title": "GitHub Copilot CLI" },
+                                    { "const": "crush", "title": "Crush" },
+                                    { "const": "cursor-cli", "title": "Cursor CLI" },
+                                    { "const": "devin-cli", "title": "Devin CLI" },
+                                    { "const": "gemini-cli", "title": "Gemini CLI" },
+                                    { "const": "grok-build", "title": "Grok Build" },
+                                    { "const": "kilocode", "title": "Kilo Code" },
+                                    { "const": "mimocode", "title": "MiMo-Code" },
+                                    { "const": "omp", "title": "Oh My Pi" },
+                                    { "const": "opencode", "title": "OpenCode" },
+                                    { "const": "pi", "title": "Pi" }
+                                ]
+                            },
+                            "uniqueItems": true
+                        },
+                        "apps": {
+                            "type": "array",
+                            "description": "List of AI apps to install",
+                            "items": {
+                                "type": "string",
+                                "anyOf": [
+                                    { "const": "chatgpt-desktop", "title": "ChatGPT Desktop" },
+                                    { "const": "claude-desktop", "title": "Claude Desktop" },
+                                    { "const": "cursor-desktop", "title": "Cursor Desktop" },
+                                    { "const": "devin-desktop", "title": "Devin Desktop" },
+                                    { "const": "github-copilot-app", "title": "GitHub Copilot App" },
+                                    { "const": "opencode-desktop", "title": "OpenCode Desktop" }
+                                ]
+                            },
+                            "uniqueItems": true
+                        },
+                        "control-planes": {
+                            "type": "array",
+                            "description": "List of Agent control planes to install",
+                            "items": {
+                                "type": "string",
+                                "anyOf": [
+                                    {
+                                        "const": "openchamber",
+                                        "title": "OpenChamber",
+                                        "description": "Control plane for OpenCode"
+                                    },
+                                    {
+                                        "const": "t3code-cli",
+                                        "title": "T3 Code (CLI & Web)",
+                                        "description": "Control plane for Claude Code, Codex, Cursor CLI, Grok Build, OpenCode and Antigravity"
+                                    },
+                                    {
+                                        "const": "t3code-desktop",
+                                        "title": "T3 Code Desktop",
+                                        "description": "Control plane for Claude Code, Codex, Cursor CLI, Grok Build, OpenCode and Antigravity"
+                                    },
+                                    {
+                                        "const": "zeron",
+                                        "title": "Zeron",
+                                        "description": "Control plane for Claude Code, Codex, Cursor CLI, Devin CLI, Grok Build, Hermes Agent, Pi, OpenCode and Antigravity"
+                                    }
+                                ]
+                            },
+                            "uniqueItems": true
+                        }
+                    }
                 },
                 "creative": {
-                    "type": "boolean",
-                    "description": "Enable to setup NosArch for creative work"
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Setup NosArch for Creative work",
+                            "default": false
+                        }
+                    }
                 },
                 "dev": {
-                    "type": "boolean",
-                    "description": "Enable to setup NosArch for development work"
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Setup NosArch for Software Development",
+                            "default": false
+                        },
+                        "editors": {
+                            "type": "array",
+                            "description": "List of code editors to install",
+                            "items": {
+                                "type": "string",
+                                "enum": ["code-oss", "codium", "jetbrains", "neovim", "vscode", "zed"]
+                            },
+                            "uniqueItems": true
+                        },
+                        "languages": {
+                            "type": "array",
+                            "description": "List of programming languages to setup",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    ".net",
+                                    "go",
+                                    "java-maven",
+                                    "java-gradle",
+                                    "javascript-bun",
+                                    "javascript-deno",
+                                    "javascript-node",
+                                    "python",
+                                    "rust",
+                                    "zig"
+                                ]
+                            },
+                            "uniqueItems": true
+                        }
+                    }
                 },
                 "gaming": {
-                    "type": "boolean",
-                    "description": "Enable to setup NosArch for gaming"
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Setup NosArch for Gaming",
+                            "default": false
+                        }
+                    }
                 }
-            },
-            "required": ["setup", "ai", "creative", "dev", "gaming"]
+            }
         },
         "packaging": {
             "type": "object",
-            "description": "Choose which packaging formats NosArch should support.",
+            "description": "Manage installed packages and packaging methods in NosArch",
             "properties": {
+                "arch": {
+                    "type": "object",
+                    "properties": {
+                        "install-packages": {
+                            "type": "array",
+                            "description": "Add other Arch packages not pre-installed by NosArch",
+                            "items": {
+                                "type": "string"
+                            },
+                            "uniqueItems": true
+                        }
+                    }
+                },
+                "aur": {
+                    "type": "object",
+                    "properties": {
+                        "install-packages": {
+                            "type": "array",
+                            "description": "Add other packages from the AUR not pre-installed by NosArch",
+                            "items": {
+                                "type": "string"
+                            },
+                            "uniqueItems": true
+                        }
+                    }
+                },
                 "flatpak": {
-                    "type": "boolean",
-                    "description": "Add support for Flatpak packages to NosArch",
-                    "default": false
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Add support for Flatpak packages to NosArch",
+                            "default": false
+                        },
+                        "install-packages": {
+                            "type": "array",
+                            "description": "Add Flatpak packages to install system-wide",
+                            "items": {
+                                "type": "string"
+                            },
+                            "uniqueItems": true
+                        },
+                        "install-user-packages": {
+                            "type": "array",
+                            "description": "Add Flatpak packages to install for your user",
+                            "items": {
+                                "type": "string"
+                            },
+                            "uniqueItems": true
+                        }
+                    }
                 },
                 "homebrew": {
-                    "type": "boolean",
-                    "description": "Add support for Homebrew packages to NosArch",
-                    "default": false
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Add support for Homebrew packages to NosArch",
+                            "default": false
+                        },
+                        "install-casks": {
+                            "type": "array",
+                            "description": "Add Homebrew casks to install",
+                            "items": {
+                                "type": "string"
+                            },
+                            "uniqueItems": true
+                        },
+                        "install-formulae": {
+                            "type": "array",
+                            "description": "Add Homebrew formulae to install",
+                            "items": {
+                                "type": "string"
+                            },
+                            "uniqueItems": true
+                        }
+                    }
                 },
                 "snap": {
-                    "type": "boolean",
-                    "description": "Add support for Snap packages to NosArch",
-                    "default": false
-                }
-            }
-        },
-        "ai": {
-            "type": "object",
-            "properties": {
-                "agents": {
-                    "type": "array",
-                    "description": "List of AI agents to install",
-                    "items": {
-                        "type": "string",
-                        "anyOf": [
-                            { "const": "antigravity-cli", "title": "Antigravity CLI" },
-                            { "const": "claude-code", "title": "Claude Code" },
-                            { "const": "codex", "title": "OpenAI Codex" },
-                            { "const": "copilot-cli", "title": "GitHub Copilot CLI" },
-                            { "const": "crush", "title": "Crush" },
-                            { "const": "cursor-cli", "title": "Cursor CLI" },
-                            { "const": "devin-cli", "title": "Devin CLI" },
-                            { "const": "gemini-cli", "title": "Gemini CLI" },
-                            { "const": "grok-build", "title": "Grok Build" },
-                            { "const": "kilocode", "title": "Kilo Code" },
-                            { "const": "mimocode", "title": "MiMo-Code" },
-                            { "const": "omp", "title": "Oh My Pi" },
-                            { "const": "opencode", "title": "OpenCode" },
-                            { "const": "pi", "title": "Pi" }
-                        ]
-                    },
-                    "uniqueItems": true
-                },
-                "apps": {
-                    "type": "array",
-                    "description": "List of AI apps to install",
-                    "items": {
-                        "type": "string",
-                        "anyOf": [
-                            { "const": "chatgpt-desktop", "title": "ChatGPT Desktop" },
-                            { "const": "claude-desktop", "title": "Claude Desktop" },
-                            { "const": "cursor-desktop", "title": "Cursor Desktop" },
-                            { "const": "devin-desktop", "title": "Devin Desktop" },
-                            { "const": "github-copilot-app", "title": "GitHub Copilot App" },
-                            { "const": "opencode-desktop", "title": "OpenCode Desktop" }
-                        ]
-                    },
-                    "uniqueItems": true
-                },
-                "control-planes": {
-                    "type": "array",
-                    "description": "List of Agent control planes to install",
-                    "items": {
-                        "type": "string",
-                        "anyOf": [
-                            {
-                                "const": "openchamber",
-                                "title": "OpenChamber",
-                                "description": "Control plane for OpenCode"
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Add support for Snap packages to NosArch",
+                            "default": false
+                        },
+                        "install-snaps": {
+                            "type": "object",
+                            "description": "Add Snap packages to install, including the channel to install from",
+                            "additionalProperties": {
+                                "type": "string"
                             },
-                            {
-                                "const": "t3code-cli",
-                                "title": "T3 Code (CLI & Web)",
-                                "description": "Control plane for Claude Code, Codex, Cursor CLI, Grok Build, OpenCode and Antigravity"
-                            },
-                            {
-                                "const": "t3code-desktop",
-                                "title": "T3 Code Desktop",
-                                "description": "Control plane for Claude Code, Codex, Cursor CLI, Grok Build, OpenCode and Antigravity"
-                            },
-                            {
-                                "const": "zeron",
-                                "title": "Zeron",
-                                "description": "Control plane for Claude Code, Codex, Cursor CLI, Devin CLI, Grok Build, Hermes Agent, Pi, OpenCode and Antigravity"
+                            "propertyNames": {
+                                "type": "string"
                             }
-                        ]
-                    },
-                    "uniqueItems": true
-                }
-            }
-        },
-        "dev": {
-            "type": "object",
-            "properties": {
-                "editors": {
-                    "type": "array",
-                    "description": "List of code editors to install",
-                    "items": {
-                        "type": "string",
-                        "enum": ["code-oss", "codium", "jetbrains", "neovim", "vscode", "zed"]
-                    },
-                    "uniqueItems": true
-                },
-                "languages": {
-                    "type": "array",
-                    "description": "List of programming languages to setup",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            ".net",
-                            "go",
-                            "java-maven",
-                            "java-gradle",
-                            "javascript-bun",
-                            "javascript-deno",
-                            "javascript-node",
-                            "python",
-                            "rust",
-                            "zig"
-                        ]
-                    },
-                    "uniqueItems": true
+                        },
+                        "install-classic-snaps": {
+                            "type": "object",
+                            "description": "Add Snap classic packages to install, including the channel to install from",
+                            "additionalProperties": {
+                                "type": "string"
+                            },
+                            "propertyNames": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -185,91 +302,8 @@
             "properties": {
                 "enable_lts_kernel": {
                     "type": "boolean",
-                    "description": "Enable to setup Linux LTS kernel",
+                    "description": "Setup Linux LTS kernel",
                     "default": false
-                }
-            }
-        },
-        "setup": {
-            "type": "object",
-            "properties": {
-                "enable_virtualization": {
-                    "type": "boolean",
-                    "description": "Enable to setup NosArch for running Virtual Machines",
-                    "default": false
-                }
-            }
-        },
-        "user_packages": {
-            "type": "object",
-            "properties": {
-                "arch": {
-                    "type": "array",
-                    "description": "Add any other Arch packages not installed by Decman",
-                    "items": {
-                        "type": "string"
-                    },
-                    "uniqueItems": true
-                },
-                "aur": {
-                    "type": "array",
-                    "description": "Add any other AUR packages not installed by Decman",
-                    "items": {
-                        "type": "string"
-                    },
-                    "uniqueItems": true
-                },
-                "flatpak": {
-                    "type": "array",
-                    "description": "Add any other Flatpak packages not installed by Decman",
-                    "items": {
-                        "type": "string"
-                    },
-                    "uniqueItems": true
-                },
-                "flatpak_user": {
-                    "type": "array",
-                    "description": "Add any other Flatpak (user-level) packages not installed by Decman",
-                    "items": {
-                        "type": "string"
-                    },
-                    "uniqueItems": true
-                },
-                "homebrew_casks": {
-                    "type": "array",
-                    "description": "Add any other Homebrew casks not installed by Decman",
-                    "items": {
-                        "type": "string"
-                    },
-                    "uniqueItems": true
-                },
-                "homebrew_formulae": {
-                    "type": "array",
-                    "description": "Add any other Homebrew formulae not installed by Decman",
-                    "items": {
-                        "type": "string"
-                    },
-                    "uniqueItems": true
-                },
-                "snap": {
-                    "type": "object",
-                    "description": "Add any other Snap packages not installed by Decman, mapped from the package name to the channel it should track",
-                    "additionalProperties": {
-                        "type": "string"
-                    },
-                    "propertyNames": {
-                        "type": "string"
-                    }
-                },
-                "classic_snap": {
-                    "type": "object",
-                    "description": "Add any other Snap (classic) packages not installed by Decman, mapped from the package name to the channel it should track",
-                    "additionalProperties": {
-                        "type": "string"
-                    },
-                    "propertyNames": {
-                        "type": "string"
-                    }
                 }
             }
         },
@@ -278,11 +312,11 @@
             "properties": {
                 "enable_nosarch_works": {
                     "type": "boolean",
-                    "description": "Enable to setup machine for working on the NosArch codebase",
+                    "description": "Setup this machine for working on the NosArch codebase",
                     "default": false
                 }
             }
         }
     },
-    "required": ["user", "profiles"]
+    "required": ["user"]
 }

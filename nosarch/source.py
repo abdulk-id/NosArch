@@ -28,7 +28,6 @@ if user_config.get_bool("advanced.enable_nosarch_works"):
     # decman.config.debug_output = True
     decman.config.quiet_output = False
 
-    # Machine setup ---
     decman.pacman.packages |= {"lynis", "namcap", "pacman-contrib", "shellcheck"}
 
     """
@@ -59,7 +58,7 @@ if utils.aur_chroot.is_available():
 # ===
 
 # Packaging ===
-if user_config.get_bool("packaging.flatpak"):
+if user_config.get_bool("packaging.flatpak.enabled"):
     # Register the plugin here manually. decman only consults a plugin's `available()` when it is imported, which
     # happens before pacman installs the runtime, so on the run that enables Flatpak the plugin isn't registered yet
     # and its step would be skipped.
@@ -71,14 +70,14 @@ else:
     # Dropping the module is what runs `FlatpakModule.on_disable`, which offers to delete what the runtime
     # left behind. It cannot be driven from here: decman only runs that script when a registered module
     # disappears.
-    _skipped_flatpak: list[str] = user_config.get_str_list("user_packages.flatpak") + user_config.get_str_list(
-        "user_packages.flatpak_user"
-    )
+    _skipped_flatpak: list[str] = user_config.get_str_list(
+        "packaging.flatpak.install-packages"
+    ) + user_config.get_str_list("packaging.flatpak.install-user-packages")
     if _skipped_flatpak:
         decman.core.output.print_warning("[PACKAGING] Flatpak is disabled. Ignoring user packages")
 
 
-if user_config.get_bool("packaging.homebrew"):
+if user_config.get_bool("packaging.homebrew.enabled"):
     # Registered here directly rather than left to `available()`, which decman only consults when it imports
     # a plugin. That happens before `HomebrewModule` bootstraps brew in `before_update`, so on the run that
     # enables Homebrew the plugin isn't registered yet and its step would be skipped.
@@ -88,13 +87,13 @@ if user_config.get_bool("packaging.homebrew"):
 else:
     # Dropping the module is what runs `HomebrewModule.on_disable`, which removes the prefix. It cannot be
     # driven from here: decman only runs that script when a registered module disappears.
-    _skipped_homebrew: list[str] = user_config.get_str_list("user_packages.homebrew_formulae")
-    _skipped_homebrew += user_config.get_str_list("user_packages.homebrew_casks")
+    _skipped_homebrew: list[str] = user_config.get_str_list("packaging.homebrew.install-formulae")
+    _skipped_homebrew += user_config.get_str_list("packaging.homebrew.install-casks")
     if _skipped_homebrew:
         decman.core.output.print_warning("[PACKAGING] Homebrew is disabled. Ignoring user packages")
 
 
-if user_config.get_bool("packaging.snap"):
+if user_config.get_bool("packaging.snap.enabled"):
     # Registered here directly rather than left to `available()`, which decman only consults when it
     # imports a plugin. That happens before the AUR step installs snapd, so on the run that enables
     # Snap the plugin isn't registered yet and its step would be skipped. The plugin reports a missing
@@ -105,8 +104,8 @@ else:
     # Dropping the module is what runs `SnapModule.on_disable`, which offers to delete what snap
     # left behind. It cannot be driven from here: decman only runs that script when a registered
     # module disappears.
-    _skipped_snaps: dict[str, str] = user_config.get_str_dict("user_packages.snap")
-    _skipped_snaps |= user_config.get_str_dict("user_packages.classic_snap")
+    _skipped_snaps: dict[str, str] = user_config.get_str_dict("packaging.snap.install-snaps")
+    _skipped_snaps |= user_config.get_str_dict("packaging.snap.install-classic-snaps")
     if _skipped_snaps:
         decman.core.output.print_warning("[PACKAGING] Snap is disabled. Ignoring user packages")
 # ===
@@ -121,9 +120,9 @@ userManager.add_user(
         home=f"/home/{_username}",
         shell="/usr/bin/bash",
         groups=(_username, "wheel")
-        + (("libvirt",) if user_config.get_bool("setup.enable_virtualization") else ())
+        + (("libvirt",) if user_config.get_bool("setups.basic.enable_virtualization") else ())
         + (
-            ("input",) if user_config.get_bool("profiles.gaming") else ()
+            ("input",) if user_config.get_bool("setups.gaming.enabled") else ()
             # Allow user access to controller devices (/dev/input)
         ),
         system=False,
@@ -139,46 +138,46 @@ decman.modules += {userManager}
 # Decman modules ===
 decman.modules += {SystemModule(user_config), DesktopModule(user_config), ThemingModule(user_config)}
 
-if user_config.get_bool("packaging.homebrew"):
+if user_config.get_bool("packaging.homebrew.enabled"):
     decman.modules += {HomebrewModule(_username)}
 
-if user_config.get_bool("packaging.flatpak"):
+if user_config.get_bool("packaging.flatpak.enabled"):
     decman.modules += {FlatpakModule()}
 
-if user_config.get_bool("packaging.snap"):
+if user_config.get_bool("packaging.snap.enabled"):
     decman.modules += {SnapModule()}
 
 desktop_enabled: bool = any(module.name == "desktop" for module in decman.modules)
 
-if user_config.get_bool("profiles.setup"):
+if user_config.get_bool("setups.basic.enabled"):
     if desktop_enabled:
         decman.modules += {BasicSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Setup module requires Desktop module to be enabled.")
         raise SystemExit()
 
-if user_config.get_bool("profiles.ai"):
+if user_config.get_bool("setups.ai.enabled"):
     if desktop_enabled:
         decman.modules += {AISetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] AI module requires Desktop module to be enabled.")
         raise SystemExit()
 
-if user_config.get_bool("profiles.creative"):
+if user_config.get_bool("setups.creative.enabled"):
     if desktop_enabled:
         decman.modules += {CreativeSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Creative profile requires Desktop module to be enabled.")
         raise SystemExit()
 
-if user_config.get_bool("profiles.dev"):
+if user_config.get_bool("setups.dev.enabled"):
     if desktop_enabled:
         decman.modules += {DevSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Dev profile requires Desktop module to be enabled.")
         raise SystemExit()
 
-if user_config.get_bool("profiles.gaming"):
+if user_config.get_bool("setups.gaming.enabled"):
     if desktop_enabled:
         decman.modules += {GamingSetupModule(user_config)}
     else:

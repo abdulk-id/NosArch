@@ -14,7 +14,7 @@ class DevSetupModule(decman.Module):
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
-        self._editors: list[str] = self._user_config.get_str_list("dev.editors")
+        self._editors: list[str] = self._user_config.get_str_list("setups.dev.editors")
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/dev-setup-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(

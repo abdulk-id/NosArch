@@ -14,8 +14,6 @@ Areas:
 - `<Module-Name>`: Changes in the definition code of a module.
 - `Repo`: Repository changes such as documentation, repo config files (`.gitignore` etc.), `opencode.jsonc` etc.
 - `Scripts`: Changes targeting user-facing shell scripts in multiple modules.
-- `Packages`: Adding, modifying or removing a custom package.
-- `Packages(update)`: Updating a custom package's version.
 
 Some examples:
 

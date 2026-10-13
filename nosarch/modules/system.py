@@ -130,6 +130,18 @@ class SystemModule(decman.Module):
             )
         )
 
+        # Sourced by nosarch-package rather than run, so they are not executable. AppImage and cleanup live here
+        # rather than in a packaging module because they are not gated on a packaging switch: an AppImage needs no
+        # package manager, and cleanup has to survive a method's module being disabled.
+        files.update(
+            self._dotfiles.tracked_files(
+                self._tracker,
+                "/usr/local/bin/util/package/appimage.sh",
+                "/usr/local/bin/util/package/cleanup.sh",
+                "/usr/local/bin/util/package/common.sh",
+            )
+        )
+
         # ~/ files
         files.update(
             self._userhome_dotfiles.tracked_files(

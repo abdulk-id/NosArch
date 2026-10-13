@@ -28,11 +28,12 @@ id, display name, AppImage path, .desktop file, icon file
 ```sh
 nosarch-package install appimage [path...]      # no path -> asks for files
 nosarch-package install appimage --confirm ...  # asks before each install
-nosarch-package list                            # name, path, and whether the file is there
+nosarch-package appimage list                   # name, path, and whether the file is there
 nosarch-package remove                          # AppImages appear in the normal list
 ```
 
-`remove` mixes AppImages in with packages, tagged `[appimage]`. The preview shows the
+`list` is a method command, so it takes the method first. `remove` takes no method at all: it builds one
+list across every packaging method, with AppImages in it tagged `[appimage]`. The preview shows the
 `Name`, `Exec` and `Icon` lines of the generated entry rather than running the app.
 
 There is **no update command**. An AppImage carries no version metadata so there is no way to compare versions.
@@ -40,8 +41,9 @@ Move to a newer version by installing the new file and removing the old entry.
 
 ## Installing
 
-`nosarch-package install appimage` with no arguments opens a file dialog, which is also
-what the `Install AppImage` entry in the packages menu runs. Passing paths skips it.
+`nosarch-package install appimage` with no arguments opens a file dialog, which is also what the packages menu runs:
+`Install package` opens a submenu of the available methods, and picking AppImage there opens the same dialog. Passing
+paths skips it.
 
 `--confirm` asks about each file first; a declined file is skipped rather than treated as an error. It is a flag
 rather than a separate command so the desktop entry below can use it without shell quoting.

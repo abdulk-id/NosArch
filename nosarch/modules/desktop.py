@@ -49,6 +49,7 @@ class DesktopModule(decman.Module):
             self._userhome_dotfiles.files(
                 "/.config/btop/btop.conf",
                 "/.config/elephant/menus/capture.lua",
+                "/.config/elephant/menus/installing.lua",
                 "/.config/elephant/menus/main.lua",
                 "/.config/elephant/menus/packages.lua",
                 "/.config/elephant/menus/power.lua",
@@ -187,8 +188,6 @@ class DesktopModule(decman.Module):
             "fcitx5-gtk",
             "fcitx5-qt",
             "ffmpeg",  # Used for webcam recording
-            "flatpak",
-            "flatseal",  # Flatpak permission manager
             "ghostty",
             "gnome-text-editor",
             "gpu-screen-recorder",  # Used for screen recording

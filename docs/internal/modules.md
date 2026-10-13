@@ -4,18 +4,20 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 
 ## The modules
 
-| Module        | Class               | Enabled by          | Sources                  |
-| ------------- | ------------------- | ------------------- | ------------------------ |
-| System        | `SystemModule`      | always              | `dotfiles/system-root`   |
-| Desktop       | `DesktopModule`     | always              | `dotfiles/desktop-root`  |
-| Theming       | `ThemingModule`     | always              | `nosarch/themes/`        |
-| Setup         | `SetupModule`       | `profiles.setup`    | `dotfiles/setup-root`    |
-| AI            | `AIModule`          | `profiles.ai`       | `dotfiles/ai-root`       |
-| Creative      | `CreativeModule`    | `profiles.creative` | `dotfiles/creative-root` |
-| Dev           | `DevModule`         | `profiles.dev`      | `dotfiles/dev-root`      |
-| Gaming        | `GamingModule`      | `profiles.gaming`   | `dotfiles/gaming-root`   |
-| Homebrew      | `HomebrewModule`    | `enable_homebrew`   | generated at run time    |
-| User packages | `UserDefinedModule` | always              | none                     |
+| Module        | Class               | Enabled by           | Sources                  |
+| ------------- | ------------------- | -------------------- | ------------------------ |
+| System        | `SystemModule`      | always               | `dotfiles/system-root`   |
+| Desktop       | `DesktopModule`     | always               | `dotfiles/desktop-root`  |
+| Theming       | `ThemingModule`     | always               | `nosarch/themes/`        |
+| Setup         | `SetupModule`       | `profiles.setup`     | `dotfiles/setup-root`    |
+| AI            | `AIModule`          | `profiles.ai`        | `dotfiles/ai-root`       |
+| Creative      | `CreativeModule`    | `profiles.creative`  | `dotfiles/creative-root` |
+| Dev           | `DevModule`         | `profiles.dev`       | `dotfiles/dev-root`      |
+| Gaming        | `GamingModule`      | `profiles.gaming`    | `dotfiles/gaming-root`   |
+| Homebrew      | `HomebrewModule`    | `packaging.homebrew` | `dotfiles/system-root`   |
+| Flatpak       | `FlatpakModule`     | `packaging.flatpak`  | `dotfiles/system-root`   |
+| Snap          | `SnapModule`        | `packaging.snap`     | `dotfiles/system-root`   |
+| User packages | `UserDefinedModule` | always               | none                     |
 
 AI, Creative, Dev, and Gaming live in `nosarch/modules/usage_profiles/`. The others are one file each in `nosarch/modules/`.
 
@@ -24,10 +26,13 @@ AI, Creative, Dev, and Gaming live in `nosarch/modules/usage_profiles/`. The oth
 The `UserDefinedModule` (`nosarch/modules/user_defined.py`) installs packages the user listed in the config file, so
 decman does not remove them.
 
+Homebrew, Flatpak, and Snap each ship a `nosarch-package` library, which is what makes those methods appear in the CLI.
+`SystemModule` ships the ones no module gates: the shared helpers and AppImages.
+
 ## Registration
 
 System, Desktop, Theming, and User packages are always registered. The others register when their `profiles.*` or
-`enable_homebrew` key is true. They extend the desktop, so `source.py` exits if no registered module is named
+`packaging.*` key is true. They extend the desktop, so `source.py` exits if no registered module is named
 `desktop`. Desktop is currently always registered, so this never trips on a normal run — the guard is there for when
 NosArch allows headless installs.
 

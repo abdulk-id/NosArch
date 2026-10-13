@@ -37,11 +37,14 @@ anchor_right = true
 "websearch" = { input = "Search Web", list = "No Options Found" }
 "clipboard" = { input = "Clipboard", list = "Clipboard Empty" }
 
-"menus:session" = { input = "Manage session", list = "No Options Found" }
-"menus:software" = { input = "Manage software", list = "No Options Found" }
 "menus:capture" = { input = "Capture...", list = "No Options Found" }
-
+"menus:share" = { input = "Share...", list = "No Options Found" }
+"menus:packages" = { input = "Manage packages", list = "No Options Found" }
 "menus:settings" = { input = "Configure", list = "No Settings Found" }
+"menus:session" = { input = "Manage session", list = "No Options Found" }
+
+"menus:installing" = { input = "Install packages", list = "No Options Found" }
+
 "menus:power-profiles" = { input = "Select Power profile", list = "No Power Profiles Found" }
 
 [keybinds]

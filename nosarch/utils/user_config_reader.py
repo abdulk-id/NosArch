@@ -89,6 +89,19 @@ class UserConfigReader:
 
         return value
 
+    def get_str_dict(self, property: str) -> dict[str, str]:
+        value = self._get(property)
+
+        if value is None:
+            return {}
+
+        if not isinstance(value, dict) or not all(
+            isinstance(key, str) and isinstance(item, str) for key, item in value.items()
+        ):
+            raise TypeError(f"Expected dict[str, str] at '{property}'")
+
+        return value
+
     def set_value(self, property: str, value: Any) -> None:
         keys: list[str] = property.split(".")
         current: dict[str, Any] = self._data

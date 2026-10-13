@@ -37,7 +37,7 @@ __set_prompt1() {
   (( last_status != 0 )) && status_color="$RED"
 
   #PS1='[\u@\h \W]\$ '
-  PS1="${GREEN}\u@\h${RESET} : ${BLUE}\w\$(__git_ps1 ' (%s)')${RESET}\n${status_color}\$${RESET} "
+  PS1="${GREEN}\w${BLUE}\$(__git_ps1 ' (git %s)')${RESET}\n${status_color}\$${RESET} "
 }
 
 PROMPT_COMMAND=__set_prompt1

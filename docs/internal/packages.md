@@ -46,6 +46,17 @@ def snap_pkgs(self) -> dict[str, str]:
 A gated packaging method's declarations return nothing while its key is false, so a config listing packages for a
 disabled method is inert rather than an error.
 
+## Flathub
+
+Enabling Flatpak adds the system-wide Flathub remote. `flatpak install` and the flatpak plugin search configured
+remotes, so a machine with the runtime and no remote has nothing to install.
+
+`FlatpakModule.before_update` adds the remote when `flatpak` is already on `PATH`. `before_update` runs before
+pacman, so the run that first installs the `flatpak` package cannot add the remote there. The module also ships
+`/etc/pacman.d/hooks/10-flatpak-flathub.hook`, which runs the same `flatpak remote-add --if-not-exists` at the end of
+that transaction, before the flatpak plugin installs apps. A remote the user already added under the name `flathub`
+is left alone.
+
 ## The `nosarch-package` CLI
 
 One script, `/usr/local/bin/nosarch/nosarch-package`, with a library per packaging method under

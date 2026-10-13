@@ -1,0 +1,16 @@
+# Managed by NosArch
+#
+# before_update runs before pacman, so it cannot add Flathub on the run that first installs
+# flatpak. This runs at the end of that transaction, before the flatpak plugin installs apps.
+# Keep the command in step with FlatpakModule.before_update.
+
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = flatpak
+
+[Action]
+Description = Adding the Flathub remote...
+When = PostTransaction
+Exec = /usr/bin/flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo

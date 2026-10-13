@@ -1,3 +1,4 @@
+import shutil
 from typing import override
 
 import decman
@@ -5,13 +6,18 @@ import utils.paths
 from decman import File
 from decman.plugins import pacman
 
+# The .flatpakrepo file is Flathub's remote description. Kept in step with the pacman hook
+# at /etc/pacman.d/hooks/10-flatpak-flathub.hook, which runs the same command.
+_FLATHUB_REPO = "https://dl.flathub.org/repo/flathub.flatpakrepo"
+
 
 class FlatpakModule(decman.Module):
     """
     Installs the Flatpak runtime and prepares what the `flatpak` plugin drives.
 
     A module of its own because Flatpak needs more than a package: the runtime leaves every app's data on disk when it
-    goes, so switching Flatpak off has to offer to clean that up.
+    goes, so switching Flatpak off has to offer to clean that up. Enabling it also adds the Flathub remote, which is
+    what install and search look at.
     """
 
     def __init__(self) -> None:
@@ -19,13 +25,24 @@ class FlatpakModule(decman.Module):
 
     @override
     def files(self) -> dict[str, File]:
-        # nosarch-package sources this when it exists and skips Flatpak when it does not, which is how the CLI
-        # follows this module being enabled or disabled.
-        return utils.paths.Dotfiles("../dotfiles/system-root").files("/usr/local/bin/util/package/flatpak.sh")
+        # nosarch-package sources the library when it exists and skips Flatpak when it does not, which is how the CLI
+        # follows this module being enabled or disabled. The hook adds Flathub on the run that installs flatpak.
+        return utils.paths.Dotfiles("../dotfiles/system-root").files(
+            "/usr/local/bin/util/package/flatpak.sh", "/etc/pacman.d/hooks/10-flatpak-flathub.hook"
+        )
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def flatpak_runtime(self) -> set[str]:
         return {"flatpak"}
+
+    @override
+    def before_update(self, store: decman.Store) -> None:
+        # before_update runs before pacman, so the run that first installs flatpak has no binary yet. The hook
+        # covers that run. This covers every later run, and a machine where flatpak was already installed.
+        if shutil.which("flatpak") is None:
+            return
+
+        _ = decman.prg(["flatpak", "remote-add", "--if-not-exists", "--system", "flathub", _FLATHUB_REPO])
 
     # Runs before the pacman step, so the runtime is still installed and can uninstall the apps itself.
     @staticmethod

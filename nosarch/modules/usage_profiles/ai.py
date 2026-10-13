@@ -75,7 +75,7 @@ class AIModule(decman.Module):
 
         # Control planes
         if "t3code-desktop" in self._control_planes:
-            aur_pkgs.add("t3code-bin")
+            aur_pkgs.add("t3code-nightly-bin")
 
         return aur_pkgs
 

@@ -3,17 +3,17 @@ import decman.core.output
 import utils.aur_chroot
 from decman.extras.users import User, UserManager
 from decman.plugins import flatpak as flatpak_plugin
+from modules.basic_setup import BasicSetupModule
 from modules.desktop import DesktopModule
-from modules.flatpak import FlatpakModule
-from modules.homebrew import HomebrewModule
-from modules.setup import SetupModule
-from modules.snap import SnapModule
+from modules.packaging.flatpak import FlatpakModule
+from modules.packaging.homebrew import HomebrewModule
+from modules.packaging.snap import SnapModule
+from modules.setups.ai_setup import AISetupModule
+from modules.setups.creative_setup import CreativeSetupModule
+from modules.setups.dev_setup import DevSetupModule
+from modules.setups.gaming_setup import GamingSetupModule
 from modules.system import SystemModule
 from modules.theme import ThemingModule
-from modules.usage_profiles.ai import AIModule
-from modules.usage_profiles.creative import CreativeModule
-from modules.usage_profiles.dev import DevModule
-from modules.usage_profiles.gaming import GamingModule
 from modules.user_defined import UserDefinedModule
 from plugins import homebrew
 from plugins import snap as snap_plugin
@@ -152,35 +152,35 @@ desktop_enabled: bool = any(module.name == "desktop" for module in decman.module
 
 if user_config.get_bool("profiles.setup"):
     if desktop_enabled:
-        decman.modules += {SetupModule(user_config)}
+        decman.modules += {BasicSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Setup module requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("profiles.ai"):
     if desktop_enabled:
-        decman.modules += {AIModule(user_config)}
+        decman.modules += {AISetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] AI module requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("profiles.creative"):
     if desktop_enabled:
-        decman.modules += {CreativeModule(user_config)}
+        decman.modules += {CreativeSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Creative profile requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("profiles.dev"):
     if desktop_enabled:
-        decman.modules += {DevModule(user_config)}
+        decman.modules += {DevSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Dev profile requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("profiles.gaming"):
     if desktop_enabled:
-        decman.modules += {GamingModule(user_config)}
+        decman.modules += {GamingSetupModule(user_config)}
     else:
         decman.core.output.print_error("[PROFILES] Gaming profile requires Desktop module to be enabled.")
         raise SystemExit()

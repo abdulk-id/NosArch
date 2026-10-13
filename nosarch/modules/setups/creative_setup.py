@@ -7,15 +7,15 @@ from decman.plugins import pacman
 from utils.user_config_reader import UserConfigReader
 
 
-class CreativeModule(decman.Module):
+class CreativeSetupModule(decman.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
-        super().__init__(name="creative_profile")
+        super().__init__(name="creative_setup")
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
 
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/creative-root", self._username
+            "../dotfiles/creative-setup-root", self._username
         )
 
     @override

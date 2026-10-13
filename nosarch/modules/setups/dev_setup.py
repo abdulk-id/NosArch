@@ -8,17 +8,17 @@ from decman.plugins import aur, pacman, systemd
 from utils.user_config_reader import UserConfigReader
 
 
-class DevModule(decman.Module):
+class DevSetupModule(decman.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
-        super().__init__(name="dev_profile")
+        super().__init__(name="dev_setup")
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
         self._editors: list[str] = self._user_config.get_str_list("dev.editors")
 
-        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/dev-root")
+        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/dev-setup-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/dev-root", self._username
+            "../dotfiles/dev-setup-root", self._username
         )
 
     @override
@@ -92,7 +92,7 @@ class DevModule(decman.Module):
             files.update(
                 {
                     f"/home/{self._username}/.config/nvim/.neoconf.json": File(
-                        source_file="../dotfiles/dev-root/home/username/dot_config/nvim/.neoconf.json",
+                        source_file="../dotfiles/dev-setup-root/home/username/dot_config/nvim/.neoconf.json",
                         owner=f"{self._username}",
                     )  # This file is handled separately because using `self._userhome_dotfiles.files()` requires that
                     # hidden files start with the `dot_` prefix. This file is part of lazyvim and should not be

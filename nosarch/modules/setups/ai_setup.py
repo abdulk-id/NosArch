@@ -8,9 +8,9 @@ from decman.plugins import aur, pacman
 from utils.user_config_reader import UserConfigReader
 
 
-class AIModule(decman.Module):
+class AISetupModule(decman.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
-        super().__init__(name="ai_profile")
+        super().__init__(name="ai_setup")
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
@@ -19,7 +19,7 @@ class AIModule(decman.Module):
         self._control_planes: list[str] = self._user_config.get_str_list("ai.control-planes")
 
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/ai-root", self._username
+            "../dotfiles/ai-setup-root", self._username
         )
 
     @override

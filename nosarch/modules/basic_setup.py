@@ -7,15 +7,16 @@ from decman.plugins import aur, pacman, systemd
 from utils.user_config_reader import UserConfigReader
 
 
-class SetupModule(decman.Module):
+class BasicSetupModule(decman.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
-        super().__init__(name="setup")
+        super().__init__(name="basic_setup")
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.get_str("user.username")
+        self._vms_enabled: bool = self._user_config.get_bool("setup.enable_virtualization")
 
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/setup-root", self._username
+            "../dotfiles/basic-setup-root", self._username
         )
 
     @override
@@ -36,7 +37,7 @@ class SetupModule(decman.Module):
             "transmission-gtk",
         }
 
-        if self._user_config.get_bool("setup.enable_virtualization"):
+        if self._vms_enabled:
             pkgs_set.update(
                 {
                     "libvirt",
@@ -58,7 +59,7 @@ class SetupModule(decman.Module):
             "whatsie-git",
         }
 
-        if self._user_config.get_bool("setup.enable_virtualization"):
+        if self._vms_enabled:
             aur_pkgs_set.update(
                 {
                     "bridge-utils"  # Utils for configuring Linux ethernet bridge
@@ -71,7 +72,7 @@ class SetupModule(decman.Module):
     def systemd_services(self) -> set[str]:
         systemd_services: set[str] = set()
 
-        if self._user_config.get_bool("setup.enable_virtualization"):
+        if self._vms_enabled:
             systemd_services.add("libvirtd.service")
 
         return systemd_services

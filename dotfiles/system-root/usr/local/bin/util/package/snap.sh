@@ -4,7 +4,7 @@
 #
 # No snap_update: snapd.timer refreshes on its own schedule, so updating from here would duplicate that work.
 
-register_preview '[snap]' 'snap info {3}'
+register_preview '[snap]' 'snap info --verbose --unicode=never {3}'
 
 snap_summary() {
     printf '%s\n' "Install Snap packages"
@@ -176,7 +176,7 @@ snap_install() {
     fi
 
     selection=$(
-        fzf_select "$candidates" 'snap info {1}' \
+        fzf_select "$candidates" 'snap info --verbose --unicode=never {1}' \
             --color 'pointer:green,marker:green'
     ) || return 0
 
@@ -187,17 +187,44 @@ snap_install() {
     success=true
 
     for snap_name in $selection; do
-        # No --channel: the store's default track is what a search result resolves to, and
-        # a classic snap has to be declared in the config rather than guessed at here.
-        if snap install "$snap_name"; then
-            gum style --foreground 10 "✓ Installed $snap_name"
-        else
-            gum style --foreground 9 "x Installing $snap_name failed."
+        if ! _snap_install_one "$snap_name"; then
             success=false
         fi
     done
 
     $success
+}
+
+# `snap info` has no confinement field unless --verbose is set. The value is `classic`,
+# `strict`, or `devmode`. Empty when the store cannot be asked.
+_snap_confinement() {
+    LC_ALL=C snap info --verbose --unicode=never "$1" 2>/dev/null |
+        awk '/^[[:space:]]*confinement: / { print $2; exit }' || true
+}
+
+# Installs one snap. Classic confinement snaps are installed with --classic. When confinement lookup is missed and a
+# plain snap install is refused, retries with --classic
+_snap_install_one() {
+    snap_name=$1
+
+    if [ "$(_snap_confinement "$snap_name")" = "classic" ]; then
+        if snap install --classic "$snap_name"; then
+            gum style --foreground 10 "✓ Installed $snap_name"
+            return 0
+        fi
+    elif snap install "$snap_name"; then
+        gum style --foreground 10 "✓ Installed $snap_name"
+        return 0
+    elif [ "$(_snap_confinement "$snap_name")" = "classic" ]; then
+        # The first lookup can miss, and snap then refuses the install until --classic is passed.
+        if snap install --classic "$snap_name"; then
+            gum style --foreground 10 "✓ Installed $snap_name"
+            return 0
+        fi
+    fi
+
+    gum style --foreground 9 "x Installing $snap_name failed."
+    return 1
 }
 
 # Base snaps are filtered out of the picker as well as the removal, so a user can't remove them.

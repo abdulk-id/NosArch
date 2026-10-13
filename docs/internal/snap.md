@@ -22,6 +22,8 @@ single word that cannot read as a flag.
 
 A snap cannot be both confined and classic. The plugin rejects snaps defined as both.
 
+`nosarch-package install snap` passes `--classic` when the snap's confinement is classic. A plain `snap install` refuses those, so the flag is how the interactive install completes. A `@snap.classic_snaps` entry does the same from the plugin.
+
 Names are the unit of comparison against `snap list`, which reports names only. Moving a snap between the two
 declarations does not reinstall it, since it is already installed either way; flip the snap's revision to force that
 when it matters. The same goes for changing the channel of an installed snap, which only `snap refresh --channel`

@@ -153,35 +153,35 @@ if user_config.get_bool("setups.basic.enabled"):
     if desktop_enabled:
         decman.modules += {BasicSetupModule(user_config)}
     else:
-        decman.core.output.print_error("[PROFILES] Setup module requires Desktop module to be enabled.")
+        decman.core.output.print_error("[SETUPS] Basic setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("setups.ai.enabled"):
     if desktop_enabled:
         decman.modules += {AISetupModule(user_config)}
     else:
-        decman.core.output.print_error("[PROFILES] AI module requires Desktop module to be enabled.")
+        decman.core.output.print_error("[SETUPS] AI setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("setups.creative.enabled"):
     if desktop_enabled:
         decman.modules += {CreativeSetupModule(user_config)}
     else:
-        decman.core.output.print_error("[PROFILES] Creative profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[SETUPS] Creative setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("setups.dev.enabled"):
     if desktop_enabled:
         decman.modules += {DevSetupModule(user_config)}
     else:
-        decman.core.output.print_error("[PROFILES] Dev profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[SETUPS] Dev setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.get_bool("setups.gaming.enabled"):
     if desktop_enabled:
         decman.modules += {GamingSetupModule(user_config)}
     else:
-        decman.core.output.print_error("[PROFILES] Gaming profile requires Desktop module to be enabled.")
+        decman.core.output.print_error("[SETUPS] Gaming setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 decman.modules += {UserDefinedModule(user_config)}

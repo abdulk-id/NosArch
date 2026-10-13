@@ -20,27 +20,27 @@ from plugins import homebrew, snap
 
 @pacman.packages
 def arch_pkgs(self) -> set[str]:
-    return set(self._user_config.get_str_list("user_packages.arch"))
+    return set(self._user_config.get_str_list("packaging.arch.install-packages"))
 
 @aur.packages
 def aur_pkgs(self) -> set[str]:
-    return set(self._user_config.get_str_list("user_packages.aur"))
+    return set(self._user_config.get_str_list("packaging.aur.install-packages"))
 
 @flatpak.packages
 def flatpak_pkgs(self) -> set[str]:
-    return set(self._user_config.get_str_list("user_packages.flatpak"))
+    return set(self._user_config.get_str_list("packaging.flatpak.install-packages"))
 
 @flatpak.user_packages
 def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-    return {self._username: set(self._user_config.get_str_list("user_packages.flatpak_user"))}
+    return {self._username: set(self._user_config.get_str_list("packaging.flatpak.install-user-packages"))}
 
 @homebrew.formulae
 def brew_formulae(self) -> set[str]:
-    return set(self._user_config.get_str_list("user_packages.homebrew_formulae"))
+    return set(self._user_config.get_str_list("packaging.homebrew.install-formulae"))
 
 @snap.snaps
 def snap_pkgs(self) -> dict[str, str]:
-    return self._user_config.get_str_dict("user_packages.snap")
+    return self._user_config.get_str_dict("packaging.snap.install-snaps")
 ```
 
 A gated packaging method's declarations return nothing while its key is false, so a config listing packages for a
@@ -63,15 +63,15 @@ One script, `/usr/local/bin/nosarch/nosarch-package`, with a library per packagi
 `/usr/local/bin/util/package/`. A library defines a set of functions named `<method>_<verb>`, and the script dispatches
 by name rather than by a table, so a method decides for itself which verbs it has:
 
-| Verb | Purpose |
-| --- | --- |
-| `<method>_install` | interactive install |
-| `<method>_update` | update |
-| `<method>_entries` | one tab-separated row per removable item |
-| `<method>_remove` | remove the selected items |
-| `<method>_remove_unused` | clean up leftovers |
-| `<method>_available` | whether this machine can use the method right now |
-| `<method>_summary` | one line for the help output |
+| Verb                     | Purpose                                           |
+| ------------------------ | ------------------------------------------------- |
+| `<method>_install`       | interactive install                               |
+| `<method>_update`        | update                                            |
+| `<method>_entries`       | one tab-separated row per removable item          |
+| `<method>_remove`        | remove the selected items                         |
+| `<method>_remove_unused` | clean up leftovers                                |
+| `<method>_available`     | whether this machine can use the method right now |
+| `<method>_summary`       | one line for the help output                      |
 
 A method with nothing to do for a verb omits it. AppImages have no `_update`, because an AppImage carries no version
 metadata. Snap has no `_update`, because `snapd.timer` owns refresh. A method that defines no `_available` is always

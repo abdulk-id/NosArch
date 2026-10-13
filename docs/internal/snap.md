@@ -1,7 +1,7 @@
 # Snap
 
-NosArch can install and manage Snap packages. It is gated behind `packaging.snap`.
-Packages are declared per module or listed in `user_packages.snap` and `user_packages.classic_snap`.
+NosArch can install and manage Snap packages. It is gated behind `packaging.snap.enabled`.
+Packages are declared per module or listed in `packaging.snap.install-snaps` and `packaging.snap.install-classic-snaps`.
 
 ## Base snaps must never be removed
 
@@ -61,7 +61,7 @@ apply run `snap refresh`, which duplicates that work.
 
 ## Turning it off
 
-Disabling `packaging.snap` drops `SnapModule`, which means decman stops declaring `/snap` and removes it, and the AUR
+Disabling `packaging.snap.enabled` drops `SnapModule`, which means decman stops declaring `/snap` and removes it, and the AUR
 step removes snapd. What snapd leaves behind is `/var/lib/snapd` and per-user app data in `~/snap`, which hold settings
 and saves that exist nowhere else.
 

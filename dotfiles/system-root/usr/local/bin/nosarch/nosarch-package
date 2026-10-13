@@ -85,7 +85,8 @@ arch_install() {
 
     if [ -n "$pkg_names" ]; then
         # shellcheck disable=SC2086
-        if with_sudo pacman -S --needed --noconfirm $pkg_names; then
+        # pacman does not call sudo itself. with_sudo only keeps the credential alive.
+        if with_sudo sudo pacman -S --needed --noconfirm $pkg_names; then
             update_db
 
             gum style --foreground 10 "✓ Installation complete!"
@@ -171,7 +172,7 @@ arch_remove() {
     gum style --foreground 10 "▸ Removing Arch packages..."
 
     # shellcheck disable=SC2086
-    if with_sudo pacman -Rns --noconfirm $pacman_pkgs; then
+    if with_sudo sudo pacman -Rns --noconfirm $pacman_pkgs; then
         gum style --foreground 10 "✓ Arch packages removed!"
     else
         gum style --foreground 9 "x Arch removal failed."
@@ -186,7 +187,7 @@ arch_remove_unused() {
 
     if [ -z "$orphans" ]; then
         gum style --foreground 10 "✓ No unused Arch/AUR packages found!"
-    elif printf '%s\n' "$orphans" | with_sudo pacman -Rns --noconfirm -; then
+    elif printf '%s\n' "$orphans" | with_sudo sudo pacman -Rns --noconfirm -; then
         gum style --foreground 10 "✓ Unused Arch/AUR packages removed!"
     else
         gum style --foreground 9 "x Removing unused Arch/AUR packages failed."

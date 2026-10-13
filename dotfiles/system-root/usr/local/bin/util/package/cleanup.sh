@@ -43,11 +43,11 @@ _homebrew_leftovers() {
         "$CLEANUP_HOME/.homebrew"
 }
 
-# The one command that has to run before the prefix goes. A cask installs its files outside
-# the prefix through apt, so deleting the prefix leaves them behind with brew then holding
-# no record they were ever installed. Uninstall through brew while it still runs, as the
-# user, since brew refuses to run as root. Not the reason for cleanup existing, just the
-# reason it does not leave the machine half-cleaned.
+# The one command that has to run before the prefix goes. A cask can install files outside
+# the prefix, so deleting the prefix leaves them behind with brew then holding no record
+# they were ever installed. `brew uninstall` has no --all: list the installed casks and
+# uninstall those, as the user, since brew refuses to run as root. Not the reason for
+# cleanup existing, just the reason it does not leave the machine half-cleaned.
 _homebrew_uninstall_casks() {
     brew_bin=/home/linuxbrew/.linuxbrew/bin/brew
 
@@ -55,7 +55,17 @@ _homebrew_uninstall_casks() {
         return 0
     fi
 
-    sudo -u "$CLEANUP_USER" "$brew_bin" uninstall --cask --all >/dev/null 2>&1 || true
+    casks=$(
+        sudo -u "$CLEANUP_USER" env HOMEBREW_NO_ENV_HINTS=1 "$brew_bin" list --cask -1 2>/dev/null |
+            grep -E '^[A-Za-z0-9][A-Za-z0-9+_.@-]*$' || true
+    )
+
+    if [ -z "$casks" ]; then
+        return 0
+    fi
+
+    # shellcheck disable=SC2086
+    sudo -u "$CLEANUP_USER" env HOMEBREW_NO_ENV_HINTS=1 "$brew_bin" uninstall --cask $casks >/dev/null 2>&1 || true
 }
 
 # Flatpak apps register themselves by symlinking into the exports directories, so deleting

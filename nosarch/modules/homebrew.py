@@ -76,11 +76,13 @@ class HomebrewModule(decman.Module):
     @staticmethod
     def on_disable() -> None:
         import os
+        import re
         import shutil
         import sys
         from pathlib import Path
 
         import decman
+        import decman.core.command
         import decman.core.output
 
         # decman lifts this function into a standalone script, so it can only use builtins and what it imports here.
@@ -112,16 +114,36 @@ class HomebrewModule(decman.Module):
         if not decman.core.output.prompt_confirm("Delete all Homebrew data?", default=False):
             return
 
-        # A cask installs its files outside the prefix (through apt on Linux), so deleting the prefix does not remove
-        # it and brew then holds no record that it was ever installed. Uninstall through brew while it still runs, as
-        # the user, and before the prefix goes. This has to sit after the prompt: uninstalling a cask is itself a
-        # change to the system, not part of listing what is there.
+        # A cask can install files outside the prefix, so deleting the prefix leaves them behind and brew then
+        # holds no record that they were ever installed. Uninstall through brew while it still runs, as the user,
+        # and before the prefix goes. This has to sit after the prompt: uninstalling a cask is itself a change to
+        # the system, not part of listing what is there.
+        # `brew uninstall` has no --all. List the installed casks and uninstall those.
         # `check=False` because anything brew cannot remove is not under the prefix either.
         brew: Path = Path("/home/linuxbrew/.linuxbrew/bin/brew")
         if brew.is_file():
-            _ = decman.prg(
-                [str(brew), "uninstall", "--cask", "--all"], user=username, mimic_login=True, pty=False, check=False
+            code, listed = decman.core.command.run(
+                [str(brew), "list", "--cask", "-1"],
+                user=username,
+                mimic_login=True,
+                env_overrides={"HOMEBREW_NO_ENV_HINTS": "1"},
             )
+            # stderr is merged into this output, so a failed list must not be read as cask names.
+            # A hint or an error line is not a cask, and uninstalling it would be a guess.
+            cask_name = re.compile(r"^[A-Za-z0-9][A-Za-z0-9+_.@-]*$")
+            casks: list[str] = []
+            if code == 0:
+                casks = [name.strip() for name in listed.splitlines() if cask_name.fullmatch(name.strip())]
+
+            if casks:
+                _ = decman.prg(
+                    [str(brew), "uninstall", "--cask", *casks],
+                    user=username,
+                    mimic_login=True,
+                    pty=False,
+                    check=False,
+                    env_overrides={"HOMEBREW_NO_ENV_HINTS": "1"},
+                )
 
         for path in present:
             if path.is_symlink() or path.is_file():

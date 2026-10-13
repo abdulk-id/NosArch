@@ -53,8 +53,14 @@ snap_is_base() {
 }
 
 # Installed snaps, one per line, as name and Notes column.
+#
+# `snap list` columns are Name, Version, Rev, Tracking, Publisher, Notes. Publisher is the
+# fifth field. Notes is the sixth, and a snap with nothing in that column omits it.
 _snap_installed() {
-    snap list 2>/dev/null | awk 'NR > 1 && NF >= 5 { print $1 "\t" $5 }'
+    snap list 2>/dev/null | awk 'NR > 1 && NF {
+        notes = (NF >= 6 ? $6 : "")
+        print $1 "\t" notes
+    }'
 }
 
 # Public snap names from snapd's store catalog. snapd refreshes this file on a timer and replaces it atomically. The

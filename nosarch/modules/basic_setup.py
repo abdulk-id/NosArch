@@ -4,7 +4,7 @@ import decman
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman, systemd
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 
 class BasicSetupModule(decman.Module):
@@ -12,8 +12,8 @@ class BasicSetupModule(decman.Module):
         super().__init__(name="basic_setup")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
-        self._vms_enabled: bool = self._user_config.get_bool("setups.basic.enable_virtualization")
+        self._username: str = self._user_config.user.username
+        self._vms_enabled: bool = self._user_config.setups.basic.enable_virtualization
 
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/basic-setup-root", self._username

@@ -4,7 +4,7 @@ import decman
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 
 class GamingSetupModule(decman.Module):
@@ -12,7 +12,7 @@ class GamingSetupModule(decman.Module):
         super().__init__(name="gaming_setup")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
+        self._username: str = self._user_config.user.username
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/gaming-setup-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(

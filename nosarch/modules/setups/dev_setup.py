@@ -5,7 +5,7 @@ import utils.dotfile.dev_lang_config
 import utils.paths
 from decman import File, Store
 from decman.plugins import aur, pacman, systemd
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 
 class DevSetupModule(decman.Module):
@@ -13,8 +13,8 @@ class DevSetupModule(decman.Module):
         super().__init__(name="dev_setup")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
-        self._editors: list[str] = self._user_config.get_str_list("setups.dev.editors")
+        self._username: str = self._user_config.user.username
+        self._editors: list[str] = self._user_config.setups.dev.editors
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/dev-setup-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
@@ -30,12 +30,12 @@ class DevSetupModule(decman.Module):
     @staticmethod
     def on_disable() -> None:
         import decman
-        from utils.user_config_reader import UserConfigReader
+        from user_config import UserConfigReader
 
         # `on_disable` hooks run before everything else (after `before_update` hooks), so mise would still be present.
         # needed to remove all mise installed tools
         # TODO: If this runs after mise has been removed, this command will fail.
-        _ = decman.prg(cmd=["mise", "implode"], user=UserConfigReader().get_str("user.username"), mimic_login=True)
+        _ = decman.prg(cmd=["mise", "implode"], user=UserConfigReader.load().user.username, mimic_login=True)
 
     @override
     def file_variables(self) -> dict[str, str]:

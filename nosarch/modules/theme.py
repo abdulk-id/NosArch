@@ -4,7 +4,7 @@ from typing import override
 import decman
 from decman import Directory, Symlink
 from themes.nosarch_blue_dark.nosarch_blue_dark import THEME  ### Change this import statement to change active theme
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 
 def get_current_theme() -> dict[str, str]:
@@ -15,7 +15,7 @@ class ThemingModule(decman.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="theming")
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
+        self._username: str = self._user_config.user.username
 
     @override
     def directories(self) -> dict[str, Directory]:

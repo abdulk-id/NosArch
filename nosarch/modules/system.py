@@ -14,7 +14,7 @@ import utils.paths
 from decman import File, Store
 from decman.core.output import print_info, print_list, prompt_confirm
 from decman.plugins import aur, pacman, systemd
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 
 class SystemModule(decman.Module):
@@ -22,7 +22,7 @@ class SystemModule(decman.Module):
         super().__init__(name="system")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
+        self._username: str = self._user_config.user.username
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
@@ -35,8 +35,8 @@ class SystemModule(decman.Module):
         return {
             "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
             "%USER%": self._username,
-            "%FULLNAME%": self._user_config.get_str("user.fullname"),
-            "%GIT_EMAIL%": self._user_config.get_str("user.git_email"),
+            "%FULLNAME%": self._user_config.user.fullname,
+            "%GIT_EMAIL%": self._user_config.user.git_email,
         }
 
     @override
@@ -267,7 +267,7 @@ class SystemModule(decman.Module):
             "zram-generator",
         }
 
-        if self._user_config.get_bool("system.enable_lts_kernel"):
+        if self._user_config.system.enable_lts_kernel:
             system_set.add("linux-lts")
             system_set.add("linux-lts-headers")
 

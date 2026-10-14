@@ -1,4 +1,4 @@
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 desktop_mimes: dict[str, str] = {
     "inode/directory": "org.gnome.Nautilus.desktop",
@@ -74,7 +74,7 @@ def get_mimeapps_content() -> str:
     for mime, app in desktop_mimes.items():
         lines.append(f"{mime}={app}")
 
-    if UserConfigReader().get_bool("setups.dev.enabled"):
+    if UserConfigReader.load().setups.dev.enabled:
         lines.append("\t")
         for mime, app in dev_mimes.items():
             lines.append(f"{mime}={app}")

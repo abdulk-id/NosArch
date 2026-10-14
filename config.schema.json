@@ -37,7 +37,7 @@
                         },
                         "enable_virtualization": {
                             "type": "boolean",
-                            "description": "Enable to setup NosArch for running Virtual Machines",
+                            "description": "Setup NosArch for running Virtual Machines",
                             "default": false
                         }
                     }
@@ -73,7 +73,8 @@
                                     { "const": "pi", "title": "Pi" }
                                 ]
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         },
                         "apps": {
                             "type": "array",
@@ -89,7 +90,8 @@
                                     { "const": "opencode-desktop", "title": "OpenCode Desktop" }
                                 ]
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         },
                         "control-planes": {
                             "type": "array",
@@ -119,7 +121,8 @@
                                     }
                                 ]
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         }
                     }
                 },
@@ -148,7 +151,8 @@
                                 "type": "string",
                                 "enum": ["code-oss", "codium", "jetbrains", "neovim", "vscode", "zed"]
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         },
                         "languages": {
                             "type": "array",
@@ -168,7 +172,8 @@
                                     "zig"
                                 ]
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         }
                     }
                 },
@@ -197,7 +202,8 @@
                             "items": {
                                 "type": "string"
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         }
                     }
                 },
@@ -210,7 +216,8 @@
                             "items": {
                                 "type": "string"
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         }
                     }
                 },
@@ -228,7 +235,8 @@
                             "items": {
                                 "type": "string"
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         },
                         "install-user-packages": {
                             "type": "array",
@@ -236,7 +244,8 @@
                             "items": {
                                 "type": "string"
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         }
                     }
                 },
@@ -254,7 +263,8 @@
                             "items": {
                                 "type": "string"
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         },
                         "install-formulae": {
                             "type": "array",
@@ -262,7 +272,8 @@
                             "items": {
                                 "type": "string"
                             },
-                            "uniqueItems": true
+                            "uniqueItems": true,
+                            "default": []
                         }
                     }
                 },
@@ -282,7 +293,8 @@
                             },
                             "propertyNames": {
                                 "type": "string"
-                            }
+                            },
+                            "default": {}
                         },
                         "install-classic-snaps": {
                             "type": "object",
@@ -292,7 +304,8 @@
                             },
                             "propertyNames": {
                                 "type": "string"
-                            }
+                            },
+                            "default": {}
                         }
                     }
                 }

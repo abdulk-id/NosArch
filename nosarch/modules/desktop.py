@@ -9,7 +9,7 @@ import utils.hardware.gpu_vendor
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman, systemd
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 _gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
@@ -19,7 +19,7 @@ class DesktopModule(decman.Module):
         super().__init__(name="desktop")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
+        self._username: str = self._user_config.user.username
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/desktop-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(

@@ -2,9 +2,10 @@
 ruff = "latest"
 pre-commit = "latest"
 
+# === Tasks ===
 [tasks.setup]
 description = "Set up the development environment"
-run = "pre-commit install"
+run = ["mise install", "pre-commit install"]
 
 # Formatting ===
 [tasks.lint]
@@ -15,15 +16,25 @@ run = "ruff check ."
 description = "Apply Ruff's lint fixes and formatting"
 run = "ruff check --fix . && ruff format ."
 
-# Dry Run tasks ===
-[tasks.dry-run-files]
-description = "Dry run Decman for file changes only (skipping checks)"
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files --dry-run"
+# Coding ---
+[tasks.config-schema]
+description = "Generate `config.schema.json` from the config data classes"
+run = "python3 utils/config_schema_generator.py"
 
-[tasks.dry-run-quick]
-description = "Dry run Decman (skipping checks)"
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --dry-run"
+# Tests ---
+[tasks.test-all]
+description = "Run all tests"
+run = ["mise test-config"]
 
-[tasks.apply-files]
-description = "Deploy Decman file changes (skipping checks)"
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E decman --only files"
+[tasks.test-config]
+description = "Test config.schema.json match the config data classes"
+run = "python3 tests/test_config_schema.py"
+
+# Decman tasks ---
+[tasks.dm-nochk]
+# Allows running decman and skipping pre-checks with just `mise dm-nochk`.
+# More flags such as `--dry-run` are to be added in front of `mise dm-nochk`.
+description = "Run decman and skip pre-checks (add any flags in front of this)"
+raw_args = true
+env.NOSARCH_DECMAN_SKIP_CHECKS = 1
+run = "sudo -E decman"

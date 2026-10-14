@@ -114,6 +114,9 @@ class AISetupModule(decman.Module):
         if "mimocode" in self._agents:
             custom_pkgs.add(utils.custom_packages.package("mimocode-nosarch"))
 
+        if "muse-code" in self._agents:
+            custom_pkgs.add(utils.custom_packages.package("muse-code-nosarch"))
+
         # Apps
         if "cursor-desktop" in self._apps:
             custom_pkgs.add(utils.custom_packages.package("cursor-desktop-nosarch"))
@@ -149,6 +152,7 @@ class AISetupModule(decman.Module):
 # - gemini-cli -> pacman.packages
 # - grok-build -> aur.custom_packages
 # - kilocode -> aur.packages
+# - muse-code -> aur.custom_packages
 # - omp -> aur.custom_packages
 # - opencode -> pacman.packages
 # - pi -> aur.custom_packages

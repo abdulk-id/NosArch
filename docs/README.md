@@ -23,7 +23,8 @@ module declares anymore. Custom packages are regular pacman packages built from 
 - Custom decman plugins: `nosarch/plugins/`.
 - Helpers used by the decman source: `nosarch/utils/`.
 - Dotfiles deployed by decman: `dotfiles/`, with a separate mirrored root per module.
-- JSON schema for the NosArch config: `config.schema.json`.
+- JSON schema for the NosArch config: `config.schema.json`, generated from the classes in `nosarch/user_config.py`
+  by `utils/config_schema_generator.py`.
 - Repo maintenance and test scripts: `tools/`.
 
 ### Internal docs

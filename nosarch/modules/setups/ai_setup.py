@@ -5,7 +5,7 @@ import utils.custom_packages
 import utils.paths
 from decman import File
 from decman.plugins import aur, pacman
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 
 class AISetupModule(decman.Module):
@@ -13,10 +13,10 @@ class AISetupModule(decman.Module):
         super().__init__(name="ai_setup")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
-        self._agents: list[str] = self._user_config.get_str_list("setups.ai.agents")
-        self._apps: list[str] = self._user_config.get_str_list("setups.ai.apps")
-        self._control_planes: list[str] = self._user_config.get_str_list("setups.ai.control-planes")
+        self._username: str = self._user_config.user.username
+        self._agents: list[str] = self._user_config.setups.ai.agents
+        self._apps: list[str] = self._user_config.setups.ai.apps
+        self._control_planes: list[str] = self._user_config.setups.ai.control_planes
 
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/ai-setup-root", self._username

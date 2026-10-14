@@ -23,8 +23,8 @@ The four setup modules live in `nosarch/modules/setups/`, the three packaging mo
 `nosarch/modules/packaging/`, and the rest are one file each in `nosarch/modules/`. `BasicSetupModule` is a setup that
 predates the split, so it sits in `nosarch/modules/basic_setup.py` rather than in `setups/`.
 
-`Enabled by` is the key in `config.schema.json`, and it is the `enabled` boolean inside that section rather than the
-section itself. The module is registered when that key is true.
+`Enabled by` is the `enabled` yes/no setting on that section of the config classes in `nosarch/user_config.py`.
+`config.schema.json` is generated from those classes. The module is registered when that setting is true.
 
 The `UserDefinedModule` (`nosarch/modules/user_defined.py`) installs packages the user listed in the config file, so
 decman does not remove them.

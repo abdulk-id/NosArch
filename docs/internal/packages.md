@@ -20,27 +20,27 @@ from plugins import homebrew, snap
 
 @pacman.packages
 def arch_pkgs(self) -> set[str]:
-    return set(self._user_config.get_str_list("packaging.arch.install-packages"))
+    return set(self._user_config.packaging.arch.install_packages)
 
 @aur.packages
 def aur_pkgs(self) -> set[str]:
-    return set(self._user_config.get_str_list("packaging.aur.install-packages"))
+    return set(self._user_config.packaging.aur.install_packages)
 
 @flatpak.packages
 def flatpak_pkgs(self) -> set[str]:
-    return set(self._user_config.get_str_list("packaging.flatpak.install-packages"))
+    return set(self._user_config.packaging.flatpak.install_packages)
 
 @flatpak.user_packages
 def flatpak_user_pkgs(self) -> dict[str, set[str]]:
-    return {self._username: set(self._user_config.get_str_list("packaging.flatpak.install-user-packages"))}
+    return {self._username: set(self._user_config.packaging.flatpak.install_user_packages)}
 
 @homebrew.formulae
 def brew_formulae(self) -> set[str]:
-    return set(self._user_config.get_str_list("packaging.homebrew.install-formulae"))
+    return set(self._user_config.packaging.homebrew.install_formulae)
 
 @snap.snaps
 def snap_pkgs(self) -> dict[str, str]:
-    return self._user_config.get_str_dict("packaging.snap.install-snaps")
+    return self._user_config.packaging.snap.install_snaps
 ```
 
 A gated packaging method's declarations return nothing while its key is false, so a config listing packages for a

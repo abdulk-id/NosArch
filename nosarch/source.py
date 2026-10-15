@@ -3,6 +3,7 @@ import decman.core.output
 import utils.aur_chroot
 from decman.extras.users import User, UserManager
 from decman.plugins import flatpak as flatpak_plugin
+from decman.plugins.aur import CustomPackage
 from modules.basic_setup import BasicSetupModule
 from modules.desktop import DesktopModule
 from modules.packaging.flatpak import FlatpakModule
@@ -46,6 +47,8 @@ else:
 # ===
 
 # Decman configuration ===
+decman.aur.custom_packages |= {CustomPackage("decman", git_url="https://github.com/kiviktnm/decman-pkgbuild.git")}
+
 decman.config.arch = "x86_64"
 decman.execution_order = ["files", "pacman", "aur", "systemd"]
 

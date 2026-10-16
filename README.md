@@ -1,6 +1,6 @@
 # NosArch
 
-NosArch is an Arch Linux dotfile and system configuration repo managed by [Decman](https://github.com/kiviktnm/decman).
+NosArch is a single-user Arch-based Linux system.
 
 ## Usage
 

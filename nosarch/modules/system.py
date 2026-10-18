@@ -314,7 +314,12 @@ class SystemModule(decman.Module):
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def system_aur_packages(self) -> set[str]:
-        return {"limine-mkinitcpio-hook", "limine-snapper-sync", "yay-bin"}
+        return {
+            "decman",  # Decman itself
+            "limine-mkinitcpio-hook",
+            "limine-snapper-sync",
+            "yay-bin",
+        }
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def system_services(self) -> set[str]:

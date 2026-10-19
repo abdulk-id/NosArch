@@ -53,6 +53,7 @@ class SystemModule(decman.Module):
                 "/etc/sddm.conf.d/10-wayland.conf",
                 "/etc/NetworkManager/conf.d/wifi-powersave.conf",
                 "/etc/pacman.d/hooks/05-nosarch-package-backup.hook",
+                "/etc/pam.d/sddm",
                 "/etc/plymouth/plymouthd.conf",
                 "/etc/snapper/configs/root",
                 "/etc/sysctl.d/90-sysctl.conf",
@@ -376,6 +377,10 @@ class SystemModule(decman.Module):
                 systemd_set.add("intel_lpmd.service")
 
         return systemd_set
+
+    @systemd.user_units
+    def system_user_services(self) -> dict[str, set[str]]:
+        return {self._username: {"gnome-keyring-daemon.service", "gcr-ssh-agent.socket"}}
 
     # `before_update` hook actions ---
     def _release_display_manager_alias(self) -> None:

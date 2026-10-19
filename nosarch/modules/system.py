@@ -48,8 +48,9 @@ class SystemModule(decman.Module):
             self._dotfiles.tracked_files(
                 self._tracker,
                 "/etc/default/limine",
-                "/etc/greetd/config.toml",
                 "/etc/modules-load.d/zram.conf",
+                "/etc/sddm.conf.d/10-theme.conf",
+                "/etc/sddm.conf.d/10-wayland.conf",
                 "/etc/NetworkManager/conf.d/wifi-powersave.conf",
                 "/etc/pacman.d/hooks/05-nosarch-package-backup.hook",
                 "/etc/plymouth/plymouthd.conf",
@@ -116,6 +117,29 @@ class SystemModule(decman.Module):
             )
         )
 
+        ## SDDM greeter
+        files.update(self._dotfiles.tracked_files(self._tracker, "/usr/share/sddm/hyprland.lua"))
+        files.update(
+            self._dotfiles.tracked_files(
+                self._tracker,
+                "/usr/share/sddm/themes/nosarch/metadata.desktop",
+                "/usr/share/sddm/themes/nosarch/theme.conf",
+                "/usr/share/sddm/themes/nosarch/Main.qml",
+            )
+        )
+        files.update(
+            self._dotfiles.tracked_files(
+                self._tracker,
+                "/usr/share/sddm/themes/nosarch/bullet.png",
+                "/usr/share/sddm/themes/nosarch/entry-failed.png",
+                "/usr/share/sddm/themes/nosarch/entry.png",
+                "/usr/share/sddm/themes/nosarch/lock-failed.png",
+                "/usr/share/sddm/themes/nosarch/lock.png",
+                "/usr/share/sddm/themes/nosarch/logo.png",
+                bin_file=True,
+            )
+        )
+
         ## NosArch scripts
         files.update(
             self._dotfiles.tracked_files(
@@ -150,6 +174,10 @@ class SystemModule(decman.Module):
         )
 
         return files
+
+    @override
+    def before_update(self, store: Store) -> None:
+        self._release_display_manager_alias()
 
     @override
     def on_change(self, store: Store) -> None:
@@ -220,6 +248,10 @@ class SystemModule(decman.Module):
             # systemd-logind has no ExecReload, and restarting it disturbs active sessions.
             needs_reboot.append("logind configuration")
 
+        if changed_files_in("/etc/sddm.conf.d", "/usr/share/sddm"):
+            # SDDM reads this when the greeter starts. Restarting the display manager here ends the session.
+            needs_reboot.append("SDDM configuration")
+
         if not needs_reboot:
             return
 
@@ -247,8 +279,6 @@ class SystemModule(decman.Module):
             "exfatprogs",
             "f2fs-tools",
             "git",
-            "greetd",
-            "greetd-tuigreet",
             "kernel-modules-hook",
             "limine",
             "linux",
@@ -257,6 +287,7 @@ class SystemModule(decman.Module):
             "nano",
             "memtest86+-efi",
             "plymouth",
+            "sddm",
             "snapper",
             "sudo",
             "systemd-resolvconf",
@@ -326,8 +357,8 @@ class SystemModule(decman.Module):
         systemd_set: set[str] = {
             "apparmor.service",
             "bluetooth.service",
-            "greetd.service",
             "limine-snapper-sync.service",
+            "sddm.service",
             "NetworkManager.service",
             "snapper-cleanup.timer",
             "udisks2.service",
@@ -346,10 +377,26 @@ class SystemModule(decman.Module):
 
         return systemd_set
 
+    # `before_update` hook actions ---
+    def _release_display_manager_alias(self) -> None:
+        alias = "/etc/systemd/system/display-manager.service"
+        if not os.path.islink(alias):
+            return
+
+        target_unit = os.path.basename(os.path.realpath(alias))
+        if target_unit == "sddm.service":
+            return
+
+        # greetd and sddm both install Alias=display-manager.service. The systemd plugin enables new units
+        # before it disables old ones, and systemctl enable leaves an existing alias in place. Disabling the
+        # current greeter removes the alias and leaves that greeter running.
+        print_info(f"Disabling {target_unit} so SDDM can own display-manager.service.")
+        _ = decman.prg(["systemctl", "disable", target_unit])
+
     # `after_update` hook actions ---
     def _update_limine_conf_settings(self) -> None:
         path = "/boot/limine.conf"
-        settings: dict[str, str] = {"timeout": "3", "default_entry": "linux"}
+        settings: dict[str, str] = {"timeout": "3", "default_entry": "2"}
 
         with open(path, "r", encoding="utf-8") as f:
             lines: list[str] = f.readlines()

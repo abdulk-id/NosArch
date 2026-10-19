@@ -7,7 +7,6 @@ These data classes are the source of truth. Each setting lives on a field, inclu
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import MISSING, Field, dataclass, field, fields, is_dataclass
 from pathlib import Path
 from typing import Any, ClassVar, Protocol, TypeVar, get_origin, get_type_hints
@@ -320,12 +319,8 @@ def to_json(config: Any) -> dict[str, Any]:
 
 
 def _default_config_path() -> Path:
-    sudo_user: str | None = os.environ.get("SUDO_USER")
-    if sudo_user and sudo_user != "root":
-        home = os.path.expanduser(f"~{sudo_user}")
-    else:
-        home = os.path.expanduser("~")
-    return Path(home) / ".nosarch_config.json"
+    # Root-owned: single-user setup, one config for the (one) system.
+    return Path("/etc/nosarch/config.json")
 
 
 def _convert(hint: Any, value: Any, path: str, config_field: Any) -> Any:

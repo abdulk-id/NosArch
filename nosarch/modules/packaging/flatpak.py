@@ -55,9 +55,11 @@ class FlatpakModule(decman.Module):
         import decman
         import decman.core.output
 
-        # The config's username is not reachable from here: decman lifts this function's source into a
-        # standalone script that can only use builtins and what it imports itself.
-        username: str = os.environ.get("SUDO_USER", "root")
+        # decman lifts this function into a standalone script, so read the username from the
+        # root-owned config file instead of relying on SUDO_USER.
+        from user_config import UserConfigReader
+
+        username: str = UserConfigReader.load().user.username
 
         # Uninstall with Flatpak first so it drops its own runtimes and export entries before the directories go.
         # `check=False` because anything this fails to remove is still deleted by path below.

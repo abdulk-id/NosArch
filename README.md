@@ -11,7 +11,7 @@ NosArch is a single-user Arch-based Linux system.
     git clone https://github.com/abdulk-id/NosArch ~/NosArch
     ```
 
-3. Configure NosArch in `~/.nosarch_config.json`. Use [`config.schema.json`](config.schema.json) for validating the config JSON.
+3. Configure NosArch in `/etc/nosarch/config.json`. Use [`config.schema.json`](config.schema.json) for validating the config JSON.
 4. Run decman:
 
     ```sh

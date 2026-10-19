@@ -13,9 +13,16 @@
 #
 # The paths below mirror each module's on_disable. Keep the two in step.
 
-# The user the leftover data belongs to. Running under sudo makes $HOME root's, and these
-# paths are per-user for a reason.
-CLEANUP_USER=${SUDO_USER:-$(id -un)}
+# The user the leftover data belongs to. NosArch is single-user, so read the configured
+# username from the root-owned config file; fall back to the one human account on the
+# system if it is unavailable.
+if [ -r /etc/nosarch/config.json ] && command -v python3 >/dev/null 2>&1; then
+    CLEANUP_USER=$(python3 -c 'import json; print(json.load(open("/etc/nosarch/config.json"))["user"]["username"])' 2>/dev/null)
+fi
+if [ -z "${CLEANUP_USER:-}" ]; then
+    CLEANUP_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' /etc/passwd)
+fi
+: "${CLEANUP_USER:=root}"
 CLEANUP_HOME=/home/$CLEANUP_USER
 
 # System paths first, so they read as the thing being cleaned before the home directories.

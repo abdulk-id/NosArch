@@ -11,8 +11,8 @@ import utils.paths
 import utils.session
 import utils.session_changes
 from decman import File
-from decman.plugins import aur, flatpak, pacman, systemd
-from utils.user_config_reader import UserConfigReader
+from decman.plugins import aur, pacman, systemd
+from user_config import UserConfigReader
 
 _gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
@@ -22,7 +22,7 @@ class DesktopModule(decman.Module):
         super().__init__(name="desktop")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
+        self._username: str = self._user_config.user.username
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/desktop-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
@@ -52,7 +52,6 @@ class DesktopModule(decman.Module):
                 "/.config/hypr/app-windows/chromium.lua",
                 "/.config/hypr/app-windows/core.lua",
                 "/.config/hypr/app-windows/firefox.lua",
-                "/.config/hypr/app-windows/gearlever.lua",
                 "/.config/hypr/app-windows/localsend.lua",
                 "/.config/hypr/app-windows/nosarch-dash.lua",
                 "/.config/hypr/app-windows/qemu.lua",
@@ -93,6 +92,7 @@ class DesktopModule(decman.Module):
             self._userhome_dotfiles.files(
                 "/.config/btop/btop.conf",
                 "/.config/elephant/menus/capture.lua",
+                "/.config/elephant/menus/installing.lua",
                 "/.config/elephant/menus/main.lua",
                 "/.config/elephant/menus/packages.lua",
                 "/.config/elephant/menus/power.lua",
@@ -122,6 +122,7 @@ class DesktopModule(decman.Module):
         )
 
         # ~/.local/ files
+        files.update(self._userhome_dotfiles.files("/.local/share/applications/nosarch-appimage-installer.desktop"))
         files.update(
             self._userhome_dotfiles.tracked_files(
                 self._tracker,
@@ -336,8 +337,6 @@ class DesktopModule(decman.Module):
             "fcitx5-gtk",
             "fcitx5-qt",
             "ffmpeg",  # Used for webcam recording
-            "flatpak",
-            "flatseal",  # Flatpak permission manager
             "ghostty",
             "gnome-text-editor",
             "gpu-screen-recorder",  # Used for screen recording
@@ -488,12 +487,6 @@ class DesktopModule(decman.Module):
         return merged_set
 
     decman.aur.ignored_packages |= {"xdg-terminal-exec", "nosarch-dash-bin"}
-
-    @flatpak.packages  # pyright: ignore[reportUnknownMemberType]
-    def flatpak_pkgs(self) -> set[str]:
-        return {
-            "it.mijorus.gearlever"  # AppImage Manager
-        }
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def desktop_services(self) -> set[str]:

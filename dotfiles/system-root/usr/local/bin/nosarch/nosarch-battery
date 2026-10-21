@@ -1,5 +1,7 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Set power profiles from the power state
+# nosarch:hidden=true
 
 set -eu
 

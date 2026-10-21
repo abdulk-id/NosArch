@@ -2,7 +2,7 @@
 
 NosArch is responsible for deploying dotfiles to the system. The dotfiles all live under `/dotfiles`, with each
 [module](modules.md) keeping a separate mirrored-root. For example: files managed by the desktop module are stored in
-`/dotfiles/desktop-root/...`, and dev module's files in `/dotfiles/dev-root/...`.
+`/dotfiles/desktop-root/...`, and dev module's files in `/dotfiles/dev-setup-root/...`.
 
 Hidden files and directories are stored with a `dot_` prefix (For example: `dot_bashrc`, `dot_config/hypr/`)
 
@@ -22,14 +22,13 @@ This is more verbose, and this is deliberate:
 - **Nothing deploys by accident:** A `Directory()` ships whatever is in the source tree, so an editor backup, a `.orig`
   from a merge, or a half-finished file lands on the system the moment it is saved. An undeclared file in `dotfiles/`
   is inert.
-- **Settings are per file, not per tree:** `Directory` applies one `owner`, one `permissions` and one `bin_files` to
-  everything it walks (`core/fs.py:429`). That cannot express a directory holding both templated text and binaries.
-    - The plymouth theme (system module) is the concrete case for this. `bin_file=True` disables variable substitution
-      (`core/fs.py:163`), so a single directory declaration would have forced a choice between corrupting the PNGs and
-      leaving `%ACCENT%` unsubstituted in `nosarch.script`
+- **Settings are per file, not per tree:** `Directory` applies one `owner`, `permissions` and `bin_files` to all files
+  it walks. That cannot express a directory holding both templated text and binaries.
+    - Example: The plymouth theme (system module). `bin_file=True` disables variable substitution so a single directory
+      declaration would mean corrupting the PNGs or leaving `%ACCENT%` unsubstituted in `nosarch.script`
 
-The only exception is the wallpapers directory in `ThemingModule`, because each theme can have a different number of
-wallpapers, and they don't have fixed names.
+Exception: The wallpapers directory in `ThemingModule`, because each theme can have a different number of wallpapers,
+and they don't have fixed names.
 
 ## Declaring
 
@@ -140,7 +139,7 @@ in `on_change` hooks.
 
 1. **`systemctl daemon-reload` first**: Everything below it reloads or restarts a unit, and those act on the manager's
    loaded state rather than on what is now on disk.
-2. **`systemctl daemon-reexec` next**:, for manager-level defaults.
+2. **`systemctl daemon-reexec` next**: for manager-level defaults.
 3. Everything cheap and independent, in any order.
 4. **`limine-mkinitcpio` second last:** It is a slow step (~30 seconds, doubled when the LTS kernel is enabled). If
    there are several triggers calling this, gather them rather than rebuilding per trigger.
@@ -174,8 +173,6 @@ def changed_files_in(*target_dirs: str) -> bool:
 
 Some files have no safe live path. For example: applying **zram** config changes means `swapoff` on an active device
 holding compressed pages, which can OOM the machine under memory pressure.
-
-Prompt with `decman.core.output.prompt_confirm`, guarded on `sys.stdin.isatty()` so a scripted install does not hang.
 
 `on_change` is skipped under `--dry-run` (`app.py:343`), so hooks need no dry-run handling of their own.
 
@@ -224,21 +221,6 @@ acting on one. Report skipped actions to the user rather than dropping them, sin
 
 Session applies are best-effort by nature: pass `check=False`, so a failed reload warns instead of failing the run.
 `utils/session.py` does this for every command it runs, and returns `False` when there is nothing to run in.
-
-## Path checking
-
-Dotfiles can reference each other by path (For example: a unit file points at a script, a udev rule points at a helper
-binary). Nothing keeps those references in sync with the modules that actually deploy the files, so a rename or a move
-can leave a reference pointing at a path nothing deploys any more. `tools/check_paths.py` scans every dotfile for
-paths under `/usr/local/bin` or `/usr/lib/nosarch`, and fails if any of them isn't a path some module actually
-declares. This check is ran on every invocation of decman.
-
-It checks the whole of `/usr/local/bin` and `/usr/lib/nosarch`, not just the subdirectories in current use, so a check
-like this only helps if the referenced path is spelled correctly in the first place. For example, a reference to
-`/usr/local/bin/uti/foo`, a typo for `/usr/local/bin/util/foo`, is a path under `/usr/local/bin` too, so the checker
-still looks for it.
-
-Manual `File` declarations ([Manually declaring files](#manually-declaring-files)) are not checked.
 
 ## Gotchas
 

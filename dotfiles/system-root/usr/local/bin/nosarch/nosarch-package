@@ -1,505 +1,413 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Install, update, and remove packages and AppImages
 
 set -eu
 
+PACKAGE_LIB_DIR="/usr/local/bin/util/package"
+
 . "/usr/local/bin/util/sudo-keepalive.sh"
+. "$PACKAGE_LIB_DIR/common.sh"
+
+# Shipped by SystemModule rather than by a packaging module, because it has to stay
+# available after a method's module is disabled. See the file itself.
+. "$PACKAGE_LIB_DIR/cleanup.sh"
+
+# Every packaging method nosarch-package can drive, in the order the remove picker lists and removes them.
+# Arch and AUR are defined below, so they have no library file and are skipped here. The rest ship with the module
+# that enables them, and are absent once that module is disabled, which is how the CLI follows the switch.
+PACKAGE_METHODS="arch aur appimage flatpak homebrew snap"
+
+for method in $PACKAGE_METHODS; do
+    if [ -f "$PACKAGE_LIB_DIR/$method.sh" ]; then
+        . "$PACKAGE_LIB_DIR/$method.sh"
+    fi
+done
 
 show_help() {
     cat <<EOF
 Usage:
-    nosarch-package <command> [actions]
+    nosarch-package install <method> [options]
+    nosarch-package update
+    nosarch-package remove
+    nosarch-package remove-unused
+    nosarch-package cleanup
+    nosarch-package <method> <command>
+    nosarch-package help
+EOF
 
-Commands:
-    install <action>        Install packages
-    update                  Update packages (Arch and AUR, and Flatpak and Homebrew if installed)
-    remove                  Remove packages (Arch and AUR, and Flatpak and Homebrew if installed)
-    remove-unused           Remove unused packages (Arch and AUR)
-    help                    Show this help message
+    printf '\nInstall methods:\n'
 
-Install actions:
-    arch                    Install packages from Arch repositories
-    aur                     Install packages from AUR
-    flatpak                 Install Flatpak packages
+    for method in $PACKAGE_METHODS; do
+        if command -v "${method}_install" >/dev/null 2>&1; then
+            printf '    %-24s %s\n' "$method" "$("${method}_summary")"
+        fi
+    done
+
+    cat <<'EOF'
+
+Method commands:
+    appimage list          List installed AppImages
+
+AppImage options:
+    --confirm               Ask before installing each file, then install it
+
+AppImages are not updated automatically. To update one, install the new file and remove the old one.
 EOF
 }
 
-## === Utilities ===
-_ensure_command() {
-    if ! command -v "$1" >/dev/null 2>&1; then
-        echo "Error: $1 is required but not found."
-        exit 1
-    fi
+## === Arch and AUR ===
+arch_summary() {
+    printf '%s\n' "Install packages from Arch repositories"
 }
 
-update_db() {
-    if command -v updatedb >/dev/null 2>&1; then
-        sudo updatedb
-    fi
+aur_summary() {
+    printf '%s\n' "Install packages from the AUR"
 }
 
-## === Features ===
-install_arch_packages() {
+# Registered twice rather than as one `[arch]|[aur]` arm: an arm is a literal case
+# pattern, so the two tags have to be spelled out separately.
+register_preview '[arch]' 'yay -Qi -- {3}'
+register_preview '[aur]' 'yay -Qi -- {3}'
+
+arch_install() {
+    for cmd in gum fzf; do
+        _ensure_command "$cmd"
+    done
+
+    candidates=$(pacman -Slq)
+
     fzf_output=$(
-        pacman -Slq | fzf \
-        --multi \
-        --preview 'pacman -Sii {1}' \
-        --preview-label='alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-        --preview-label-pos='bottom' \
-        --preview-window 'down:55%:wrap' \
-        --bind 'alt-p:toggle-preview' \
-        --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-        --bind 'alt-k:preview-up,alt-j:preview-down' \
-        --color 'pointer:green,marker:green'
+        fzf_select "$candidates" 'pacman -Sii {1}' --color 'pointer:green,marker:green'
     ) || return 0
 
     pkg_names=$(printf '%s\n' "$fzf_output" | tr '\n' ' ')
 
     if [ -n "$pkg_names" ]; then
-        gum style --foreground 10 "▸ Authenticating..."
-        echo
-
-        if ! start_sudo_keepalive; then
-            echo
-            gum style --foreground 9 "x Authentication failed."
-            return 1
-        fi
-        trap 'stop_sudo_keepalive' 0
-        echo
-
-        gum style --foreground 10 "▸ Installing packages..."
-        echo
-
-        if sudo pacman -S --needed --noconfirm $pkg_names; then
+        # shellcheck disable=SC2086
+        # pacman does not call sudo itself. with_sudo only keeps the credential alive.
+        if with_sudo sudo pacman -S --needed --noconfirm $pkg_names; then
             update_db
 
-            echo
             gum style --foreground 10 "✓ Installation complete!"
         else
-            echo
             gum style --foreground 9 "x Installation failed."
+            return 1
         fi
-
-        stop_sudo_keepalive
-        trap - 0
     fi
 }
 
-install_aur_packages() {
+aur_install() {
+    for cmd in gum fzf; do
+        _ensure_command "$cmd"
+    done
+
+    candidates=$(yay -Slqa)
+
     fzf_output=$(
-        yay -Slqa | fzf \
-            --multi \
-            --preview 'yay -Siia {1}' \
-            --preview-label='alt-p: toggle description, alt-b/B: toggle PKGBUILD, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos='bottom' \
-            --preview-window 'down:55%:wrap' \
-            --bind 'alt-p:toggle-preview' \
-            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-            --bind 'alt-k:preview-up,alt-j:preview-down' \
-            --bind 'alt-b:change-preview:yay -Gpa {1} | tail -n +5' \
-            --bind 'alt-B:change-preview:yay -Siia {1}' \
-            --color 'pointer:green,marker:green'
+        fzf_select "$candidates" 'yay -Siia {1}' --color 'pointer:green,marker:green'
     ) || return 0
 
     pkg_names=$(printf '%s\n' "$fzf_output" | tr '\n' ' ')
 
     if [ -n "$pkg_names" ]; then
-        gum style --foreground 10 "▸ Authenticating..."
-        echo
-
-        if ! start_sudo_keepalive; then
-            echo
-            gum style --foreground 9 "x Authentication failed."
-            return 1
-        fi
-        trap 'stop_sudo_keepalive' 0
-        echo
-
-        gum style --foreground 10 "▸ Installing AUR packages..."
-        echo
-
-        if yay -S --noconfirm $pkg_names; then
+        # shellcheck disable=SC2086
+        if with_sudo yay -S --noconfirm $pkg_names; then
             update_db
 
-            echo
             gum style --foreground 10 "✓ Installation complete!"
         else
-            echo
             gum style --foreground 9 "x Installation failed."
-        fi
-
-        stop_sudo_keepalive
-        trap - 0
-    fi
-
-}
-
-install_flatpak_packages() {
-    TAB_CHAR=$(printf '\t')
-
-    # APP_ID<TAB>NAME<TAB>DESCRIPTION
-    pkg_selection=$(
-        flatpak remote-ls --app --columns=application,name,description | \
-        awk -F "$TAB_CHAR" '
-            !seen[$1]++ {
-                printf "%s\t%s  (%s)\t%s\n", $1, $2, $1, $3
-            }
-        ' | \
-        sort -t "$TAB_CHAR" -k2,2f |
-        fzf \
-            --multi \
-            --delimiter="$TAB_CHAR" \
-            --with-nth=2 \
-            --preview 'printf "%s\n" "{}" | cut -f3' \
-            --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos 'bottom' \
-            --preview-window 'down:55%:wrap' \
-            --bind 'alt-p:toggle-preview' \
-            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-            --bind 'alt-k:preview-up,alt-j:preview-down' \
-            --color 'pointer:green,marker:green'
-    ) || return 0
-
-    if [ -n "$pkg_selection" ]; then
-        pkg_ids=$(printf '%s\n' "$pkg_selection" | cut -f1 | tr '\n' ' ')
-
-        gum style --foreground 10 "▸ Installing Flatpak packages..."
-        echo
-
-        if flatpak install --assumeyes $pkg_ids; then
-            echo
-            gum style --foreground 10 "✓ Installation complete!"
-        else
-            echo
-            gum style --foreground 9 "x Installation failed."
+            return 1
         fi
     fi
 }
 
-update_packages() {
+# `yay -Syu` upgrades the repositories and the AUR in one transaction, so there is no separate AUR step. It asks for
+# the password itself rather than going through with_sudo, since yay invokes sudo for the sync and again for the build.
+arch_update() {
+    _ensure_command gum
+    _ensure_command yay
+
     gum style --foreground 10 "▸ Authenticating..."
-    echo
 
     if ! start_sudo_keepalive; then
-        echo
-        gum style --foreground 9 "x Authentication failed."
+        report_error "Authentication failed."
         return 1
     fi
+
     trap 'stop_sudo_keepalive' 0
-
     echo
+
+    status=0
+
     gum style --foreground 10 "▸ Updating Arch and AUR packages..."
-    echo
 
-    if yay -Syu; then
+    if yay -Syu --noconfirm; then
         # yay -Syu = yay --sync --refresh --sysupgrade
-        # Also add:
         update_db
 
-        echo
         gum style --foreground 10 "✓ Arch and AUR packages updated!"
     else
-        echo
         gum style --foreground 9 "x Arch and AUR package update failed."
-    fi
-
-    if command -v flatpak >/dev/null 2>&1; then
-        echo
-        gum style --foreground 10 "▸ Updating Flatpak packages..."
-        echo
-
-        if flatpak update --assumeyes; then
-            echo
-            gum style --foreground 10 "✓ Flatpak packages updated!"
-        else
-            echo
-            gum style --foreground 9 "x Flatpak package update failed."
-        fi
+        status=1
     fi
 
     stop_sudo_keepalive
     trap - 0
 
-    # Homebrew does not require sudo
-    if command -v brew >/dev/null 2>&1; then
-        echo
-        gum style --foreground 10 "▸ Updating Homebrew packages..."
-        echo
+    return "$status"
+}
 
-        if brew update; then
-            echo
-            gum style --foreground 10 "✓ Homebrew packages updated!"
-        else
-            echo
-            gum style --foreground 9 "x Homebrew package update failed."
-        fi
+arch_entries() {
+    command -v yay >/dev/null 2>&1 || return 0
+
+    yay -Qeqn | awk '{print "[arch]\tarch\t" $0}'
+}
+
+# Removes the selected rows, whose package names are in column 3.
+arch_remove() {
+    pacman_pkgs=$(printf '%s\n' "$1" | cut -f 3 | tr '\n' ' ')
+
+    gum style --foreground 10 "▸ Removing Arch packages..."
+
+    # shellcheck disable=SC2086
+    if with_sudo sudo pacman -Rns --noconfirm $pacman_pkgs; then
+        gum style --foreground 10 "✓ Arch packages removed!"
+    else
+        gum style --foreground 9 "x Arch removal failed."
+        return 1
     fi
+}
+
+arch_remove_unused() {
+    gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
+
+    orphans=$(pacman -Qdtq || true)
+
+    if [ -z "$orphans" ]; then
+        gum style --foreground 10 "✓ No unused Arch/AUR packages found!"
+    elif printf '%s\n' "$orphans" | with_sudo sudo pacman -Rns --noconfirm -; then
+        gum style --foreground 10 "✓ Unused Arch/AUR packages removed!"
+    else
+        gum style --foreground 9 "x Removing unused Arch/AUR packages failed."
+        return 1
+    fi
+}
+
+aur_entries() {
+    command -v yay >/dev/null 2>&1 || return 0
+
+    yay -Qeqm | awk '{print "[aur]\taur\t" $0}'
+}
+
+# Removes the selected rows. `yay -Rns` handles an AUR package's build files and
+# dependencies, which `pacman -Rns` alone would leave behind.
+aur_remove() {
+    aur_pkgs=$(printf '%s\n' "$1" | cut -f 3 | tr '\n' ' ')
+
+    gum style --foreground 10 "▸ Removing AUR packages..."
+
+    # shellcheck disable=SC2086
+    if with_sudo yay -Rns --noconfirm $aur_pkgs; then
+        gum style --foreground 10 "✓ AUR packages removed!"
+    else
+        gum style --foreground 9 "x AUR removal failed."
+        return 1
+    fi
+}
+
+# pacman -Qdtq already reports AUR packages that nothing depends on, since it reads the same installed set, so AUR has
+# no orphan step of its own.
+
+## === Aggregate commands ===
+
+# update and remove-unused have nothing to merge across methods, so each method runs its own.
+# remove is not here: it builds one picker across every method.
+run_for_each_method() {
+    verb=$1
+    status=0
+
+    for method in $PACKAGE_METHODS; do
+        if command -v "${method}_${verb}" >/dev/null 2>&1; then
+            if ! "${method}_${verb}"; then
+                status=1
+            fi
+
+            echo
+        fi
+    done
+
+    return "$status"
 }
 
 remove_packages() {
-    TAB_CHAR=$(printf '\t')
+    _ensure_command gum
+    _ensure_command fzf
 
-    # entry format: "[display type] - \t - internal type - \t - package name"
-    # Internal type is for separating homebrew casks and formulae. It is not displayed.
     entries=$(
-        {
-            yay -Qeqn | awk '{print "[arch]\tarch\t" $0}'
-            yay -Qeqm | awk '{print "[aur]\taur\t" $0}'
-
-            if command -v flatpak >/dev/null 2>&1; then
-                flatpak list --app --columns=application | awk '{print "[flatpak]\tflatpak\t" $0}'
+        for method in $PACKAGE_METHODS; do
+            if command -v "${method}_entries" >/dev/null 2>&1; then
+                "${method}_entries"
             fi
-
-            if command -v brew >/dev/null 2>&1; then
-                brew list --formula --installed-on-request | awk '{print "[brew]\tformula\t" $0}'
-
-                brew list --cask | awk '{print "[brew]\tcask\t" $0}'
-            fi
-        } | sort -t"$TAB_CHAR" -k3,3 -f
+        done | sort -t"$TAB_CHAR" -k3,3 -f
     )
 
+    if [ -z "$entries" ]; then
+        gum style --foreground 10 "No packages to remove."
+        return 0
+    fi
+
+    # === Entry columns, for reference ===
+    #
+    # Every row of `entries` above is tab-separated, and each packaging method fills in
+    # the columns it needs. {n} below is how fzf addresses them, so the numbering is the
+    # one that matters when reading the --preview block:
+    #
+    #   1  display type   "[arch]", "[aur]", "[flatpak]", "[appimage]", "[homebrew]", "[snap]"
+    #                     Tag shown in the fzf list, and what the preview switches on.
+    #   2  internal type  "arch", "aur", "flatpak", "appimage", "formula", "cask", "snap"
+    #                     Hidden from the list (--with-nth 1,3). Only Homebrew needs it,
+    #                     to tell a cask from a formula; for everything else it repeats
+    #                     column 1 without the brackets.
+    #   3  name           The package name, or the display name for AppImages. This is
+    #                     what the user sees, what the list is sorted by (-k3,3), and
+    #                     what gets passed to the package manager. Used by every method.
+    #   4  (AppImages)    Registry id, used to delete the ~/.local/bin symlink. Only
+    #                     AppImage rows carry it.
+    #   5  (AppImages)    Path to the generated .desktop file, so the preview can show
+    #                     the entry rather than rebuild its path. Only AppImage rows
+    #                     carry it.
+    #
+    # Columns 4 and 5 are unset for the other methods, which need only the name.
+    #
+    # Each method's rows are then handed back to that method's remove, which reads the
+    # columns it needs and ignores the rest.
+    #
+    # The preview cases come from the method libraries rather than being spelled out
+    # here. fzf runs --preview in a shell of its own, where nothing this script defined
+    # exists, so each library appends its own arm with `register_preview` while being
+    # sourced.
     selected=$(
-        printf '%s\n' "$entries" |
-        fzf \
-            --multi \
+        fzf_select "$entries" "
+            case {1} in
+${PREVIEW_CASES}
+                *)
+                    exit 0
+                    ;;
+            esac
+        " \
             --delimiter "$TAB_CHAR" \
             --with-nth 1,3 \
-            --preview '
-                case {1} in
-                    "[arch]"|"[aur]")
-                        yay -Qi -- {3}
-                        ;;
-                    "[flatpak]")
-                        flatpak info {3}
-                        ;;
-                    "[brew]")
-                        case {2} in
-                            formula)
-                                brew info --formula {3}
-                                ;;
-                            cask)
-                                brew info --cask {3}
-                                ;;
-                        esac
-                        ;;
-                esac
-            ' \
-            --preview-label 'alt-p: toggle description, alt-j/k: scroll description, tab: multi-select' \
-            --preview-label-pos 'bottom' \
-            --preview-window 'down:55%:wrap' \
-            --bind 'alt-p:toggle-preview' \
-            --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-            --bind 'alt-k:preview-up,alt-j:preview-down' \
             --color 'pointer:red,marker:red'
     ) || return 0
 
-    [ -z "$selected" ] && return 0
+    [ -n "$selected" ] || return 0
 
-    pacman_pkgs=$(
-        printf '%s\n' "$selected" |
-        awk -F '\t' '$1 == "[arch]" || $1 == "[aur]" { print $3 }' |
-        tr '\n' ' '
-    )
+    status=0
 
-    flatpak_pkgs=$(
-        printf '%s\n' "$selected" |
-        awk -F '\t' '$1 == "[flatpak]" { print $3 }' |
-        tr '\n' ' '
-    )
-
-    homebrew_formulae=$(
-        printf '%s\n' "$selected" |
-        awk -F '\t' '$1 == "[brew]" && $2 == "formula" { print $3 }' |
-        tr '\n' ' '
-    )
-
-    homebrew_casks=$(
-        printf '%s\n' "$selected" |
-        awk -F '\t' '$1 == "[brew]" && $2 == "cask" { print $3 }' |
-        tr '\n' ' '
-    )
-
-    # Flatpak & Homebrew don't require sudo, so only authenticate for Arch/AUR removals.
-    if [ -n "$pacman_pkgs" ]; then
-        gum style --foreground 10 "▸ Authenticating..."
-        echo
-
-        if ! start_sudo_keepalive; then
-            echo
-            gum style --foreground 9 "x Authentication failed."
-            return 1
+    for method in $PACKAGE_METHODS; do
+        if ! command -v "${method}_remove" >/dev/null 2>&1; then
+            continue
         fi
 
-        trap 'stop_sudo_keepalive' 0
-        echo
-    fi
+        rows=$(
+            printf '%s\n' "$selected" |
+                awk -F "$TAB_CHAR" -v tag="[$method]" '$1 == tag'
+        )
 
-    success=true
-
-    if [ -n "$pacman_pkgs" ]; then
-        gum style --foreground 10 "▸ Removing Arch/AUR packages..."
-        echo
-
-        if yay -Rns --noconfirm $pacman_pkgs; then
-            echo
-            gum style --foreground 10 "✓ Arch/AUR packages removed!"
-        else
-            echo
-            gum style --foreground 9 "x Arch/AUR removal failed."
-            success=false
+        if [ -z "$rows" ]; then
+            continue
         fi
-        echo
-    fi
 
-    if [ -n "$flatpak_pkgs" ]; then
-        gum style --foreground 10 "▸ Removing Flatpak packages..."
-        echo
-
-        if flatpak uninstall --assumeyes $flatpak_pkgs; then
-            echo
-            gum style --foreground 10 "✓ Flatpak packages removed!"
-        else
-            echo
-            gum style --foreground 9 "x Flatpak removal failed."
-            success=false
+        if ! "${method}_remove" "$rows"; then
+            status=1
         fi
+
         echo
-    fi
+    done
 
-    if [ -n "$homebrew_formulae" ]; then
-        gum style --foreground 10 "▸ Removing Homebrew formulae..."
-        echo
-
-        if brew uninstall --formula $homebrew_formulae; then
-            echo
-            gum style --foreground 10 "✓ Homebrew formulae removed!"
-        else
-            echo
-            gum style --foreground 9 "x Homebrew formula removal failed."
-            success=false
-        fi
-        echo
-    fi
-
-    if [ -n "$homebrew_casks" ]; then
-        gum style --foreground 10 "▸ Removing Homebrew casks..."
-        echo
-
-        if brew uninstall --cask $homebrew_casks; then
-            echo
-            gum style --foreground 10 "✓ Homebrew casks removed!"
-        else
-            echo
-            gum style --foreground 9 "x Homebrew cask removal failed."
-            success=false
-        fi
-        echo
-    fi
-
-    stop_sudo_keepalive
-    trap - 0
-
-    $success
+    return "$status"
 }
 
-remove_unused_packages() {
-    gum style --foreground 10 "▸ Removing unused Arch/AUR packages..."
-    echo
-
-    if pacman -Qdtq | sudo pacman -Rns --noconfirm -; then
-        echo
-        gum style --foreground 10 "✓ Unused Arch/AUR packages removed!"
-    else
-        echo
-        gum style --foreground 9 "x Removing unused Arch/AUR packages failed."
-    fi
-
-    if command -v flatpak >/dev/null 2>&1; then
-        echo
-        gum style --foreground 10 "▸ Removing unused Flatpak packages..."
-        echo
-
-        if flatpak uninstall --system --unused --assumeyes; then
-            echo
-            gum style --foreground 10 "✓ Unused Flatpak packages removed!"
-        else
-            echo
-            gum style --foreground 9 "x Removing unused Flatpak packages failed."
+# The install methods this machine can actually use right now, one per line. The install
+# menu builds itself from this, so a method whose module is disabled or whose runtime is
+# absent never appears there. A method that defines no `available` is always usable.
+list_methods() {
+    for method in $PACKAGE_METHODS; do
+        if ! command -v "${method}_install" >/dev/null 2>&1; then
+            continue
         fi
 
-        if flatpak uninstall --user --unused --assumeyes; then
-            echo
-            gum style --foreground 10 "✓ Unused Flatpak user packages removed!"
-        else
-            echo
-            gum style --foreground 9 "x Removing unused Flatpak user packages failed."
+        if command -v "${method}_available" >/dev/null 2>&1; then
+            if ! "${method}_available"; then
+                continue
+            fi
         fi
-    fi
 
-    if command -v brew >/dev/null 2>&1; then
-        echo
-        gum style --foreground 10 "▸ Removing unused Homebrew packages..."
-        echo
-
-        if brew cleanup; then
-            echo
-            gum style --foreground 10 "✓ Unused Homebrew packages removed!"
-        else
-            echo
-            gum style --foreground 9 "x Removing unused Homebrew packages failed."
-        fi
-    fi
+        printf '%s\n' "$method"
+    done
 }
 
-
-## ===
 main() {
     if [ "$#" -eq 0 ]; then
         show_help
-        return
+        return 0
     fi
 
-    case "${1:-}" in
-        install)
-            case "${2:-}" in
-                arch)
-                    install_arch_packages
-                    ;;
-                aur)
-                    install_aur_packages
-                    ;;
-                flatpak)
-                    install_flatpak_packages
-                    ;;
-                *)
-                    echo "Unknown install action: $2"
-                    show_help
-                    exit 1
-                    ;;
-            esac
-            ;;
+    case "$1" in
         update)
-            update_packages
+            run_for_each_method update
             ;;
         remove)
             remove_packages
             ;;
         remove-unused)
-            remove_unused_packages
+            run_for_each_method remove_unused
+            ;;
+        cleanup)
+            cleanup
+            ;;
+        list-methods)
+            list_methods
+            ;;
+        install)
+            shift
+            method=${1:-}
+
+            if [ -z "$method" ]; then
+                echo "Usage: nosarch-package install <method> [options]" >&2
+                show_help >&2
+                exit 1
+            fi
+
+            shift
+
+            if ! command -v "${method}_install" >/dev/null 2>&1; then
+                echo "Unknown install method: $method" >&2
+                show_help >&2
+                exit 1
+            fi
+
+            "${method}_install" "$@"
             ;;
         help|-h|--help)
             show_help
             ;;
         *)
-            echo "Unknown command: $1"
-            show_help
-            exit 1
+            method=$1
+            verb=${2:-}
+
+            if [ -z "$verb" ] || ! command -v "${method}_${verb}" >/dev/null 2>&1; then
+                echo "Unknown command: nosarch-package $*" >&2
+                show_help >&2
+                exit 1
+            fi
+
+            shift 2
+            "${method}_${verb}" "$@"
             ;;
     esac
 }
-
-for cmd in gum fzf yay; do
-    _ensure_command "$cmd"
-done
 
 main "$@"

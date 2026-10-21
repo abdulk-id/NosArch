@@ -13,5 +13,10 @@ start_sudo_keepalive() {
 }
 
 stop_sudo_keepalive() {
-    [ -n "${SUDO_KEEPALIVE_PID:-}" ] && kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
+    # Always succeed: callers run under `set -e`, and the keepalive may never have been started
+    if [ -n "${SUDO_KEEPALIVE_PID:-}" ]; then
+        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    fi
+
+    return 0
 }

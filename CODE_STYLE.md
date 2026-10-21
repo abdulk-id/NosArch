@@ -5,6 +5,8 @@
 
 ## Python style
 
+- Ruff owns the mechanical style. Run `mise run format` before committing Python changes, and use `mise run lint` to
+  check without changing anything. The pre-commit hook runs the same passes, so nothing reaches a commit unformatted.
 - Prefer module-qualified local imports so call sites show where names come from:
 
     ```python
@@ -34,3 +36,7 @@
     - `main()`: global option parsing and command dispatch.
 - The `main "$@"` call should be at the end of the script, along with any finalization.
 - User-facing scripts should provide `help`, `-h`, and `--help` for the help message.
+- A `nosarch-*` script is discovered by the `nosarch` CLI, which reads its leading comment block for
+  `nosarch:summary=`, `nosarch:hidden=true`, and optionally `nosarch:name=` / `nosarch:group=` when the
+  filename stem does not split into a group and a name. Without a `summary` the command still routes, but
+  it is listed with an empty description.

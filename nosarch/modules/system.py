@@ -1,3 +1,4 @@
+import os
 from typing import override
 
 import decman
@@ -13,9 +14,7 @@ import utils.session_changes
 from decman import File, Store
 from decman.core.output import print_info, print_list
 from decman.plugins import aur, pacman, systemd
-from utils.user_config_reader import UserConfigReader
-
-_cpu_vendor: str = utils.hardware.cpu_vendor.get_cpu_vendor()
+from user_config import UserConfigReader
 
 
 class SystemModule(decman.Module):
@@ -23,7 +22,7 @@ class SystemModule(decman.Module):
         super().__init__(name="system")
 
         self._user_config: UserConfigReader = user_config_reader
-        self._username: str = self._user_config.get_str("user.username")
+        self._username: str = self._user_config.user.username
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
@@ -36,8 +35,8 @@ class SystemModule(decman.Module):
         return {
             "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
             "%USER%": self._username,
-            "%FULLNAME%": self._user_config.get_str("user.fullname"),
-            "%GIT_EMAIL%": self._user_config.get_str("user.git_email"),
+            "%FULLNAME%": self._user_config.user.fullname,
+            "%GIT_EMAIL%": self._user_config.user.git_email,
         }
 
     @override
@@ -49,10 +48,12 @@ class SystemModule(decman.Module):
             self._dotfiles.tracked_files(
                 self._tracker,
                 "/etc/default/limine",
-                "/etc/greetd/config.toml",
                 "/etc/modules-load.d/zram.conf",
+                "/etc/sddm.conf.d/10-theme.conf",
+                "/etc/sddm.conf.d/10-wayland.conf",
                 "/etc/NetworkManager/conf.d/wifi-powersave.conf",
                 "/etc/pacman.d/hooks/05-nosarch-package-backup.hook",
+                "/etc/pam.d/sddm",
                 "/etc/plymouth/plymouthd.conf",
                 "/etc/snapper/configs/root",
                 "/etc/sysctl.d/90-sysctl.conf",
@@ -117,16 +118,52 @@ class SystemModule(decman.Module):
             )
         )
 
+        ## SDDM greeter
+        files.update(self._dotfiles.tracked_files(self._tracker, "/usr/share/sddm/hyprland.lua"))
+        files.update(
+            self._dotfiles.tracked_files(
+                self._tracker,
+                "/usr/share/sddm/themes/nosarch/metadata.desktop",
+                "/usr/share/sddm/themes/nosarch/theme.conf",
+                "/usr/share/sddm/themes/nosarch/Main.qml",
+            )
+        )
+        files.update(
+            self._dotfiles.tracked_files(
+                self._tracker,
+                "/usr/share/sddm/themes/nosarch/bullet.png",
+                "/usr/share/sddm/themes/nosarch/entry-failed.png",
+                "/usr/share/sddm/themes/nosarch/entry.png",
+                "/usr/share/sddm/themes/nosarch/lock-failed.png",
+                "/usr/share/sddm/themes/nosarch/lock.png",
+                "/usr/share/sddm/themes/nosarch/logo.png",
+                bin_file=True,
+            )
+        )
+
         ## NosArch scripts
         files.update(
             self._dotfiles.tracked_files(
                 self._tracker,
+                "/usr/local/bin/nosarch/nosarch",
                 "/usr/local/bin/nosarch/nosarch-battery",
                 "/usr/local/bin/nosarch/nosarch-package",
                 "/usr/local/bin/nosarch/nosarch-session",
                 "/usr/local/bin/util/nosarch-lock-helper.sh",
                 "/usr/local/bin/util/sudo-keepalive.sh",
                 permissions=0o755,  # Make executable
+            )
+        )
+
+        # Sourced by nosarch-package rather than run, so they are not executable. AppImage and cleanup live here
+        # rather than in a packaging module because they are not gated on a packaging switch: an AppImage needs no
+        # package manager, and cleanup has to survive a method's module being disabled.
+        files.update(
+            self._dotfiles.tracked_files(
+                self._tracker,
+                "/usr/local/bin/util/package/appimage.sh",
+                "/usr/local/bin/util/package/cleanup.sh",
+                "/usr/local/bin/util/package/common.sh",
             )
         )
 
@@ -138,6 +175,11 @@ class SystemModule(decman.Module):
         )
 
         return files
+
+    @override
+    def before_update(self, store: Store) -> None:
+        utils.session_changes.reset(store)
+        self._release_display_manager_alias()
 
     @override
     def on_change(self, store: Store) -> None:
@@ -177,7 +219,7 @@ class SystemModule(decman.Module):
             _ = decman.prg(["systemctl", "restart", "ufw"])
 
         if self._tracker.files_changed_in_dirs(
-            "/etc/plymouth", "/usr/share/plymouth/themes"
+            "/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes"
         ) or self._tracker.files_changed("/etc/mkinitcpio.conf"):
             print_info("Rebuilding initramfs and updating Limine boot entries.")
             _ = decman.prg(["limine-mkinitcpio"])
@@ -194,6 +236,12 @@ class SystemModule(decman.Module):
             # systemd-logind has no ExecReload, and restarting it disturbs active sessions.
             needs_reboot.append("logind configuration")
 
+        if self._tracker.files_changed_in_dirs("/etc/sddm.conf.d", "/usr/share/sddm") or self._tracker.files_changed(
+            "/etc/pam.d/sddm"
+        ):
+            # SDDM reads this when the greeter starts. Restarting the display manager here ends the session.
+            needs_reboot.append("SDDM configuration")
+
         if not needs_reboot:
             return
 
@@ -205,36 +253,8 @@ class SystemModule(decman.Module):
             utils.session_changes.defer(store, "reboot", change)
 
     @override
-    def before_update(self, store: Store) -> None:
-        utils.session_changes.reset(store)
-
-    @override
     def after_update(self, store: Store) -> None:
-        def update_limine_conf_settings() -> None:
-            path = "/boot/limine.conf"
-            settings: dict[str, str] = {"timeout": "3", "default_entry": "linux"}
-
-            with open(path, "r", encoding="utf-8") as f:
-                lines: list[str] = f.readlines()
-
-            new_lines, found = [], set()
-            for line in lines:
-                key = line.split(":", 1)[0].strip() if ":" in line else None
-                if key in settings:
-                    found.add(key)
-                    line: str = f"{key}: {settings[key]}\n"
-                new_lines.append(line)
-
-            prefix: list[str] = [f"{k}: {v}\n" for k, v in settings.items() if k not in found]
-            final_lines: list[str] = prefix + new_lines
-
-            if final_lines != lines:
-                with open(path, "w", encoding="utf-8") as f:
-                    f.writelines(final_lines)
-
-                print_info("Updated Limine boot menu settings.")
-
-        update_limine_conf_settings()
+        self._update_limine_conf_settings()
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def system_packages(self) -> set[str]:
@@ -251,8 +271,6 @@ class SystemModule(decman.Module):
             "exfatprogs",
             "f2fs-tools",
             "git",
-            "greetd",
-            "greetd-tuigreet",
             "kernel-modules-hook",
             "limine",
             "linux",
@@ -261,6 +279,7 @@ class SystemModule(decman.Module):
             "nano",
             "memtest86+-efi",
             "plymouth",
+            "sddm",
             "snapper",
             "sudo",
             "systemd-resolvconf",
@@ -271,22 +290,23 @@ class SystemModule(decman.Module):
             "zram-generator",
         }
 
-        if self._user_config.get_bool("system.enable_lts_kernel"):
+        if self._user_config.system.enable_lts_kernel:
             system_set.add("linux-lts")
             system_set.add("linux-lts-headers")
 
-        # Only the `linux-firmware-*` splits this machine's hardware needs.
-        # The `linux-firmware` meta package pulls every vendor split (~410 MiB).
         system_set |= utils.hardware.firmware_vendors.get_firmware_packages()
 
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             system_set.add("power-profiles-daemon")
 
-        if _cpu_vendor == "GenuineIntel":
+        if utils.hardware.cpu_vendor.is_cpu_intel():
             system_set.add("intel-ucode")
-            system_set.add("intel-lpmd")
             system_set.add("thermald")
-        elif _cpu_vendor == "AuthenticAMD":
+
+            if utils.hardware.cpu_vendor.is_intel_hybrid():
+                system_set.add("intel-lpmd")
+
+        elif utils.hardware.cpu_vendor.is_cpu_amd():
             system_set.add("amd-ucode")
 
         security_set: set[str] = {"apparmor", "firewalld", "ufw"}
@@ -329,8 +349,8 @@ class SystemModule(decman.Module):
         systemd_set: set[str] = {
             "apparmor.service",
             "bluetooth.service",
-            "greetd.service",
             "limine-snapper-sync.service",
+            "sddm.service",
             "NetworkManager.service",
             "snapper-cleanup.timer",
             "udisks2.service",
@@ -341,8 +361,55 @@ class SystemModule(decman.Module):
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             systemd_set.add("power-profiles-daemon.service")
 
-        if _cpu_vendor == "GenuineIntel":
-            systemd_set.add("intel_lpmd.service")
+        if utils.hardware.cpu_vendor.is_cpu_intel():
             systemd_set.add("thermald.service")
 
+            if utils.hardware.cpu_vendor.is_intel_hybrid():
+                systemd_set.add("intel_lpmd.service")
+
         return systemd_set
+
+    @systemd.user_units
+    def system_user_services(self) -> dict[str, set[str]]:
+        return {self._username: {"gnome-keyring-daemon.service", "gcr-ssh-agent.socket"}}
+
+    # `before_update` hook actions ---
+    def _release_display_manager_alias(self) -> None:
+        alias = "/etc/systemd/system/display-manager.service"
+        if not os.path.islink(alias):
+            return
+
+        target_unit = os.path.basename(os.path.realpath(alias))
+        if target_unit == "sddm.service":
+            return
+
+        # greetd and sddm both install Alias=display-manager.service. The systemd plugin enables new units
+        # before it disables old ones, and systemctl enable leaves an existing alias in place. Disabling the
+        # current greeter removes the alias and leaves that greeter running.
+        print_info(f"Disabling {target_unit} so SDDM can own display-manager.service.")
+        _ = decman.prg(["systemctl", "disable", target_unit])
+
+    # `after_update` hook actions ---
+    def _update_limine_conf_settings(self) -> None:
+        path = "/boot/limine.conf"
+        settings: dict[str, str] = {"timeout": "3", "default_entry": "2"}
+
+        with open(path, "r", encoding="utf-8") as f:
+            lines: list[str] = f.readlines()
+
+        new_lines, found = [], set()
+        for line in lines:
+            key = line.split(":", 1)[0].strip() if ":" in line else None
+            if key in settings:
+                found.add(key)
+                line: str = f"{key}: {settings[key]}\n"
+            new_lines.append(line)
+
+        prefix: list[str] = [f"{k}: {v}\n" for k, v in settings.items() if k not in found]
+        final_lines: list[str] = prefix + new_lines
+
+        if final_lines != lines:
+            with open(path, "w", encoding="utf-8") as f:
+                f.writelines(final_lines)
+
+            print_info("Updated Limine boot menu settings.")

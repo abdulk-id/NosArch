@@ -1,0 +1,12 @@
+# Managed by NosArch
+
+[Desktop Entry]
+Type=Application
+Name=Install AppImage
+Comment=Install an AppImage application
+Exec=/usr/local/bin/nosarch/nosarch-package install appimage --confirm %F
+Icon=system-software-install
+Terminal=false
+NoDisplay=false
+MimeType=application/x-appimage;application/x-iso9660-appimage;
+Categories=System;PackageManager;

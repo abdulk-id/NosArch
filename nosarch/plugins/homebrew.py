@@ -292,7 +292,7 @@ class HomebrewCommands:
 
     def upgrade(self) -> list[str]:
         """Upgrades all installed formulae and casks."""
-        return [self._brew, "upgrade"]
+        return [self._brew, "upgrade", "--greedy", "--yes"]
 
     def tap(self, tap: str) -> list[str]:
         return [self._brew, "tap", tap]

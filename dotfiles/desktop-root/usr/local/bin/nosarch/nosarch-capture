@@ -1,5 +1,6 @@
 #!/bin/sh
 # Managed by NosArch
+# nosarch:summary=Screenshots, text extraction, and color picking
 
 set -eu
 
@@ -53,12 +54,19 @@ send_notification() {
 
 finish_screenshot() {
     if [ "$JUST_SAVE" -eq 1 ]; then
-        mv "$1" "$FILE_PATH"
+        # Piped captures (grim ...) arrive as "-"; mv cannot read stdin.
+        if [ "$1" = "-" ]; then
+            cat > "$FILE_PATH"
+        else
+            mv "$1" "$FILE_PATH"
+        fi
         send_notification
     else
         _ensure_command satty
         satty --filename "$1" --output-filename "$FILE_PATH"
-        rm --force "$1"
+        if [ "$1" != "-" ]; then
+            rm --force "$1"
+        fi
     fi
 }
 
@@ -225,7 +233,7 @@ main() {
                     screenshot_all_monitors
                     ;;
                 *)
-                    echo "Unknown screenshot action: $2" >&2
+                    echo "Unknown screenshot action: ${2:-}" >&2
                     show_help
                     exit 1
                     ;;

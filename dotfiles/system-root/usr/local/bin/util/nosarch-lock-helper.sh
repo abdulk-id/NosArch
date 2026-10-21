@@ -5,7 +5,7 @@
 # Vicinae does not work with commands that keep running in the foreground (hyprlock)
 # Using this helper script with `setsid` to avoid blocking
 
-. nosarch-session
+. /usr/local/bin/nosarch/nosarch-session
 
 hyprlock
 session_after_unlock

@@ -1,4 +1,4 @@
-from utils.user_config_reader import UserConfigReader
+from user_config import UserConfigReader
 
 desktop_mimes: dict[str, str] = {
     "inode/directory": "org.gnome.Nautilus.desktop",
@@ -36,8 +36,8 @@ desktop_mimes: dict[str, str] = {
     "text/plain": "org.gnome.TextEditor.desktop",
     "text/english": "org.gnome.TextEditor.desktop",
     # AppImages
-    "application/x-appimage": "it.mijorus.gearlever.desktop",
-    "application/x-iso9660-appimage": "it.mijorus.gearlever.desktop",
+    "application/x-appimage": "nosarch-appimage-installer.desktop",
+    "application/x-iso9660-appimage": "nosarch-appimage-installer.desktop",
 }
 
 dev_mimes: dict[str, str] = {
@@ -74,7 +74,7 @@ def get_mimeapps_content() -> str:
     for mime, app in desktop_mimes.items():
         lines.append(f"{mime}={app}")
 
-    if UserConfigReader().get_bool("profiles.dev"):
+    if UserConfigReader.load().setups.dev.enabled:
         lines.append("\t")
         for mime, app in dev_mimes.items():
             lines.append(f"{mime}={app}")

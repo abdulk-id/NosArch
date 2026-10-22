@@ -63,16 +63,6 @@ class AISetupModule(decman.Module):
         if self._agents.__contains__("kilocode"):
             aur_pkgs.add("kilo-bin")
 
-        # Apps
-        if "chatgpt-desktop" in self._apps:
-            aur_pkgs.add("chatgpt-desktop")
-
-        if "claude-desktop" in self._apps:
-            aur_pkgs.add("claude-desktop")
-
-        if "devin-desktop" in self._apps:
-            aur_pkgs.add("devin-desktop")
-
         # Control planes
         if "t3code-desktop" in self._control_planes:
             aur_pkgs.add("t3code-nightly-bin")
@@ -118,8 +108,17 @@ class AISetupModule(decman.Module):
             custom_pkgs.add(utils.custom_packages.package("muse-code-nosarch"))
 
         # Apps
+        if "chatgpt-desktop" in self._apps:
+            custom_pkgs.add(utils.custom_packages.package("chatgpt-desktop-nosarch"))
+
+        if "claude-desktop" in self._apps:
+            custom_pkgs.add(utils.custom_packages.package("claude-desktop-nosarch"))
+
         if "cursor-desktop" in self._apps:
             custom_pkgs.add(utils.custom_packages.package("cursor-desktop-nosarch"))
+
+        if "devin-desktop" in self._apps:
+            custom_pkgs.add(utils.custom_packages.package("devin-desktop-nosarch"))
 
         if "opencode-desktop" in self._apps:
             custom_pkgs.add(utils.custom_packages.package("opencode-desktop-nosarch"))

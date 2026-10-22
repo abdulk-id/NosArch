@@ -4,6 +4,7 @@ from typing import override
 
 import decman
 import utils.change_tracker
+import utils.custom_packages
 import utils.dotfile.luks_uuid
 import utils.dotfile.wireless_regdom
 import utils.hardware.chassis_type
@@ -350,8 +351,11 @@ class SystemModule(decman.Module):
             "decman",  # Decman itself
             "limine-mkinitcpio-hook",
             "limine-snapper-sync",
-            "yay-bin",
         }
+
+    @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
+    def custom_pkgs(self) -> set[aur.CustomPackage]:
+        return {utils.custom_packages.package("yay-nosarch")}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def system_services(self) -> set[str]:

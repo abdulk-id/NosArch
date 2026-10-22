@@ -52,12 +52,7 @@ class BasicSetupModule(decman.Module):
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        aur_pkgs_set: set[str] = {
-            "spotify",
-            "spotify-adblock",
-            "stacher7",  # yt-dlp frontend
-            "whatsie-git",
-        }
+        aur_pkgs_set: set[str] = {"spotify", "spotify-adblock"}
 
         if self._vms_enabled:
             aur_pkgs_set.update(

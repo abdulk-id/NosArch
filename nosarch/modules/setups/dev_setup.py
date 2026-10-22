@@ -163,7 +163,7 @@ class DevSetupModule(decman.Module):
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def aur_pkgs(self) -> set[str]:
-        aur_pkgs: set[str] = {"github-desktop-bin"}
+        aur_pkgs: set[str] = set()
 
         if "codium" in self._editors:
             aur_pkgs.add("vscodium-bin")

@@ -330,14 +330,13 @@ class DesktopModule(decman.Module):
             desktop_set |= {"lib32-nvidia-580xx-utils", "nvidia-580xx-dkms", "nvidia-580xx-utils"}
 
         apps_set: set[str] = {
-            "localsend-bin",  # Cross-platform file sharing app
-            "zen-browser-bin",
+            "localsend-bin"  # Cross-platform file sharing app
         }
 
         merged_set: set[str] = desktop_set.union(apps_set)
         return merged_set
 
-    decman.aur.ignored_packages |= {"xdg-terminal-exec", "nosarch-dash-bin"}
+    decman.aur.ignored_packages |= {"xdg-terminal-exec"}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def desktop_services(self) -> set[str]:

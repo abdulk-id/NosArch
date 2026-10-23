@@ -1,10 +1,10 @@
 from typing import override
 
 import decman
+import utils.apply
 import utils.change_tracker
 import utils.custom_packages
 import utils.paths
-import utils.session
 from decman import File
 from decman.plugins import aur, pacman
 from user_config import UserConfigReader
@@ -45,7 +45,7 @@ class AISetupModule(decman.Module):
     @override
     def on_change(self, store: decman.Store) -> None:
         if self._tracker.files_changed_in_dirs(f"/home/{self._username}/.config/hypr"):
-            utils.session.reload_hyprland()
+            utils.apply.reload_hyprland()
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

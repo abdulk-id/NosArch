@@ -89,21 +89,3 @@ def run_in_session(cmd: list[str]) -> bool:
         cmd, user=username, env_overrides=environment, pass_environment=False, mimic_login=True, check=False, pty=False
     )
     return True
-
-
-def reload_hyprland() -> None:
-    """Reload Hyprland's config in the active graphical session.
-
-    `config-only`, because a plain `reload` re-applies the monitor layout hyprmoncfgd owns.
-    With no graphical session, the reload is reported and left for the next login.
-    """
-
-    description = "Reloading Hyprland config"
-    if has_graphical_session():
-        decman.core.output.print_info(description)
-        _ = run_in_session(["hyprctl", "reload", "config-only"])
-        return
-
-    decman.core.output.print_list(
-        "No graphical session found. These changes will apply on the next login: ", [description], 1
-    )

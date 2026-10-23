@@ -2,6 +2,7 @@ import os
 from typing import override
 
 import decman
+import utils.apply
 import utils.change_tracker
 import utils.dotfile.luks_uuid
 import utils.dotfile.wireless_regdom
@@ -12,7 +13,7 @@ import utils.hardware.thunderbolt
 import utils.paths
 import utils.session_changes
 from decman import File, Store
-from decman.core.output import print_info, print_list
+from decman.core.output import print_info
 from decman.plugins import aur, pacman, systemd
 from user_config import UserConfigReader
 
@@ -184,73 +185,50 @@ class SystemModule(decman.Module):
     @override
     def on_change(self, store: Store) -> None:
         if self._tracker.files_changed_in_dirs("/etc/systemd/system", "/usr/lib/systemd"):
-            print_info("Reloading systemd.")
-            _ = decman.prg(["systemctl", "daemon-reload"])
+            utils.apply.reload_systemd()
 
         if self._tracker.files_changed_in_dirs("/etc/NetworkManager"):
-            print_info("Reloading NetworkManager.")
-            _ = decman.prg(["systemctl", "reload", "NetworkManager"])
+            utils.apply.reload_network_manager()
 
         if self._tracker.files_changed_in_dirs("/etc/sysctl.d"):
-            print_info("Applying kernel parameters.")
-            _ = decman.prg(["sysctl", "--system", "--quiet"])
+            utils.apply.apply_sysctl()
 
         if self._tracker.files_changed_in_dirs("/etc/systemd/journald.conf.d"):
-            print_info("Restarting systemd-journald.")
-            _ = decman.prg(["systemctl", "restart", "systemd-journald"])
+            utils.apply.restart_journald()
 
         if self._tracker.files_changed_in_dirs(
             "/etc/systemd/system.conf.d", "/etc/systemd/user.conf.d"
         ) or self._tracker.files_changed("/etc/systemd/system.conf"):
-            print_info("Restarting systemd.")
-            _ = decman.prg(["systemctl", "daemon-reexec"])
+            utils.apply.reexec_systemd()
 
         if self._tracker.files_changed_in_dirs("/etc/tmpfiles.d"):
-            print_info("Cleaning tmp files.")
-            _ = decman.prg(["systemd-tmpfiles", "--create", "--clean"])
+            utils.apply.clean_tmpfiles()
 
         if self._tracker.files_changed_in_dirs("/etc/udev/rules.d"):
-            print_info("Reloading udev.")
-            _ = decman.prg(["udevadm", "control", "--reload"])
-            _ = decman.prg(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
+            utils.apply.reload_udev()
 
         if self._tracker.files_changed_in_dirs("/etc/ufw"):
-            print_info("Restarting firewall (ufw).")
-            _ = decman.prg(["systemctl", "restart", "ufw"])
+            utils.apply.restart_ufw()
 
         if self._tracker.files_changed_in_dirs(
             "/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes"
         ) or self._tracker.files_changed("/etc/mkinitcpio.conf"):
-            print_info("Rebuilding initramfs and updating Limine boot entries.")
-            _ = decman.prg(["limine-mkinitcpio"])
-
-        # Reboot requiring changes ---
-        needs_reboot: list[str] = []
+            utils.apply.rebuild_initramfs()
 
         if self._tracker.files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
             # Applying these live means swapoff on an active zram device holding
             # compressed pages, which can OOM the machine under memory pressure.
-            needs_reboot.append("ZRAM configuration")
+            utils.apply.request_reboot("ZRAM configuration")
 
         if self._tracker.files_changed_in_dirs("/etc/systemd/logind.conf.d"):
             # systemd-logind has no ExecReload, and restarting it disturbs active sessions.
-            needs_reboot.append("logind configuration")
+            utils.apply.request_reboot("logind configuration")
 
         if self._tracker.files_changed_in_dirs("/etc/sddm.conf.d", "/usr/share/sddm") or self._tracker.files_changed(
             "/etc/pam.d/sddm"
         ):
             # SDDM reads this when the greeter starts. Restarting the display manager here ends the session.
-            needs_reboot.append("SDDM configuration")
-
-        if not needs_reboot:
-            return
-
-        print_list("These changes will take effect after a reboot: ", needs_reboot, 1)
-
-        # The offer to act on it comes from `tools/apply`, once decman has exited. Logging out or
-        # rebooting here would kill the run, and with it the hooks that have not run yet.
-        for change in needs_reboot:
-            utils.session_changes.defer(store, "reboot", change)
+            utils.apply.request_reboot("SDDM configuration")
 
     @override
     def after_update(self, store: Store) -> None:

@@ -3,6 +3,7 @@ import decman.core.output
 import utils.aur_chroot
 from decman.extras.users import User, UserManager
 from decman.plugins import flatpak as flatpak_plugin
+from modules.apply import ApplyModule
 from modules.basic_setup import BasicSetupModule
 from modules.desktop import DesktopModule
 from modules.packaging.flatpak import FlatpakModule
@@ -184,4 +185,9 @@ if user_config.setups.gaming.enabled:
         raise SystemExit()
 
 decman.modules += {UserDefinedModule(user_config)}
+
+# Last on purpose, and in its own statement. A set does not keep order, so this cannot be grouped
+# with the modules above. Its after_update runs the queued apply commands after every other
+# after_update. Do not register a module after this.
+decman.modules += {ApplyModule()}
 # ===

@@ -18,6 +18,7 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 | Flatpak       | `FlatpakModule`       | `flatpak`        | `packaging.flatpak.enabled`  | `dotfiles/system-root`         |
 | Snap          | `SnapModule`          | `snap`           | `packaging.snap.enabled`     | `dotfiles/system-root`         |
 | User packages | `UserDefinedModule`   | `user_defined`   | always                       | none                           |
+| Apply         | `ApplyModule`         | `apply`          | always, registered last      | none                           |
 
 The four setup modules live in `nosarch/modules/setups/`, the three packaging modules in
 `nosarch/modules/packaging/`, and the rest are one file each in `nosarch/modules/`. `BasicSetupModule` is a setup that
@@ -42,10 +43,9 @@ NosArch allows headless installs.
 list, and `ChangeTracker` diffs all use it. Renaming a module leaves the old entries in place, and on the next run
 `ChangeTracker` treats everything that module declares as newly added.
 
-## Registration order carries no behaviour
+## Registration order
 
-Nothing may depend on a module being registered first or last. decman runs the hooks in phases, and the phases, not the
-order, are what a hook may rely on:
+Decman runs hooks in phases, and within a phase it walks `decman.modules` from front to back:
 
 1. **`before_update`**, for every module (`app.py:278`).
 2. The execution steps: files, then the plugins (`source.py`).
@@ -53,12 +53,12 @@ order, are what a hook may rely on:
 4. **`after_update`**, for every module (`app.py:347`).
 5. The store is written, in `__exit__`, after every hook (`app.py:77`, `core/store.py:49`). The process then exits.
 
-Two consequences:
+All `on_change` hooks finish before any `after_update` hook starts (`app.py:231-234`).
 
-- All `on_change` hooks finish before any `after_update` hook starts (`app.py:231-234`), so a change one module records is
-  visible to anything running later in the same run.
-- **The last thing decman does is save its store**, which is why the offer to log out or reboot belongs to `tools/apply`
-  rather than to a hook. See [Prompting ends the run](files.md#prompting-ends-the-run).
+`source.py` registers most modules in sets, and a set has no stable order, so a module must not depend on running
+before or after a neighbour. `ApplyModule` is the exception. It is added in its own statement after every other
+module, and its `after_update` runs the commands those modules requested. A module registered below it would run its
+own `after_update` after those commands.
 
-A prompt placed in the last module's `after_update` would work, and would break silently the day someone registers a
-module after it. That is the trade this avoids.
+The offer to log out or reboot stays in `tools/apply`, after the store is saved. See
+[Prompting ends the run](files.md#prompting-ends-the-run).

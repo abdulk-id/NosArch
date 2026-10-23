@@ -18,8 +18,8 @@ def reset(store: Store) -> None:
 def defer(store: Store, category: str, description: str) -> None:
     """Record a change that needs a new login to take effect.
 
-    Call from `on_change`, with `category` as `logout` or `reboot`. The hook still prints its own
-    notice, so a plain `decman` run informs the user even though it cannot offer the action.
+    `ApplyModule` calls this while flushing, with `category` as `logout` or `reboot`. The notice is
+    printed there too, so a plain `decman` run still informs the user. It cannot offer the action.
     """
 
     pending: dict[str, list[str]] = store.get(_PENDING_KEY, {})

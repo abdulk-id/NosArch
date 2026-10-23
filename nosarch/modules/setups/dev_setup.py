@@ -1,11 +1,10 @@
 from typing import override
 
 import decman
+import utils.apply
 import utils.change_tracker
 import utils.dotfile.dev_lang_config
 import utils.paths
-import utils.session
-import utils.session_changes
 from decman import File, Store
 from decman.plugins import aur, pacman, systemd
 from user_config import UserConfigReader
@@ -30,13 +29,11 @@ class DevSetupModule(decman.Module):
         home: str = f"/home/{self._username}"
 
         if self._tracker.files_changed_in_dirs(f"{home}/.config/hypr"):
-            utils.session.reload_hyprland()
+            utils.apply.reload_hyprland()
 
         if self._tracker.files_changed_in_dirs(f"{home}/.config/environment.d"):
             # Read by `systemd-environment-d-generator` when the user manager starts.
-            change = "development environment variables"
-            decman.core.output.print_list("These changes will take effect after logging out: ", [change], 1)
-            utils.session_changes.defer(store, "logout", change)
+            utils.apply.request_logout("development environment variables")
 
         _ = decman.prg(cmd=["mise", "install"], user=self._username, mimic_login=True)
         _ = decman.prg(cmd=["mise", "prune"], user=self._username, mimic_login=True)

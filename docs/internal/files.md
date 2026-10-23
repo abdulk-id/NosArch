@@ -141,8 +141,8 @@ in `on_change` hooks.
    loaded state rather than on what is now on disk.
 2. **`systemctl daemon-reexec` next**: for manager-level defaults.
 3. Everything cheap and independent, in any order.
-4. **`limine-mkinitcpio` second last:** It is a slow step (~30 seconds, doubled when the LTS kernel is enabled). If
-   there are several triggers calling this, gather them rather than rebuilding per trigger.
+4. **`limine-mkinitcpio` second last:** It is a slow step (~30 seconds, doubled when the LTS kernel is enabled). Hooks
+   request it with `utils.apply.rebuild_initramfs()`, and `ApplyModule` runs it once.
 5. **The reboot notice last**: For everything that can not be applied live.
 
 ### Hooks must be idempotent
@@ -187,25 +187,26 @@ It also takes the store down with it. `Store.save()` runs in `__exit__` (`core/s
 so a run that dies mid-prompt leaves no record of `enabled_modules`, `all_files` or the per-module package sets. The
 next run then believes every package, unit and file is newly added.
 
-So a hook never acts on the change. It records it:
+So a hook never acts on the change. It requests it:
 
 ```python
-utils.session_changes.defer(store, "reboot", "ZRAM configuration")
+utils.apply.request_reboot("ZRAM configuration")
 ```
 
-`tools/apply` is what offers the action, after decman has exited. That is the only point where every `on_change` and
-`after_update` has finished and the store is on disk, and it does not depend on where a module sits in the registration
-order. `tools/apply` reads the store, prompts once, and acts.
+`ApplyModule` gathers those requests, prints one notice, and records them. `tools/apply` offers the action after decman
+has exited, which is when every hook has finished and the store is on disk. `tools/apply` reads the store, prompts
+once, and acts.
 
 ### The notice belongs inside, the prompt belongs outside
 
-`defer` records the change, and the hook **also prints its own notice**. That is deliberate: running `decman` directly
-still informs the user, it just cannot offer the action. Moving the notice out to the wrapper would mean the information
-exists only when the wrapper is used.
+The notice is printed by `ApplyModule`, still inside the decman run, so running `decman` directly informs the user. It
+cannot offer the action. Moving the notice out to the wrapper would mean the information exists only when the wrapper
+is used.
 
 `utils.session_changes.reset()` runs from a `before_update` hook, so each run reports only what it deferred itself. Any
 module can do this reset, because `before_update` precedes every `on_change` for every module (`app.py:199-200`). That
-is the one thing that may rely on hook order, and it relies on the *phase*, not on a module's position.
+relies on the phase. The flush relies on `ApplyModule` being registered last. See
+[Registration order](modules.md#registration-order).
 
 ### Session-scoped changes
 

@@ -1,15 +1,13 @@
 from typing import override
 
 import decman
-import decman.core.output
 import modules.theme
+import utils.apply
 import utils.change_tracker
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
 import utils.hardware.gpu_vendor
 import utils.paths
-import utils.session
-import utils.session_changes
 from decman import File
 from decman.plugins import aur, pacman, systemd
 from user_config import UserConfigReader
@@ -190,145 +188,68 @@ class DesktopModule(decman.Module):
 
         return files
 
-    def _shell(self, command: str) -> list[str]:
-        """Runs a shell string, so only its last step decides the exit code."""
-        return ["/bin/sh", "-c", command]
-
-    def _restart_daemon(self, daemon: str, launch_command: str) -> list[str]:
-        """Restarts a session daemon the way Hyprland's autostart starts it."""
-        return self._shell(f"pkill --exact {daemon}; {launch_command}")
-
     @override
     def on_change(self, store: decman.Store) -> None:
         home: str = f"/home/{self._username}"
 
-        # `daemon-reload` first, so the rest acts on what is now on disk.
         if self._tracker.files_changed_in_dirs(f"{home}/.config/systemd/user"):
-            decman.core.output.print_info("Reloading systemd user units.")
-            # `check=False`, because the user manager is not running when applying from a TTY.
-            _ = decman.prg(["systemctl", "--user", "-M", f"{self._username}@", "daemon-reload"], check=False)
-            # `try-restart`, so a timer the user turned off stays off.
-            _ = decman.prg(
-                ["systemctl", "--user", "-M", f"{self._username}@", "try-restart", "nosarch-eyesight-reminder.timer"],
-                check=False,
-            )
+            utils.apply.reload_user_systemd(self._username)
+            utils.apply.try_restart_eyesight_timer(self._username)
 
         if self._tracker.files_changed("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"):
-            # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
-            decman.core.output.print_info("Rebuilding GSettings cache.")
-            _ = decman.prg(cmd=["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
-
-        session_changes: list[tuple[str, list[str]]] = []
+            utils.apply.rebuild_gsettings()
 
         if self._tracker.files_changed_in_dirs(f"{home}/.config/hypr"):
-            # `config-only`, because a plain `reload` re-applies the monitor layout hyprmoncfgd owns.
-            session_changes.append(("Reloading Hyprland config", ["hyprctl", "reload", "config-only"]))
+            utils.apply.reload_hyprland()
 
         if self._tracker.files_changed(f"{home}/.config/waybar/config.jsonc"):
-            session_changes.append(("Reloading waybar", ["pkill", "--signal", "SIGUSR2", "waybar"]))
+            utils.apply.reload_waybar()
 
         if self._tracker.files_changed(f"{home}/.config/swaync/config.json"):
-            session_changes.append(("Reloading swaync config", ["swaync-client", "--reload-config"]))
+            utils.apply.reload_swaync_config()
 
         if self._tracker.files_changed(f"{home}/.config/swaync/style.css"):
-            session_changes.append(("Reloading swaync style", ["swaync-client", "--reload-css"]))
+            utils.apply.reload_swaync_style()
 
         # Both files are read once, when the portal starts.
         if self._tracker.files_changed(
             f"{home}/.config/hypr/xdph.conf", f"{home}/.config/xdg-desktop-portal/portals.conf"
         ):
-            session_changes.append(
-                (
-                    "Restarting the desktop portal",
-                    [
-                        "systemctl",
-                        "--user",
-                        "restart",
-                        "xdg-desktop-portal.service",
-                        "xdg-desktop-portal-hyprland.service",
-                    ],
-                )
-            )
+            utils.apply.restart_desktop_portal()
 
         # These have no reload command. Each is relaunched with the command Hyprland's autostart uses.
         if self._tracker.files_changed(f"{home}/.config/hypr/hypridle.conf"):
-            session_changes.append(("Restarting hypridle", self._restart_daemon("hypridle", "uwsm-app -- hypridle")))
+            utils.apply.restart_hypridle()
 
         if self._tracker.files_changed(f"{home}/.config/hypr/hyprpaper.conf"):
-            session_changes.append(("Restarting hyprpaper", self._restart_daemon("hyprpaper", "uwsm-app -- hyprpaper")))
+            utils.apply.restart_hyprpaper()
 
         if self._tracker.files_changed(f"{home}/.config/hypr/hyprsunset.conf"):
-            session_changes.append(
-                ("Restarting hyprsunset", self._restart_daemon("hyprsunset", "uwsm-app -- hyprsunset"))
-            )
+            utils.apply.restart_hyprsunset()
 
         if self._tracker.files_changed_in_dirs(f"{home}/.config/walker"):
-            session_changes.append(
-                ("Restarting walker", self._restart_daemon("walker", "walker --gapplication-service"))
-            )
+            utils.apply.restart_walker()
 
         if self._tracker.files_changed_in_dirs(f"{home}/.config/swayosd"):
-            session_changes.append(
-                ("Restarting swayosd", self._restart_daemon("swayosd-server", "uwsm-app -- swayosd-server"))
-            )
+            utils.apply.restart_swayosd()
 
         if self._tracker.files_changed_in_dirs(f"{home}/.local/share/nautilus-python"):
-            # Nautilus loads its Python extensions at start.
-            session_changes.append(("Quitting nautilus", self._shell("nautilus --quit || :")))
-            # TODO: Can potentially disrupt user's work, for example file operations like moving or copying.
-            #   Need safer option
-
-        if session_changes:
-            if utils.session.has_graphical_session():
-                for description, command in session_changes:
-                    decman.core.output.print_info(description)
-                    _ = utils.session.run_in_session(command)
-            else:
-                decman.core.output.print_list(
-                    "No graphical session found. These changes will apply on the next login: ",
-                    [description for description, _ in session_changes],
-                    1,
-                )
+            utils.apply.quit_nautilus()
 
         if self._tracker.files_changed_in_dirs("/etc/mkinitcpio.conf.d"):
-            decman.core.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
-            _ = decman.prg(["limine-mkinitcpio"])
-
-        # Logout requiring changes ---
-        needs_logout: list[str] = []
+            utils.apply.rebuild_initramfs()
 
         if self._tracker.files_changed_in_dirs(f"{home}/.config/environment.d"):
             # Read by `systemd-environment-d-generator` when the user manager starts.
-            needs_logout.append("environment.d variables")
+            utils.apply.request_logout("environment.d variables")
 
         if self._tracker.files_changed_in_dirs(f"{home}/.config/uwsm"):
             # Sourced by the compositor at session start.
-            needs_logout.append("uwsm session environment")
-
-        if needs_logout:
-            decman.core.output.print_list("These changes will take effect after logging out: ", needs_logout, 1)
-
-        # Reboot requiring changes ---
-        needs_reboot: list[str] = []
+            utils.apply.request_logout("uwsm session environment")
 
         if self._tracker.files_changed("/etc/modprobe.d/nvidia.conf"):
             # Module options are read when the module is loaded, so only a new boot picks them up.
-            needs_reboot.append("Nvidia module options")
-
-        if needs_reboot:
-            decman.core.output.print_list("These changes will take effect after a reboot: ", needs_reboot, 1)
-
-        # A reboot gives a fresh login, so it covers the logout cases too. Logging out instead would
-        # leave the reboot items unapplied until the next boot anyway.
-        #
-        # Both notices are printed above and the offer to act on them comes from `tools/apply`,
-        # once decman has exited. Logging out or rebooting from in here would kill the run, and
-        # with it the modules whose hooks have not run yet.
-        for change in needs_logout:
-            utils.session_changes.defer(store, "logout", change)
-
-        for change in needs_reboot:
-            utils.session_changes.defer(store, "reboot", change)
+            utils.apply.request_reboot("Nvidia module options")
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

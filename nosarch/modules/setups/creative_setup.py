@@ -1,6 +1,8 @@
 from typing import override
 
 import decman
+import utils.apply
+import utils.change_tracker
 import utils.paths
 from decman import File
 from decman.plugins import pacman
@@ -17,10 +19,16 @@ class CreativeSetupModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/creative-setup-root", self._username
         )
+        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
     def files(self) -> dict[str, File]:
-        return self._userhome_dotfiles.files("/.config/hypr/app-windows/davinci.lua")
+        return self._userhome_dotfiles.tracked_files(self._tracker, "/.config/hypr/app-windows/davinci.lua")
+
+    @override
+    def on_change(self, store: decman.Store) -> None:
+        if self._tracker.files_changed_in_dirs(f"/home/{self._username}/.config/hypr"):
+            utils.apply.reload_hyprland()
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

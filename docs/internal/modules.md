@@ -18,6 +18,7 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 | Flatpak       | `FlatpakModule`       | `flatpak`        | `packaging.flatpak.enabled`  | `dotfiles/system-root`         |
 | Snap          | `SnapModule`          | `snap`           | `packaging.snap.enabled`     | `dotfiles/system-root`         |
 | User packages | `UserDefinedModule`   | `user_defined`   | always                       | none                           |
+| Apply         | `ApplyModule`         | `apply`          | always, registered last      | none                           |
 
 The four setup modules live in `nosarch/modules/setups/`, the three packaging modules in
 `nosarch/modules/packaging/`, and the rest are one file each in `nosarch/modules/`. `BasicSetupModule` is a setup that
@@ -41,3 +42,23 @@ NosArch allows headless installs.
 `Store name` above is the module's decman `name`. Per-module package, unit, and flatpak entries, the `enabled_modules`
 list, and `ChangeTracker` diffs all use it. Renaming a module leaves the old entries in place, and on the next run
 `ChangeTracker` treats everything that module declares as newly added.
+
+## Registration order
+
+Decman runs hooks in phases, and within a phase it walks `decman.modules` from front to back:
+
+1. **`before_update`**, for every module (`app.py:278`).
+2. The execution steps: files, then the plugins (`source.py`).
+3. **`on_change`**, for changed modules only (`app.py:338`).
+4. **`after_update`**, for every module (`app.py:347`).
+5. The store is written, in `__exit__`, after every hook (`app.py:77`, `core/store.py:49`). The process then exits.
+
+All `on_change` hooks finish before any `after_update` hook starts (`app.py:231-234`).
+
+`source.py` registers most modules in sets, and a set has no stable order, so a module must not depend on running
+before or after a neighbour. `ApplyModule` is the exception. It is added in its own statement after every other
+module, and its `after_update` runs the commands those modules requested. A module registered below it would run its
+own `after_update` after those commands.
+
+The offer to log out or reboot stays in `tools/apply`, after the store is saved. See
+[Prompting ends the run](files.md#prompting-ends-the-run).

@@ -31,6 +31,20 @@ description = "Test config.schema.json match the config data classes"
 run = "python3 tests/test_config_schema.py"
 
 # Decman tasks ---
+[tasks.apply]
+description = "Apply the configuration, then offer to log out or reboot if a change needs one"
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply"
+
+[tasks.apply-files]
+description = "Apply only the file changes, then offer to log out or reboot if one needs it"
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --only files"
+
+[tasks.dry-run-files]
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --only files --dry-run"
+
+[tasks.dry-run-quick]
+run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --dry-run"
+
 [tasks.dm-nochk]
 # Allows running decman and skipping pre-checks with just `mise dm-nochk`.
 # More flags such as `--dry-run` are to be added in front of `mise dm-nochk`.

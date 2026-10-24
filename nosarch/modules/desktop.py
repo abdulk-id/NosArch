@@ -277,9 +277,6 @@ class DesktopModule(decman.Module):
         }
 
         utilities_set: set[str] = {
-            "fzf",  # CLI Fuzzy finder
-            "gum",  # CLI tool for glamorous shell interactions
-            "jq",  # CLI JSON processor
             "tesseract",  # OCR tool
             "tesseract-data-eng",  # OCR data for English
             "zenity",  # GUI dialog box from shell commands

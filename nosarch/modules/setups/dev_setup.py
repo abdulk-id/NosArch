@@ -151,7 +151,7 @@ class DevSetupModule(decman.Module):
 
         # Code Editors
         if self._editors.__contains__("neovim"):
-            pkgs.update({"ast-grep", "fd", "luarocks", "neovim", "tectonic"})
+            pkgs.update({"ast-grep", "luarocks", "neovim", "tectonic"})
 
         if self._editors.__contains__("code-oss"):
             pkgs.add("code")

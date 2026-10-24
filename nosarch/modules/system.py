@@ -339,10 +339,12 @@ class SystemModule(decman.Module):
             "wireless-regdb",
         }
 
+        utility_set: set[str] = {"curl", "fd", "fzf", "gum", "jq", "ripgrep", "which"}
+
         if utils.hardware.thunderbolt.is_thunderbolt_present():
             connectivity_set.add("bolt")  # Thunderbolt device authorization
 
-        merged_set: set[str] = system_set.union(security_set, connectivity_set)
+        merged_set: set[str] = system_set.union(security_set, connectivity_set, utility_set)
         return merged_set
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]

@@ -26,6 +26,17 @@ _ROOT_ORDER: tuple[str, ...] = (
     "gsettings",
 )
 
+
+def _detach(command: str) -> list[str]:
+    """Run a session daemon without decman waiting for it to exit.
+
+    `uwsm-app` replaces itself with `systemd-run --scope`, and that waits until the daemon exits. decman waits on the
+    command it started, so the flush never reaches the logout and reboot offer. `setsid -f` returns once the new
+    session exists. The redirects close decman's stdout pipe; `communicate()` reads that pipe until EOF.
+    """
+    return ["/bin/sh", "-c", f"{command} </dev/null >/dev/null 2>&1"]
+
+
 # Session commands keep the order the desktop module used to run them in. One missing session
 # produces one notice for the whole list, rather than one notice per module.
 _SESSION: tuple[tuple[str, str, list[str]], ...] = (
@@ -38,11 +49,11 @@ _SESSION: tuple[tuple[str, str, list[str]], ...] = (
         "Restarting the desktop portal",
         ["systemctl", "--user", "restart", "xdg-desktop-portal.service", "xdg-desktop-portal-hyprland.service"],
     ),
-    ("hypridle", "Restarting hypridle", ["/bin/sh", "-c", "pkill --exact hypridle; uwsm-app -- hypridle"]),
-    ("hyprpaper", "Restarting hyprpaper", ["/bin/sh", "-c", "pkill --exact hyprpaper; uwsm-app -- hyprpaper"]),
-    ("hyprsunset", "Restarting hyprsunset", ["/bin/sh", "-c", "pkill --exact hyprsunset; uwsm-app -- hyprsunset"]),
-    ("walker", "Restarting walker", ["/bin/sh", "-c", "pkill --exact walker; walker --gapplication-service"]),
-    ("swayosd", "Restarting swayosd", ["/bin/sh", "-c", "pkill --exact swayosd-server; uwsm-app -- swayosd-server"]),
+    ("hypridle", "Restarting hypridle", _detach("pkill --exact hypridle; setsid -f uwsm-app -- hypridle")),
+    ("hyprpaper", "Restarting hyprpaper", _detach("pkill --exact hyprpaper; setsid -f uwsm-app -- hyprpaper")),
+    ("hyprsunset", "Restarting hyprsunset", _detach("pkill --exact hyprsunset; setsid -f uwsm-app -- hyprsunset")),
+    ("walker", "Restarting walker", _detach("pkill --exact walker; setsid -f walker --gapplication-service")),
+    ("swayosd", "Restarting swayosd", _detach("pkill --exact swayosd-server; setsid -f uwsm-app -- swayosd-server")),
     # Nautilus loads its Python extensions at start.
     # TODO: Can potentially disrupt user's work, for example file operations like moving or copying. Need safer option
     ("nautilus", "Quitting nautilus", ["/bin/sh", "-c", "nautilus --quit || :"]),

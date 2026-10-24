@@ -243,7 +243,9 @@ Session applies are best-effort by nature: pass `check=False`, so a failed reloa
 - **Desktop daemons mostly have no reload request**: `swaync-client --reload-config`/`--reload-css` and waybar's
   `SIGUSR2` are the exceptions. `hyprpaper`, `hyprsunset` and `hypridle` read their config once, at start, and
   `hyprctl` has no request for them either, so they have to be restarted. Relaunch each with the command Hyprland's
-  autostart uses, or the session comes back with a different process layout than the user expects.
+  autostart uses, or the session comes back with a different process layout than the user expects. `uwsm-app` becomes
+  `systemd-run --scope`, which waits until that process exits, and decman waits on the command. Start the relaunch in a
+  new session (`setsid -f`) and drop its output, or the run never reaches the logout and reboot offer.
 - **`hyprctl reload` re-applies monitors**: Pass `config-only` when only the config changed. `hyprmoncfgd` owns the
   monitor layout, and a full reload fights it.
 - **waybar's stylesheet needs no reload**: `reload_style_on_change` is set in its config. Its `config.jsonc` does.

@@ -16,7 +16,7 @@ hl.window_rule({
 hl.window_rule({
     name = "picture-in-picture-rules",
     match = {
-        title = "(Picture[\\s-]?in[\\s-]?Picture)"
+        title = "(Picture[\\s-]?in[\\s-]?[pP]icture)"
     },
     -- Static effects
     float = true,

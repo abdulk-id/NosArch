@@ -100,10 +100,10 @@ _offer_session_change() {
 
     if [ "$action" = "restart" ]; then
         _prompt_confirm "Restart now?" || return 0
-        nosarch-session restart
+        /usr/local/bin/nosarch/nosarch-session restart
     else
         _prompt_confirm "Log out now?" || return 0
-        nosarch-session logout
+        /usr/local/bin/nosarch/nosarch-session logout
     fi
 }
 

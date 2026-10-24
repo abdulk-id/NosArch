@@ -1,6 +1,6 @@
 # NosArch
 
-NosArch is an Arch Linux dotfile and system configuration repo managed by [Decman](https://github.com/kiviktnm/decman).
+NosArch is a single-user Arch-based Linux system.
 
 ## Usage
 
@@ -11,7 +11,7 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by [Decma
     git clone https://github.com/abdulk-id/NosArch ~/NosArch
     ```
 
-3. Configure NosArch in `~/.nosarch_config.json`. Use [`config.schema.json`](config.schema.json) for validating the config JSON.
+3. Configure NosArch in `/etc/nosarch/config.json`. Use [`config.schema.json`](config.schema.json) for validating the config JSON.
 4. Run decman:
 
     ```sh

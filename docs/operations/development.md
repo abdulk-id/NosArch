@@ -11,7 +11,7 @@ NosArch Works sets up your machine to work on NosArch. It installs the packages 
 enables prechecks that are run on every invocation of decman.
 
 NosArch Works can be enabled by setting `advanced.enable_nosarch_works` to `true` in the config file
-(`~/.nosarch_config.json`).
+(`/etc/nosarch/config.json`).
 
 ## Testing
 

@@ -46,15 +46,15 @@ class SnapModule(decman.Module):
     # Runs before the AUR step, so snapd would still be installed.
     @staticmethod
     def on_disable() -> None:
-        import os  # noqa: F811
         import shutil
         import sys
         from pathlib import Path
 
         import decman
         import decman.core.output
+        from user_config import UserConfigReader
 
-        userhome: Path = Path("/home") / os.environ.get("SUDO_USER", "root")
+        userhome: Path = Path("/home") / UserConfigReader.load().user.username
 
         paths: list[Path] = [
             Path("/var/lib/snapd"),  # The system install

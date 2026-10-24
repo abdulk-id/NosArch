@@ -126,7 +126,7 @@ class Homebrew(Plugin):
 
     @override
     def available(self) -> bool:
-        return _find_brew(self.user or os.environ.get("SUDO_USER")) is not None
+        return _find_brew(self.user) is not None
 
     @override
     def process_modules(self, store: _store.Store, modules: list[module.Module]) -> None:
@@ -167,7 +167,7 @@ class Homebrew(Plugin):
 
     @override
     def apply(self, store: _store.Store, dry_run: bool = False, params: list[str] | None = None) -> bool:
-        user = self.user or os.environ.get("SUDO_USER")
+        user = self.user
         if user is None:
             output.print_error(
                 "Homebrew plugin: no user configured. Set 'homebrew.plugin.user' since brew cannot run as root."

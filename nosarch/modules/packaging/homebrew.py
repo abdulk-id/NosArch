@@ -75,7 +75,6 @@ class HomebrewModule(decman.Module):
     # Runs before the pacman step, so the prefix is still there for brew itself to uninstall from.
     @staticmethod
     def on_disable() -> None:
-        import os
         import re
         import shutil
         import sys
@@ -85,9 +84,11 @@ class HomebrewModule(decman.Module):
         import decman.core.command
         import decman.core.output
 
-        # decman lifts this function into a standalone script, so it can only use builtins and what it imports here.
-        # The username comes from the environment rather than the config for that reason.
-        username: str = os.environ.get("SUDO_USER", "root")
+        # decman lifts this function into a standalone script, so read the username from the
+        # root-owned config file rather than from the environment.
+        from user_config import UserConfigReader
+
+        username: str = UserConfigReader.load().user.username
         userhome: Path = Path("/home") / username
 
         paths: list[Path] = [

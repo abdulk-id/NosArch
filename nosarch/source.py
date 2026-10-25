@@ -132,62 +132,63 @@ userManager.add_user(
 userManager.add_user(User(username="aurbuilduser", home="/var/lib/aurbuilduser", system=True))
 decman.aur.makepkg_user = "aurbuilduser"
 
-decman.modules += {userManager}
+decman.modules.append(userManager)
 # ===
 
 # Decman modules ===
-decman.modules += {SystemModule(user_config), DesktopModule(user_config), ThemingModule(user_config)}
+decman.modules.append(SystemModule(user_config))
+decman.modules.append(DesktopModule(user_config))
+decman.modules.append(ThemingModule(user_config))
 
 if user_config.packaging.homebrew.enabled:
-    decman.modules += {HomebrewModule(_username)}
+    decman.modules.append(HomebrewModule(_username))
 
 if user_config.packaging.flatpak.enabled:
-    decman.modules += {FlatpakModule()}
+    decman.modules.append(FlatpakModule())
 
 if user_config.packaging.snap.enabled:
-    decman.modules += {SnapModule()}
+    decman.modules.append(SnapModule())
 
 desktop_enabled: bool = any(module.name == "desktop" for module in decman.modules)
 
 if user_config.setups.basic.enabled:
     if desktop_enabled:
-        decman.modules += {BasicSetupModule(user_config)}
+        decman.modules.append(BasicSetupModule(user_config))
     else:
         decman.core.output.print_error("[SETUPS] Basic setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.setups.ai.enabled:
     if desktop_enabled:
-        decman.modules += {AISetupModule(user_config)}
+        decman.modules.append(AISetupModule(user_config))
     else:
         decman.core.output.print_error("[SETUPS] AI setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.setups.creative.enabled:
     if desktop_enabled:
-        decman.modules += {CreativeSetupModule(user_config)}
+        decman.modules.append(CreativeSetupModule(user_config))
     else:
         decman.core.output.print_error("[SETUPS] Creative setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.setups.dev.enabled:
     if desktop_enabled:
-        decman.modules += {DevSetupModule(user_config)}
+        decman.modules.append(DevSetupModule(user_config))
     else:
         decman.core.output.print_error("[SETUPS] Dev setup requires Desktop module to be enabled.")
         raise SystemExit()
 
 if user_config.setups.gaming.enabled:
     if desktop_enabled:
-        decman.modules += {GamingSetupModule(user_config)}
+        decman.modules.append(GamingSetupModule(user_config))
     else:
         decman.core.output.print_error("[SETUPS] Gaming setup requires Desktop module to be enabled.")
         raise SystemExit()
 
-decman.modules += {UserDefinedModule(user_config)}
+decman.modules.append(UserDefinedModule(user_config))
 
-# Last on purpose, and in its own statement. A set does not keep order, so this cannot be grouped
-# with the modules above. Its after_update runs the queued apply commands after every other
-# after_update. Do not register a module after this.
-decman.modules += {ApplyModule()}
+# Last on purpose, and in its own statement. Its after_update runs the queued apply commands
+# after every other after_update. Do not register a module after this.
+decman.modules.append(ApplyModule())
 # ===

@@ -245,11 +245,11 @@ Session applies are best-effort by nature: pass `check=False`, so a failed reloa
 - **Restart a unit the user may have turned off with `try-restart`**: `restart` would start a timer the user had
   disabled (`nosarch-eyesight-reminder.timer` is enabled by default, but a hook cannot assume that stays true).
 - **Desktop daemons mostly have no reload request**: `swaync-client --reload-config`/`--reload-css` and waybar's
-  `SIGUSR2` are the exceptions. `hyprpaper`, `hyprsunset` and `hypridle` read their config once, at start, and
-  `hyprctl` has no request for them either, so they have to be restarted. Relaunch each with the command Hyprland's
-  autostart uses, or the session comes back with a different process layout than the user expects. `uwsm-app` becomes
-  `systemd-run --scope`, which waits until that process exits, and decman waits on the command. Start the relaunch in a
-  new session (`setsid -f`) and drop its output, or the run never reaches the logout and reboot offer.
+  `SIGUSR2` are the exceptions. `hyprpaper`, `hyprsunset`, `hypridle`, and swayosd read their config once, at start,
+  and `hyprctl` has no request for them either, so restart the user service. A leftover uwsm app scope has to be
+  stopped in the same command, or the scope keeps running beside the service. Walker is still started from Hyprland's
+  autostart and does not exit, so relaunch it in a new session (`setsid -f`) and drop its output, or decman waits on
+  the process and never reaches the logout and reboot offer.
 - **`hyprctl reload` re-applies monitors**: Pass `config-only` when only the config changed. `hyprmoncfgd` owns the
   monitor layout, and a full reload fights it.
 - **waybar's stylesheet needs no reload**: `reload_style_on_change` is set in its config. Its `config.jsonc` does.

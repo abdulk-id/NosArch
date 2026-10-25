@@ -12,8 +12,8 @@ Usage:
 Commands:
     wifi                Restart NetworkManager (systemd service)
     bluetooth           Restart Bluetooth (systemd service)
-    waybar              Relaunch Waybar (uwsm)
-    hyprsunset          Relaunch Hyprsunset (uwsm)
+    waybar              Restart Waybar
+    hyprsunset          Restart Hyprsunset
     launcher            Restart Elephant and Walker
     help                Show this help message
 
@@ -61,30 +61,26 @@ restart_bluetooth() {
     _notify low "Bluetooth restarted"
 }
 
-# Waybar and Hyprsunset are started with uwsm-app, which puts them in a transient
-# scope under app-graphical.slice (app-Hyprland-<name>-*.scope). The packages also
-# ship user services, and `systemctl --user restart waybar` starts that service
-# instead of the scope. Restart stops both, then launches the app the way autostart does:
-#     systemctl --user stop waybar.service 'app-*waybar*.scope' 'app-*waybar*.service'
-#     uwsm-app -- waybar
+# Waybar and Hyprsunset are user services. A session that has not logged out since they were
+# started with uwsm-app may still have a transient app scope. Stop that scope, then restart
+# the service:
+#     systemctl --user stop 'app-*waybar*.scope'
+#     systemctl --user restart waybar.service
 
-# $1 is the executable name, which is also the packaged user-unit name.
-restart_uwsm_app() {
+# $1 is the user unit name, without the .service suffix.
+restart_user_service() {
     app=$1
     label=$2
 
     _ensure_command systemctl
-    _ensure_command uwsm-app
 
-    if ! systemctl --user stop \
-        "${app}.service" \
-        "app-*${app}*.scope" \
-        "app-*${app}*.service"; then
+    # Stopping a scope that is already gone succeeds.
+    if ! systemctl --user stop "app-*${app}*.scope"; then
         _notify critical "Could not restart ${label}"
         exit 1
     fi
 
-    if ! uwsm-app -- "$app"; then
+    if ! systemctl --user restart "${app}.service"; then
         _notify critical "Could not restart ${label}"
         exit 1
     fi
@@ -214,13 +210,13 @@ main() {
             restart_bluetooth
             ;;
         waybar)
-            restart_uwsm_app waybar "Waybar"
+            restart_user_service waybar "Waybar"
             ;;
         launcher)
             restart_launcher
             ;;
         hyprsunset)
-            restart_uwsm_app hyprsunset "Hyprsunset"
+            restart_user_service hyprsunset "Hyprsunset"
             ;;
         help|-h|--help)
             show_help

@@ -28,13 +28,21 @@ _ROOT_ORDER: tuple[str, ...] = (
 
 
 def _detach(command: str) -> list[str]:
-    """Run a session daemon without decman waiting for it to exit.
+    """Run a session process without decman waiting for it to exit.
 
-    `uwsm-app` replaces itself with `systemd-run --scope`, and that waits until the daemon exits. decman waits on the
-    command it started, so the flush never reaches the logout and reboot offer. `setsid -f` returns once the new
-    session exists. The redirects close decman's stdout pipe; `communicate()` reads that pipe until EOF.
+    Walker does not exit. `setsid -f` returns once the new session exists. The redirects close decman's stdout pipe;
+    `communicate()` reads that pipe until EOF.
     """
     return ["/bin/sh", "-c", f"{command} </dev/null >/dev/null 2>&1"]
+
+
+def _restart_user_service(unit: str) -> list[str]:
+    """Restart a user service, and stop a leftover uwsm app scope of the same program.
+
+    `systemctl restart` returns once the unit is up. The scope stop is a no-op once that program is the service.
+    A scope name such as `swayosd-server` still matches `app-*swayosd*`.
+    """
+    return ["/bin/sh", "-c", f"systemctl --user stop 'app-*{unit}*.scope'; systemctl --user restart {unit}.service"]
 
 
 # Session commands keep the order the desktop module used to run them in. One missing session
@@ -49,11 +57,11 @@ _SESSION: tuple[tuple[str, str, list[str]], ...] = (
         "Restarting the desktop portal",
         ["systemctl", "--user", "restart", "xdg-desktop-portal.service", "xdg-desktop-portal-hyprland.service"],
     ),
-    ("hypridle", "Restarting hypridle", _detach("pkill --exact hypridle; setsid -f uwsm-app -- hypridle")),
-    ("hyprpaper", "Restarting hyprpaper", _detach("pkill --exact hyprpaper; setsid -f uwsm-app -- hyprpaper")),
-    ("hyprsunset", "Restarting hyprsunset", _detach("pkill --exact hyprsunset; setsid -f uwsm-app -- hyprsunset")),
+    ("hypridle", "Restarting hypridle", _restart_user_service("hypridle")),
+    ("hyprpaper", "Restarting hyprpaper", _restart_user_service("hyprpaper")),
+    ("hyprsunset", "Restarting hyprsunset", _restart_user_service("hyprsunset")),
     ("walker", "Restarting walker", _detach("pkill --exact walker; setsid -f walker --gapplication-service")),
-    ("swayosd", "Restarting swayosd", _detach("pkill --exact swayosd-server; setsid -f uwsm-app -- swayosd-server")),
+    ("swayosd", "Restarting swayosd", _restart_user_service("swayosd")),
     # Nautilus loads its Python extensions at start.
     # TODO: Can potentially disrupt user's work, for example file operations like moving or copying. Need safer option
     ("nautilus", "Quitting nautilus", ["/bin/sh", "-c", "nautilus --quit || :"]),

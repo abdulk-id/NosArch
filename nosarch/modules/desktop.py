@@ -73,6 +73,7 @@ class DesktopModule(decman.Module):
                 "/.config/swayosd/style.css",
                 "/.config/systemd/user/nosarch-eyesight-reminder.service",
                 "/.config/systemd/user/nosarch-eyesight-reminder.timer",
+                "/.config/systemd/user/swayosd.service",
                 "/.config/uwsm/env",
                 "/.config/uwsm/env-hyprland",
                 "/.config/uwsm/fcitx",
@@ -220,7 +221,7 @@ class DesktopModule(decman.Module):
         ):
             utils.apply.restart_desktop_portal()
 
-        # These have no reload command. Each is relaunched with the command Hyprland's autostart uses.
+        # These have no reload command. Restart the user service.
         if self._tracker.files_changed(f"{home}/.config/hypr/hypridle.conf"):
             utils.apply.restart_hypridle()
 
@@ -421,6 +422,13 @@ class DesktopModule(decman.Module):
             "pipewire-pulse.service",
             "wireplumber.service",
             "xdg-user-dirs.service",
+            "hypridle.service",
+            "hyprpaper.service",
+            "hyprpolkitagent.service",
+            "hyprsunset.service",
+            "swaync.service",
+            "swayosd.service",
+            "waybar.service",
             "nosarch-eyesight-reminder.timer",
         }
 

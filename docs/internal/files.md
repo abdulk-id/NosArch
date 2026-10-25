@@ -197,6 +197,10 @@ utils.apply.request_reboot("ZRAM configuration")
 has exited, which is when every hook has finished and the store is on disk. `tools/apply` reads the store, prompts
 once, and acts.
 
+Every requested command runs. A command that fails is reported, and the commands after it still run, including the
+logout and reboot record. The failed command is not tried again on the next run: the file that requested it is already
+saved.
+
 ### The notice belongs inside, the prompt belongs outside
 
 The notice is printed by `ApplyModule`, still inside the decman run, so running `decman` directly informs the user. It

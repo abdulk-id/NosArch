@@ -189,55 +189,77 @@ def _clear() -> None:
     _user = None
 
 
+def _run(cmd: list[str]) -> None:
+    """Run one command. A failure is reported, and the commands after it still run.
+
+    The report is whatever decman already prints for a non-zero exit. Anything else that goes
+    wrong is printed the same way. Neither one stops the rest of the list.
+    """
+
+    try:
+        # `pty=False`: the default refuses to start when stdin is not a terminal, which would skip
+        # the command entirely.
+        _ = decman.prg(cmd, check=False, pty=False)
+    except Exception as error:
+        decman.core.output.print_warning(str(error))
+
+
 def _run_root(name: str, username: str | None) -> None:
     if name == "daemon_reload":
         decman.core.output.print_info("Reloading systemd.")
-        _ = decman.prg(["systemctl", "daemon-reload"])
+        _run(["systemctl", "daemon-reload"])
     elif name == "daemon_reexec":
         decman.core.output.print_info("Restarting systemd.")
-        _ = decman.prg(["systemctl", "daemon-reexec"])
+        _run(["systemctl", "daemon-reexec"])
     elif name == "user_daemon_reload" and username is not None:
         decman.core.output.print_info("Reloading systemd user units.")
-        # `check=False`, because the user manager is not running when applying from a TTY.
-        _ = decman.prg(["systemctl", "--user", "-M", f"{username}@", "daemon-reload"], check=False)
+        # The user manager is not running when applying from a TTY.
+        _run(["systemctl", "--user", "-M", f"{username}@", "daemon-reload"])
     elif name == "eyesight_timer" and username is not None:
         # `try-restart`, so a timer the user turned off stays off.
-        _ = decman.prg(
-            ["systemctl", "--user", "-M", f"{username}@", "try-restart", "nosarch-eyesight-reminder.timer"], check=False
-        )
+        _run(["systemctl", "--user", "-M", f"{username}@", "try-restart", "nosarch-eyesight-reminder.timer"])
     elif name == "sysctl":
         decman.core.output.print_info("Applying kernel parameters.")
-        _ = decman.prg(["sysctl", "--system", "--quiet"])
+        _run(["sysctl", "--system", "--quiet"])
     elif name == "networkmanager":
         decman.core.output.print_info("Reloading NetworkManager.")
-        _ = decman.prg(["systemctl", "reload", "NetworkManager"])
+        _run(["systemctl", "reload", "NetworkManager"])
     elif name == "journald":
         decman.core.output.print_info("Restarting systemd-journald.")
-        _ = decman.prg(["systemctl", "restart", "systemd-journald"])
+        _run(["systemctl", "restart", "systemd-journald"])
     elif name == "tmpfiles":
         decman.core.output.print_info("Cleaning tmp files.")
-        _ = decman.prg(["systemd-tmpfiles", "--create", "--clean"])
+        _run(["systemd-tmpfiles", "--create", "--clean"])
     elif name == "udev":
         decman.core.output.print_info("Reloading udev.")
-        _ = decman.prg(["udevadm", "control", "--reload"])
-        _ = decman.prg(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
+        _run(["udevadm", "control", "--reload"])
+        _run(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
     elif name == "ufw":
         decman.core.output.print_info("Restarting firewall (ufw).")
-        _ = decman.prg(["systemctl", "restart", "ufw"])
+        _run(["systemctl", "restart", "ufw"])
     elif name == "gsettings":
         # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
         decman.core.output.print_info("Rebuilding GSettings cache.")
-        _ = decman.prg(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
+        _run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
 
 
 def _run_session(commands: list[tuple[str, list[str]]]) -> None:
     if not commands:
         return
 
-    if utils.session.has_graphical_session():
+    try:
+        graphical = utils.session.has_graphical_session()
+    except Exception as error:
+        decman.core.output.print_warning(str(error))
+        graphical = False
+
+    if graphical:
         for description, command in commands:
             decman.core.output.print_info(description)
-            _ = utils.session.run_in_session(command)
+            try:
+                _ = utils.session.run_in_session(command)
+            except Exception as error:
+                decman.core.output.print_warning(str(error))
         return
 
     decman.core.output.print_list(
@@ -264,7 +286,7 @@ def flush(store: Store) -> None:
 
     if "initramfs" in pending:
         decman.core.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
-        _ = decman.prg(["limine-mkinitcpio"])
+        _run(["limine-mkinitcpio"])
 
     if logouts:
         decman.core.output.print_list("These changes will take effect after logging out: ", logouts, 1)

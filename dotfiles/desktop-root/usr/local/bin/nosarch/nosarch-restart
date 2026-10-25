@@ -1,0 +1,236 @@
+#!/bin/sh
+# Managed by NosArch
+# nosarch:summary=Restart common services like Wi-Fi, Bluetooth, Waybar, the launcher etc.
+
+set -eu
+
+show_help() {
+    cat <<'EOF'
+Usage:
+    nosarch-restart <command>
+
+Commands:
+    wifi                Restart NetworkManager (systemd service)
+    bluetooth           Restart Bluetooth (systemd service)
+    waybar              Relaunch Waybar (uwsm)
+    hyprsunset          Relaunch Hyprsunset (uwsm)
+    launcher            Restart Elephant and Walker
+    help                Show this help message
+
+Restarting Wi-Fi and Bluetooth drop connections briefly and require sudo password
+EOF
+}
+
+## === Utilities ===
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+_notify() {
+    urgency=$1
+    message=$2
+
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send --urgency="$urgency" --transient --app-name="NosArch Help" "$message"
+    fi
+}
+
+## === Features ===
+restart_wifi() {
+    _ensure_command systemctl
+
+    if ! systemctl restart NetworkManager; then
+        _notify critical "Could not restart Wi-Fi"
+        exit 1
+    fi
+
+    _notify low "Wi-Fi restarted"
+}
+
+restart_bluetooth() {
+    _ensure_command systemctl
+
+    if ! systemctl restart bluetooth; then
+        _notify critical "Could not restart Bluetooth"
+        exit 1
+    fi
+
+    _notify low "Bluetooth restarted"
+}
+
+# Waybar and Hyprsunset are started with uwsm-app, which puts them in a transient
+# scope under app-graphical.slice (app-Hyprland-<name>-*.scope). The packages also
+# ship user services, and `systemctl --user restart waybar` starts that service
+# instead of the scope. Restart stops both, then launches the app the way autostart does:
+#     systemctl --user stop waybar.service 'app-*waybar*.scope' 'app-*waybar*.service'
+#     uwsm-app -- waybar
+
+# $1 is the executable name, which is also the packaged user-unit name.
+restart_uwsm_app() {
+    app=$1
+    label=$2
+
+    _ensure_command systemctl
+    _ensure_command uwsm-app
+
+    if ! systemctl --user stop \
+        "${app}.service" \
+        "app-*${app}*.scope" \
+        "app-*${app}*.service"; then
+        _notify critical "Could not restart ${label}"
+        exit 1
+    fi
+
+    if ! uwsm-app -- "$app"; then
+        _notify critical "Could not restart ${label}"
+        exit 1
+    fi
+
+    _notify low "${label} restarted"
+}
+
+_walker_pids() {
+    ps -A -o pid= -o comm= | awk '$2 == "walker" { print $1 }'
+}
+
+_signal_walkers() {
+    signal=$1
+
+    _walker_pids | while read -r pid; do
+        [ -n "$pid" ] || continue
+        kill -s "$signal" "$pid" 2>/dev/null || true
+    done
+}
+
+# Elephant is the user service this session enables. Walker is not: Hyprland
+# starts `walker --gapplication-service` inside the compositor. walker.service
+# is a different unit, so stop it too or it can respawn a second Walker.
+_restart_walker() {
+    _ensure_command hyprctl
+    _ensure_command walker
+
+    systemctl --user stop walker.service || true
+
+    if [ -n "$(_walker_pids)" ]; then
+        _signal_walkers TERM
+
+        i=0
+        while [ -n "$(_walker_pids)" ] && [ "$i" -lt 3 ]; do
+            sleep 1
+            i=$((i + 1))
+        done
+
+        if [ -n "$(_walker_pids)" ]; then
+            _signal_walkers KILL
+            sleep 1
+        fi
+    fi
+
+    if [ -n "$(_walker_pids)" ]; then
+        return 1
+    fi
+
+    if ! hyprctl eval 'hl.exec_cmd("walker --gapplication-service")'; then
+        return 1
+    fi
+
+    i=0
+    while [ -z "$(_walker_pids)" ] && [ "$i" -lt 3 ]; do
+        sleep 1
+        i=$((i + 1))
+    done
+
+    [ -n "$(_walker_pids)" ]
+}
+
+restart_launcher() {
+    _ensure_command systemctl
+    # The launcher is Elephant plus Walker. Elephant is the user service. Hyprland starts
+    # Walker with hl.exec_cmd, so the running process is not walker.service. Restart
+    # Elephant, stop that unit, stop the running Walker, then start it the way autostart does:
+    #     systemctl --user restart elephant
+    #     systemctl --user stop walker.service
+    #     hyprctl eval 'hl.exec_cmd("walker --gapplication-service")'
+
+    # The menu runs this as a child of Walker. Killing Walker from that child
+    # would kill the restart itself, so finish the work in a separate unit.
+    if [ -z "${NOSARCH_RESTART_DETACHED:-}" ]; then
+        _ensure_command systemd-run
+
+        case $0 in
+            /*) script=$0 ;;
+            *) script=$(command -v nosarch-restart) ;;
+        esac
+
+        if [ -z "$script" ]; then
+            _notify critical "Could not restart Launcher"
+            exit 1
+        fi
+
+        if ! systemd-run --user --collect --quiet --no-block \
+            --unit="nosarch-restart-launcher-$$" \
+            --setenv=NOSARCH_RESTART_DETACHED=1 \
+            --setenv="HYPRLAND_INSTANCE_SIGNATURE=${HYPRLAND_INSTANCE_SIGNATURE:-}" \
+            --setenv="WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}" \
+            "$script" launcher; then
+            _notify critical "Could not restart Launcher"
+            exit 1
+        fi
+
+        return
+    fi
+
+    # Let the menu command return before Walker is stopped.
+    sleep 1
+
+    if ! systemctl --user restart elephant; then
+        _notify critical "Could not restart Launcher"
+        exit 1
+    fi
+
+    if ! _restart_walker; then
+        _notify critical "Could not restart Launcher"
+        exit 1
+    fi
+
+    _notify low "Launcher restarted"
+}
+
+## ===
+main() {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return
+    fi
+
+    case "${1:-}" in
+        wifi)
+            restart_wifi
+            ;;
+        bluetooth)
+            restart_bluetooth
+            ;;
+        waybar)
+            restart_uwsm_app waybar "Waybar"
+            ;;
+        launcher)
+            restart_launcher
+            ;;
+        hyprsunset)
+            restart_uwsm_app hyprsunset "Hyprsunset"
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

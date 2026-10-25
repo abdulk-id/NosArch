@@ -32,6 +32,10 @@ function GetEntries()
             Value = "walker -m menus:settings"
         },
         {
+            Text = "󰋖    Help",
+            Value = "walker -m menus:help"
+        },
+        {
             Text = "    Session",
             Value = "walker -m menus:session"
         }

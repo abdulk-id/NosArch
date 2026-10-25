@@ -42,6 +42,8 @@ anchor_right = true
 "menus:packages" = { input = "Manage packages", list = "No Options Found" }
 "menus:settings" = { input = "Configure", list = "No Settings Found" }
 "menus:session" = { input = "Manage session", list = "No Options Found" }
+"menus:help" = { input = "Help", list = "No Options Found" }
+"menus:restart" = { input = "Restart", list = "No Options Found" }
 
 "menus:installing" = { input = "Install packages", list = "No Options Found" }
 

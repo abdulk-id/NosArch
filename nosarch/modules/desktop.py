@@ -51,7 +51,6 @@ class DesktopModule(decman.Module):
                 "/.config/hypr/app-windows/core.lua",
                 "/.config/hypr/app-windows/firefox.lua",
                 "/.config/hypr/app-windows/localsend.lua",
-                "/.config/hypr/app-windows/nosarch-dash.lua",
                 "/.config/hypr/app-windows/qemu.lua",
                 "/.config/hypr/app-windows/spotify.lua",
                 "/.config/hypr/binds/hyprbinds.lua",

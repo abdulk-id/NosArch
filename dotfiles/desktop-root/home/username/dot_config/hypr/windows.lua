@@ -54,5 +54,13 @@ hl.window_rule({
     center = true
 })
 
+-- Walker
+hl.layer_rule({
+    name = "walker-blur",
+    match = { namespace = "walker" },
+    blur = true,
+    ignore_alpha = 0.41,
+})
+
 -- App-specific tweaks
 require("./app-windows/*")

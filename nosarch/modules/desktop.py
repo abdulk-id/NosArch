@@ -2,6 +2,7 @@ from typing import override
 
 import decman
 import modules.theme
+import utils.apply
 import utils.change_tracker
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
@@ -28,12 +29,6 @@ class DesktopModule(decman.Module):
         self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
-    def on_change(self, store: decman.Store) -> None:
-        # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
-        # TODO only on glib schema file update
-        _ = decman.prg(cmd=["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
-
-    @override
     def file_variables(self) -> dict[str, str]:
         return modules.theme.get_current_theme()
 
@@ -44,7 +39,53 @@ class DesktopModule(decman.Module):
         # ~/ files
         files.update(self._userhome_dotfiles.files("/Templates/Textfile.txt"))
 
-        # ~/.config/ files
+        # ~/.config files that need a change applied after they are written
+        files.update(
+            self._userhome_dotfiles.tracked_files(
+                self._tracker,
+                "/.config/environment.d/defaults.conf",
+                "/.config/hypr/app-windows/1password.lua",
+                "/.config/hypr/app-windows/bitwarden.lua",
+                "/.config/hypr/app-windows/browsers.lua",
+                "/.config/hypr/app-windows/chromium.lua",
+                "/.config/hypr/app-windows/core.lua",
+                "/.config/hypr/app-windows/firefox.lua",
+                "/.config/hypr/app-windows/localsend.lua",
+                "/.config/hypr/app-windows/nosarch-dash.lua",
+                "/.config/hypr/app-windows/qemu.lua",
+                "/.config/hypr/app-windows/spotify.lua",
+                "/.config/hypr/binds/hyprbinds.lua",
+                "/.config/hypr/binds/mediabinds.lua",
+                "/.config/hypr/binds/userbinds.lua",
+                "/.config/hypr/autostart.lua",
+                "/.config/hypr/hypridle.conf",
+                "/.config/hypr/hyprland.lua",
+                "/.config/hypr/hyprpaper.conf",
+                "/.config/hypr/hyprsunset.conf",
+                "/.config/hypr/input.lua",
+                "/.config/hypr/looknfeel.lua",
+                "/.config/hypr/permissions.lua",
+                "/.config/hypr/windows.lua",
+                "/.config/hypr/xdph.conf",
+                "/.config/swaync/config.json",
+                "/.config/swaync/style.css",
+                "/.config/swayosd/config.toml",
+                "/.config/swayosd/style.css",
+                "/.config/systemd/user/nosarch-eyesight-reminder.service",
+                "/.config/systemd/user/nosarch-eyesight-reminder.timer",
+                "/.config/uwsm/env",
+                "/.config/uwsm/env-hyprland",
+                "/.config/uwsm/fcitx",
+                "/.config/uwsm/wayland",
+                "/.config/walker/config.toml",
+                "/.config/walker/themes/nosarch/layout.xml",
+                "/.config/walker/themes/nosarch/style.css",
+                "/.config/waybar/config.jsonc",
+                "/.config/xdg-desktop-portal/portals.conf",
+            )
+        )
+
+        # ~/.config files applied by the process that reads them
         files.update(
             self._userhome_dotfiles.files(
                 "/.config/btop/btop.conf",
@@ -60,67 +101,29 @@ class DesktopModule(decman.Module):
                 "/.config/elephant/desktopapplications.toml",
                 "/.config/elephant/menus.toml",
                 "/.config/elephant/websearch.toml",
-                "/.config/environment.d/defaults.conf",
                 "/.config/ghostty/config",
                 "/.config/ghostty/theme.conf",
                 "/.config/gtk-3.0/settings.ini",
                 "/.config/gtk-4.0/settings.ini",
-                "/.config/hypr/app-windows/1password.lua",
-                "/.config/hypr/app-windows/bitwarden.lua",
-                "/.config/hypr/app-windows/browsers.lua",
-                "/.config/hypr/app-windows/chromium.lua",
-                "/.config/hypr/app-windows/core.lua",
-                "/.config/hypr/app-windows/firefox.lua",
-                "/.config/hypr/app-windows/localsend.lua",
-                "/.config/hypr/app-windows/nosarch-dash.lua",
-                "/.config/hypr/app-windows/qemu.lua",
-                "/.config/hypr/app-windows/spotify.lua",
-                "/.config/hypr/binds/hyprbinds.lua",
-                "/.config/hypr/binds/mediabinds.lua",
-                "/.config/hypr/binds/userbinds.lua",
                 "/.config/hypr/.luarc.json",
                 "/.config/hypr/application-style.conf",
-                "/.config/hypr/autostart.lua",
-                "/.config/hypr/hypridle.conf",
-                "/.config/hypr/hyprland.lua",
                 "/.config/hypr/hyprlock.conf",
-                "/.config/hypr/hyprpaper.conf",
                 "/.config/hypr/hyprqt6engine.conf",
-                "/.config/hypr/hyprsunset.conf",
                 "/.config/hypr/hyprtoolkit.conf",
-                "/.config/hypr/input.lua",
-                "/.config/hypr/looknfeel.lua",
-                "/.config/hypr/permissions.lua",
-                "/.config/hypr/windows.lua",
-                "/.config/hypr/xdph.conf",
                 "/.config/hyprland-preview-share-picker/config.yaml",
                 "/.config/hyprland-preview-share-picker/style.css",
                 "/.config/satty/config.toml",
-                "/.config/swaync/config.json",
-                "/.config/swaync/style.css",
-                "/.config/swayosd/config.toml",
-                "/.config/swayosd/style.css",
-                "/.config/systemd/user/nosarch-eyesight-reminder.service",
-                "/.config/systemd/user/nosarch-eyesight-reminder.timer",
-                "/.config/uwsm/env",
-                "/.config/uwsm/env-hyprland",
-                "/.config/uwsm/fcitx",
-                "/.config/uwsm/wayland",
-                "/.config/walker/config.toml",
-                "/.config/walker/themes/nosarch/layout.xml",
-                "/.config/walker/themes/nosarch/style.css",
-                "/.config/waybar/config.jsonc",
-                "/.config/waybar/style.css",
-                "/.config/xdg-desktop-portal/portals.conf",
                 "/.config/user-dirs.dirs",
                 "/.config/xdg-terminals.list",
+                "/.config/waybar/style.css",  # waybar's stylesheet reloads on its own, `reload_style_on_change` is set.
             )
         )
 
         # ~/.local/ files
+        files.update(self._userhome_dotfiles.files("/.local/share/applications/nosarch-appimage-installer.desktop"))
         files.update(
-            self._userhome_dotfiles.files(
-                "/.local/share/applications/nosarch-appimage-installer.desktop",
+            self._userhome_dotfiles.tracked_files(
+                self._tracker,
                 "/.local/share/nautilus-python/extensions/localsend-share.py",
                 "/.local/share/nautilus-python/extensions/open-in-terminal.py",
             )
@@ -135,11 +138,11 @@ class DesktopModule(decman.Module):
 
         # /usr files
         files.update(
-            self._dotfiles.files(
-                "/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override",
-                "/usr/share/wayland-sessions/nosarch/nosarch-hyprland.desktop",
+            self._dotfiles.tracked_files(
+                self._tracker, "/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"
             )
         )
+        files.update(self._dotfiles.files("/usr/share/wayland-sessions/nosarch/nosarch-hyprland.desktop"))
 
         ## NosArch scripts
         files.update(
@@ -170,16 +173,83 @@ class DesktopModule(decman.Module):
             return nvidia_env_vars
 
         if _gpu_vendor == "nvidia_gsp" or _gpu_vendor == "nvidia_non_gsp":
-            files.update(self._dotfiles.files("/etc/mkinitcpio.conf.d/nvidia.conf", "/etc/modprobe.d/nvidia.conf"))
+            files.update(
+                self._dotfiles.tracked_files(
+                    self._tracker, "/etc/mkinitcpio.conf.d/nvidia.conf", "/etc/modprobe.d/nvidia.conf"
+                )
+            )
             files.update(
                 {
-                    f"/home/{self._username}/.config/uwsm/env-nvidia": File(
+                    f"/home/{self._username}/.config/uwsm/env-nvidia": self._tracker.file(
                         content=get_nvidia_uwsm_user_config(), owner=f"{self._username}"
                     )
                 }
             )
 
         return files
+
+    @override
+    def on_change(self, store: decman.Store) -> None:
+        home: str = f"/home/{self._username}"
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/systemd/user"):
+            utils.apply.reload_user_systemd(self._username)
+            utils.apply.try_restart_eyesight_timer(self._username)
+
+        if self._tracker.files_changed("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"):
+            utils.apply.rebuild_gsettings()
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/hypr"):
+            utils.apply.reload_hyprland()
+
+        if self._tracker.files_changed(f"{home}/.config/waybar/config.jsonc"):
+            utils.apply.reload_waybar()
+
+        if self._tracker.files_changed(f"{home}/.config/swaync/config.json"):
+            utils.apply.reload_swaync_config()
+
+        if self._tracker.files_changed(f"{home}/.config/swaync/style.css"):
+            utils.apply.reload_swaync_style()
+
+        # Both files are read once, when the portal starts.
+        if self._tracker.files_changed(
+            f"{home}/.config/hypr/xdph.conf", f"{home}/.config/xdg-desktop-portal/portals.conf"
+        ):
+            utils.apply.restart_desktop_portal()
+
+        # These have no reload command. Each is relaunched with the command Hyprland's autostart uses.
+        if self._tracker.files_changed(f"{home}/.config/hypr/hypridle.conf"):
+            utils.apply.restart_hypridle()
+
+        if self._tracker.files_changed(f"{home}/.config/hypr/hyprpaper.conf"):
+            utils.apply.restart_hyprpaper()
+
+        if self._tracker.files_changed(f"{home}/.config/hypr/hyprsunset.conf"):
+            utils.apply.restart_hyprsunset()
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/walker"):
+            utils.apply.restart_walker()
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/swayosd"):
+            utils.apply.restart_swayosd()
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.local/share/nautilus-python"):
+            utils.apply.quit_nautilus()
+
+        if self._tracker.files_changed_in_dirs("/etc/mkinitcpio.conf.d"):
+            utils.apply.rebuild_initramfs()
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/environment.d"):
+            # Read by `systemd-environment-d-generator` when the user manager starts.
+            utils.apply.request_logout("environment.d variables")
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/uwsm"):
+            # Sourced by the compositor at session start.
+            utils.apply.request_logout("uwsm session environment")
+
+        if self._tracker.files_changed("/etc/modprobe.d/nvidia.conf"):
+            # Module options are read when the module is loaded, so only a new boot picks them up.
+            utils.apply.request_reboot("Nvidia module options")
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
     def pkgs(self) -> set[str]:

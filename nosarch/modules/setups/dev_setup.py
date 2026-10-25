@@ -1,6 +1,8 @@
 from typing import override
 
 import decman
+import utils.apply
+import utils.change_tracker
 import utils.dotfile.dev_lang_config
 import utils.paths
 from decman import File, Store
@@ -20,9 +22,19 @@ class DevSetupModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/dev-setup-root", self._username
         )
+        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
     def on_change(self, store: Store) -> None:
+        home: str = f"/home/{self._username}"
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/hypr"):
+            utils.apply.reload_hyprland()
+
+        if self._tracker.files_changed_in_dirs(f"{home}/.config/environment.d"):
+            # Read by `systemd-environment-d-generator` when the user manager starts.
+            utils.apply.request_logout("development environment variables")
+
         _ = decman.prg(cmd=["mise", "install"], user=self._username, mimic_login=True)
         _ = decman.prg(cmd=["mise", "prune"], user=self._username, mimic_login=True)
 
@@ -58,7 +70,8 @@ class DevSetupModule(decman.Module):
 
         ## ~/.config files
         files.update(
-            self._userhome_dotfiles.files(
+            self._userhome_dotfiles.tracked_files(
+                self._tracker,
                 "/.config/environment.d/dev.conf",
                 "/.config/environment.d/languages.conf",
                 "/.config/hypr/app-windows/jetbrains.lua",

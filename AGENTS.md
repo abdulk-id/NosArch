@@ -19,8 +19,8 @@ Most code changes do not need an internal documentation change. Agents can read 
 
 ## Testing
 
-- Testing the definition code requires a decman dry-run as root, which you cannot do yourself. Ask the user to run
-  it and report back any errors rather than attempting it.
+- Testing the definition code requires a dry-run as root, which you cannot do yourself. Ask the user to run
+  `tools/apply --dry-run` (or `mise run dry-run-quick`) and report back any errors rather than attempting it.
 
 ## Formatting
 

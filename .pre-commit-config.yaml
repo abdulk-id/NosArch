@@ -1,9 +1,6 @@
-# Pre-commit hooks. Install with `mise exec -- pre-commit install`.
-
 repos:
     - repo: local
       hooks:
-          # Runs before ruff-format: lint fixes can leave code that the formatter then rewrites.
           - id: ruff-check
             name: ruff check --fix
             entry: ruff check --fix

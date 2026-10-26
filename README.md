@@ -25,7 +25,3 @@ NosArch is an Arch Linux dotfile and system configuration repo managed by [Decma
     ```sh
     sudo ~/NosArch/tools/apply --source ~/NosArch/nosarch/source.py --dry-run
     ```
-
-`tools/apply` runs decman and then offers to log out or reboot, for the changes that only take effect on a new login.
-Everything that can be applied live is applied first. Declining the offer is fine: those changes apply the next time
-you log out or reboot. Running `decman` directly applies them the same way; it just does not offer the action.

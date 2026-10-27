@@ -1,27 +1,31 @@
+import os
 import shutil
+from pathlib import Path
 from typing import override
 
-import decman
+import engine
+import engine.output
 import utils.paths
-from decman import File
-from decman.plugins import pacman
+from engine import File
+from engine.steps import pacman
 
 # The .flatpakrepo file is Flathub's remote description. Kept in step with the pacman hook
 # at /etc/pacman.d/hooks/10-flatpak-flathub.hook, which runs the same command.
 _FLATHUB_REPO = "https://dl.flathub.org/repo/flathub.flatpakrepo"
 
 
-class FlatpakModule(decman.Module):
+class FlatpakModule(engine.Module):
     """
-    Installs the Flatpak runtime and prepares what the `flatpak` plugin drives.
+    Installs the Flatpak runtime and prepares what the `flatpak` step drives.
 
     A module of its own because Flatpak needs more than a package: the runtime leaves every app's data on disk when it
     goes, so switching Flatpak off has to offer to clean that up. Enabling it also adds the Flathub remote, which is
     what install and search look at.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, username: str) -> None:
         super().__init__(name="flatpak")
+        self._username: str = username
 
     @override
     def files(self) -> dict[str, File]:
@@ -36,37 +40,25 @@ class FlatpakModule(decman.Module):
         return {"flatpak"}
 
     @override
-    def before_update(self, store: decman.Store) -> None:
+    def before_update(self) -> None:
         # before_update runs before pacman, so the run that first installs flatpak has no binary yet. The hook
         # covers that run. This covers every later run, and a machine where flatpak was already installed.
         if shutil.which("flatpak") is None:
             return
 
-        _ = decman.prg(["flatpak", "remote-add", "--if-not-exists", "--system", "flathub", _FLATHUB_REPO])
+        _ = engine.run(["flatpak", "remote-add", "--if-not-exists", "--system", "flathub", _FLATHUB_REPO])
 
     # Runs before the pacman step, so the runtime is still installed and can uninstall the apps itself.
-    @staticmethod
-    def on_disable() -> None:
-        import os
-        import shutil
-        import sys
-        from pathlib import Path
-
-        import decman
-        import decman.core.output
-
-        # The config's username is not reachable from here: decman lifts this function's source into a
-        # standalone script that can only use builtins and what it imports itself.
-        username: str = os.environ.get("SUDO_USER", "root")
-
+    @override
+    def on_disable(self) -> None:
         # Uninstall with Flatpak first so it drops its own runtimes and export entries before the directories go.
         # `check=False` because anything this fails to remove is still deleted by path below.
         if shutil.which("flatpak") is not None:
-            _ = decman.prg(["flatpak", "uninstall", "--all", "--system"], check=False)
-            _ = decman.prg(["flatpak", "uninstall", "--all", "--user"], user=username, mimic_login=True, check=False)
+            _ = engine.run(["flatpak", "uninstall", "--all", "--system"], check=False)
+            _ = engine.run(["flatpak", "uninstall", "--all", "--user"], user=self._username, check=False)
 
         # Manually clean up everything that Flatpak did not remove ---
-        home: Path = Path("/home") / username
+        home: Path = Path("/home") / self._username
         system_dir: Path = Path("/var/lib/flatpak")
         apps_dir: Path = home / ".local/share/applications"
 
@@ -96,21 +88,17 @@ class FlatpakModule(decman.Module):
         if not present and not dangling:
             return
 
-        decman.core.output.print_warning("Flatpak is disabled, but its data is still on disk:")
-        decman.core.output.print_list("These paths can be deleted:", [str(p) for p in present], 1)
-        if dangling:
-            decman.core.output.print_list(
-                "These desktop entries point into the paths above:", [str(p) for p in dangling], 1
-            )
-        decman.core.output.print_warning(
+        engine.output.print_warning("Flatpak is disabled, but its data is still on disk:")
+        engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
+        engine.output.print_list(
+            "These desktop entries point into the paths above:", [str(p) for p in dangling], one_per_line=True
+        )
+        engine.output.print_warning(
             "Deleting them also deletes every Flatpak app's settings and data. This cannot be undone."
         )
 
-        if not sys.stdin.isatty():
-            # Nothing was asked, so leave the data.
-            return
-
-        if not decman.core.output.prompt_confirm("Delete all Flatpak data?", default=False):
+        # Without a terminal nothing is asked, so the data stays.
+        if not engine.output.prompt_confirm("Delete all Flatpak data?", default=False):
             return
 
         for path in present:
@@ -126,4 +114,4 @@ class FlatpakModule(decman.Module):
             if entry.is_symlink() and not entry.exists():
                 entry.unlink(missing_ok=True)
 
-        decman.core.output.print_info("Deleted Flatpak data.")
+        engine.output.print_info("Deleted Flatpak data.")

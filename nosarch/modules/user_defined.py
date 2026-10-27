@@ -1,10 +1,9 @@
-import decman
-from decman.plugins import aur, flatpak, pacman
-from plugins import homebrew, snap
+import engine
+from engine.steps import aur, flatpak, homebrew, pacman, snap
 from user_config import UserConfigReader
 
 
-class UserDefinedModule(decman.Module):
+class UserDefinedModule(engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="user_defined")
         self._user_config: UserConfigReader = user_config_reader

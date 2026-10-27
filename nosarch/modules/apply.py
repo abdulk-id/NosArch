@@ -1,11 +1,10 @@
 from typing import override
 
-import decman
+import engine
 import utils.apply
-from decman import Store
 
 
-class ApplyModule(decman.Module):
+class ApplyModule(engine.Module):
     """Runs the commands other modules requested during `on_change`.
 
     Registered last, in its own statement. `after_update` therefore runs after every other
@@ -16,5 +15,5 @@ class ApplyModule(decman.Module):
         super().__init__(name="apply")
 
     @override
-    def after_update(self, store: Store) -> None:
-        utils.apply.flush(store)
+    def after_update(self) -> None:
+        utils.apply.flush()

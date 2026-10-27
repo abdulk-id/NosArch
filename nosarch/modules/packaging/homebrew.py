@@ -1,10 +1,14 @@
 import os
+import re
+import shutil
+from pathlib import Path
 from typing import override
 
-import decman
+import engine
+import engine.output
 import utils.paths
-from decman import File
-from decman.plugins import pacman
+from engine import File
+from engine.steps import pacman
 
 # Standard Homebrew-on-Linux prefix. Everything the git-clone install creates
 # lives here, so teardown is a single directory removal.
@@ -12,9 +16,9 @@ _BREW_PREFIX: str = "/home/linuxbrew/.linuxbrew"
 _BREW_BIN: str = f"{_BREW_PREFIX}/bin/brew"
 
 
-class HomebrewModule(decman.Module):
+class HomebrewModule(engine.Module):
     """
-    Bootstraps Homebrew itself so the `homebrew` plugin has a `brew` to drive.
+    Bootstraps Homebrew itself so the `homebrew` step has a `brew` to drive.
     """
 
     def __init__(self, username) -> None:
@@ -50,16 +54,16 @@ class HomebrewModule(decman.Module):
         return {"curl", "file", "gcc", "git", "procps-ng"}
 
     @override
-    def before_update(self, store: decman.Store) -> None:
+    def before_update(self) -> None:
         if os.path.exists(_BREW_BIN):
             return
 
         # Root phase: create the prefix and hand it to the user.
         # (brew refuses to run as root, and owning the prefix up front means the clone needs no privileges.)
-        _ = decman.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {self._username}:{self._username} /home/linuxbrew")
+        _ = engine.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {self._username}:{self._username} /home/linuxbrew")
 
         # User phase: clone brew, link the launcher, prime the formula data.
-        _ = decman.sh(
+        _ = engine.sh(
             "set -eu\n"
             + f'prefix="{_BREW_PREFIX}"\n'
             + 'if [ ! -d "$prefix/Homebrew" ]; then\n'
@@ -69,26 +73,12 @@ class HomebrewModule(decman.Module):
             + 'ln -sf ../Homebrew/bin/brew "$prefix/bin/brew"\n'
             + '"$prefix/bin/brew" update --force --quiet\n',
             user=self._username,
-            mimic_login=True,
         )
 
     # Runs before the pacman step, so the prefix is still there for brew itself to uninstall from.
-    @staticmethod
-    def on_disable() -> None:
-        import os
-        import re
-        import shutil
-        import sys
-        from pathlib import Path
-
-        import decman
-        import decman.core.command
-        import decman.core.output
-
-        # decman lifts this function into a standalone script, so it can only use builtins and what it imports here.
-        # The username comes from the environment rather than the config for that reason.
-        username: str = os.environ.get("SUDO_USER", "root")
-        userhome: Path = Path("/home") / username
+    @override
+    def on_disable(self) -> None:
+        userhome: Path = Path("/home") / self._username
 
         paths: list[Path] = [
             Path("/home/linuxbrew"),  # The prefix: brew itself, the Cellar, and every formula
@@ -101,17 +91,12 @@ class HomebrewModule(decman.Module):
         if not present:
             return
 
-        decman.core.output.print_warning("Homebrew is disabled, but its data is still on disk.")
-        decman.core.output.print_list("These paths can be deleted:", [str(p) for p in present], 1)
-        decman.core.output.print_warning(
-            "Deleting them also deletes every formula brew installed. This cannot be undone."
-        )
+        engine.output.print_warning("Homebrew is disabled, but its data is still on disk.")
+        engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
+        engine.output.print_warning("Deleting them also deletes every formula brew installed. This cannot be undone.")
 
-        if not sys.stdin.isatty():
-            # Nothing was asked, so leave the data.
-            return
-
-        if not decman.core.output.prompt_confirm("Delete all Homebrew data?", default=False):
+        # Without a terminal nothing is asked, so the data stays.
+        if not engine.output.prompt_confirm("Delete all Homebrew data?", default=False):
             return
 
         # A cask can install files outside the prefix, so deleting the prefix leaves them behind and brew then
@@ -120,29 +105,21 @@ class HomebrewModule(decman.Module):
         # the system, not part of listing what is there.
         # `brew uninstall` has no --all. List the installed casks and uninstall those.
         # `check=False` because anything brew cannot remove is not under the prefix either.
-        brew: Path = Path("/home/linuxbrew/.linuxbrew/bin/brew")
-        if brew.is_file():
-            code, listed = decman.core.command.run(
-                [str(brew), "list", "--cask", "-1"],
-                user=username,
-                mimic_login=True,
-                env_overrides={"HOMEBREW_NO_ENV_HINTS": "1"},
-            )
-            # stderr is merged into this output, so a failed list must not be read as cask names.
+        if Path(_BREW_BIN).is_file():
+            environment: dict[str, str] = {"HOMEBREW_NO_ENV_HINTS": "1"}
+            try:
+                listed: str = engine.run(
+                    [_BREW_BIN, "list", "--cask", "-1"], user=self._username, env=environment, capture=True
+                )
+            except engine.CommandFailedError:
+                listed = ""
             # A hint or an error line is not a cask, and uninstalling it would be a guess.
             cask_name = re.compile(r"^[A-Za-z0-9][A-Za-z0-9+_.@-]*$")
-            casks: list[str] = []
-            if code == 0:
-                casks = [name.strip() for name in listed.splitlines() if cask_name.fullmatch(name.strip())]
+            casks: list[str] = [name.strip() for name in listed.splitlines() if cask_name.fullmatch(name.strip())]
 
             if casks:
-                _ = decman.prg(
-                    [str(brew), "uninstall", "--cask", *casks],
-                    user=username,
-                    mimic_login=True,
-                    pty=False,
-                    check=False,
-                    env_overrides={"HOMEBREW_NO_ENV_HINTS": "1"},
+                _ = engine.run(
+                    [_BREW_BIN, "uninstall", "--cask", *casks], user=self._username, env=environment, check=False
                 )
 
         for path in present:
@@ -151,4 +128,4 @@ class HomebrewModule(decman.Module):
             elif path.is_dir():
                 shutil.rmtree(path, ignore_errors=True)
 
-        decman.core.output.print_info("Deleted Homebrew data.")
+        engine.output.print_info("Deleted Homebrew data.")

@@ -24,31 +24,30 @@ run = "python3 utils/config_schema_generator.py"
 # Tests ---
 [tasks.test-all]
 description = "Run all tests"
-run = ["mise test-config"]
+run = ["mise test-config", "mise test-engine"]
 
 [tasks.test-config]
 description = "Test config.schema.json match the config data classes"
 run = "python3 tests/test_config_schema.py"
 
-# Decman tasks ---
+[tasks.test-engine]
+description = "Test the engine's run order and file deployment, without root"
+run = "python3 -B tests/test_engine.py"
+
+# Apply tasks ---
+# A real run asks for root itself. Dry runs need none.
 [tasks.apply]
 description = "Apply the configuration, then offer to log out or reboot if a change needs one"
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply"
+run = "nosarch/apply.py"
 
 [tasks.apply-files]
 description = "Apply only the file changes, then offer to log out or reboot if one needs it"
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --only files"
+run = "nosarch/apply.py --only files"
 
 [tasks.dry-run-files]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --only files --dry-run"
+description = "Show which files a run would change"
+run = "nosarch/apply.py --only files --dry-run"
 
 [tasks.dry-run-quick]
-run = "NOSARCH_DECMAN_SKIP_CHECKS=1 sudo -E tools/apply --dry-run"
-
-[tasks.dm-nochk]
-# Allows running decman and skipping pre-checks with just `mise dm-nochk`.
-# More flags such as `--dry-run` are to be added in front of `mise dm-nochk`.
-description = "Run decman and skip pre-checks (add any flags in front of this)"
-raw_args = true
-env.NOSARCH_DECMAN_SKIP_CHECKS = 1
-run = "sudo -E decman"
+description = "Show everything a run would change"
+run = "nosarch/apply.py --dry-run"

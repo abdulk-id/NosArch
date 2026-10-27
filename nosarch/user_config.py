@@ -237,6 +237,11 @@ class System:
 @dataclass
 class Advanced:
     enable_nosarch_works: bool = flag("Setup this machine for working on the NosArch codebase")
+    build_aur_in_clean_chroot: bool = flag(
+        "Build AUR and custom packages in a clean chroot. Turning this off builds them on the host, which is faster"
+        " but lets installed packages affect a build",
+        default=True,
+    )
 
 
 @dataclass

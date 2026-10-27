@@ -1,16 +1,15 @@
 from typing import override
 
-import decman
+import engine
 import utils.apply
-import utils.change_tracker
 import utils.custom_packages
 import utils.paths
-from decman import File
-from decman.plugins import aur, pacman
+from engine import File
+from engine.steps import aur, pacman
 from user_config import UserConfigReader
 
 
-class AISetupModule(decman.Module):
+class AISetupModule(engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="ai_setup")
 
@@ -23,7 +22,6 @@ class AISetupModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/ai-setup-root", self._username
         )
-        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
     def file_variables(self) -> dict[str, str]:
@@ -35,16 +33,16 @@ class AISetupModule(decman.Module):
 
         if "t3code-desktop" in self._control_planes:
             files.update(
-                self._userhome_dotfiles.tracked_files(
-                    self._tracker, "/.config/hypr/app-permissions/t3code.lua", "/.config/hypr/binds/t3code.lua"
+                self._userhome_dotfiles.files(
+                    "/.config/hypr/app-permissions/t3code.lua", "/.config/hypr/binds/t3code.lua"
                 )
             )
 
         return files
 
     @override
-    def on_change(self, store: decman.Store) -> None:
-        if self._tracker.files_changed_in_dirs(f"/home/{self._username}/.config/hypr"):
+    def on_change(self, changes: engine.Changes) -> None:
+        if changes.files_changed_in_dirs(f"/home/{self._username}/.config/hypr"):
             utils.apply.reload_hyprland()
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
@@ -78,71 +76,71 @@ class AISetupModule(decman.Module):
         return aur_pkgs
 
     @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
-    def custom_pkgs(self) -> set[aur.CustomPackage]:
-        custom_pkgs: set[aur.CustomPackage] = set()
+    def custom_pkgs(self) -> set[str]:
+        custom_pkgs: set[str] = set()
 
         # Agents
         if "antigravity-cli" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("antigravity-cli-nosarch"))
+            custom_pkgs.add("antigravity-cli-nosarch")
 
         if "claude-code" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("claude-code-nosarch"))
+            custom_pkgs.add("claude-code-nosarch")
 
         if "copilot-cli" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("github-copilot-cli-nosarch"))
+            custom_pkgs.add("github-copilot-cli-nosarch")
 
         if "cursor-cli" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("cursor-cli-nosarch"))
+            custom_pkgs.add("cursor-cli-nosarch")
 
         if "grok-build" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("grok-build-nosarch"))
+            custom_pkgs.add("grok-build-nosarch")
 
         if "devin-cli" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("devin-cli-nosarch"))
+            custom_pkgs.add("devin-cli-nosarch")
 
         if "pi" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("pi-nosarch"))
+            custom_pkgs.add("pi-nosarch")
 
         if "crush" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("crush-nosarch"))
+            custom_pkgs.add("crush-nosarch")
 
         if "omp" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("omp-nosarch"))
+            custom_pkgs.add("omp-nosarch")
 
         if "mimocode" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("mimocode-nosarch"))
+            custom_pkgs.add("mimocode-nosarch")
 
         if "muse-code" in self._agents:
-            custom_pkgs.add(utils.custom_packages.package("muse-code-nosarch"))
+            custom_pkgs.add("muse-code-nosarch")
 
         # Apps
         if "chatgpt-desktop" in self._apps:
-            custom_pkgs.add(utils.custom_packages.package("chatgpt-desktop-nosarch"))
+            custom_pkgs.add("chatgpt-desktop-nosarch")
 
         if "claude-desktop" in self._apps:
-            custom_pkgs.add(utils.custom_packages.package("claude-desktop-nosarch"))
+            custom_pkgs.add("claude-desktop-nosarch")
 
         if "cursor-desktop" in self._apps:
-            custom_pkgs.add(utils.custom_packages.package("cursor-desktop-nosarch"))
+            custom_pkgs.add("cursor-desktop-nosarch")
 
         if "devin-desktop" in self._apps:
-            custom_pkgs.add(utils.custom_packages.package("devin-desktop-nosarch"))
+            custom_pkgs.add("devin-desktop-nosarch")
 
         if "opencode-desktop" in self._apps:
-            custom_pkgs.add(utils.custom_packages.package("opencode-desktop-nosarch"))
+            custom_pkgs.add("opencode-desktop-nosarch")
 
         if "github-copilot-app" in self._apps:
-            custom_pkgs.add(utils.custom_packages.package("github-copilot-app-nosarch"))
+            custom_pkgs.add("github-copilot-app-nosarch")
 
         # Control planes
         if "openchamber" in self._control_planes:
-            custom_pkgs.add(utils.custom_packages.package("openchamber-nosarch"))
+            custom_pkgs.add("openchamber-nosarch")
 
         if "t3code-cli" in self._control_planes:
-            custom_pkgs.add(utils.custom_packages.package("t3code-cli-nosarch"))
+            custom_pkgs.add("t3code-cli-nosarch")
 
         if "zeron" in self._control_planes:
-            custom_pkgs.add(utils.custom_packages.package("zeron-nosarch"))
+            custom_pkgs.add("zeron-nosarch")
 
         return custom_pkgs
 

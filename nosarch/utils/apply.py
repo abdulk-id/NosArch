@@ -1,14 +1,11 @@
-import decman
+import engine
+import engine.output
 import utils.session
-import utils.session_changes
-from decman import Store
 
 # Requests recorded during `on_change`. `ApplyModule.after_update` runs them, and that module is
 # registered last, so every hook has already recorded what it needs. A repeated request is one entry.
 _pending: set[str] = set()
 _user: str | None = None
-_logouts: list[str] = []
-_reboots: list[str] = []
 
 # Root commands, in the order they have to run. daemon-reload before anything that restarts a unit,
 # then daemon-reexec, then the user manager, then the timer that depends on that reload.
@@ -28,10 +25,10 @@ _ROOT_ORDER: tuple[str, ...] = (
 
 
 def _detach(command: str) -> list[str]:
-    """Run a session process without decman waiting for it to exit.
+    """Run a session process without the run waiting for it to exit.
 
-    Walker does not exit. `setsid -f` returns once the new session exists. The redirects close decman's stdout pipe;
-    `communicate()` reads that pipe until EOF.
+    Walker does not exit. `setsid -f` returns once the new session exists. The redirects close the output pipe,
+    which the run reads until EOF.
     """
     return ["/bin/sh", "-c", f"{command} </dev/null >/dev/null 2>&1"]
 
@@ -75,11 +72,6 @@ def _request(name: str) -> None:
 def _remember_user(username: str) -> None:
     global _user
     _user = username
-
-
-def _note(items: list[str], description: str) -> None:
-    if description not in items:
-        items.append(description)
 
 
 # --- Named requests. Each one records; none of them runs the command. ---
@@ -182,72 +174,68 @@ def rebuild_initramfs() -> None:
 
 
 def request_logout(description: str) -> None:
-    _note(_logouts, description)
+    engine.request_logout(description)
 
 
 def request_reboot(description: str) -> None:
-    _note(_reboots, description)
+    engine.request_reboot(description)
 
 
 def _clear() -> None:
     global _user
     _pending.clear()
-    _logouts.clear()
-    _reboots.clear()
     _user = None
 
 
 def _run(cmd: list[str]) -> None:
     """Run one command. A failure is reported, and the commands after it still run.
 
-    The report is whatever decman already prints for a non-zero exit. Anything else that goes
+    The report is whatever the engine already prints for a non-zero exit. Anything else that goes
     wrong is printed the same way. Neither one stops the rest of the list.
     """
 
     try:
-        # `pty=False`: the default refuses to start when stdin is not a terminal, which would skip
-        # the command entirely.
-        _ = decman.prg(cmd, check=False, pty=False)
+        _ = engine.run(cmd, check=False)
     except Exception as error:
-        decman.core.output.print_warning(str(error))
+        engine.output.print_warning(str(error))
 
 
 def _run_root(name: str, username: str | None) -> None:
     if name == "daemon_reload":
-        decman.core.output.print_info("Reloading systemd.")
+        engine.output.print_info("Reloading systemd.")
         _run(["systemctl", "daemon-reload"])
     elif name == "daemon_reexec":
-        decman.core.output.print_info("Restarting systemd.")
+        engine.output.print_info("Restarting systemd.")
         _run(["systemctl", "daemon-reexec"])
     elif name == "user_daemon_reload" and username is not None:
-        decman.core.output.print_info("Reloading systemd user units.")
+        engine.output.print_info("Reloading systemd user units.")
         # The user manager is not running when applying from a TTY.
         _run(["systemctl", "--user", "-M", f"{username}@", "daemon-reload"])
     elif name == "eyesight_timer" and username is not None:
         # `try-restart`, so a timer the user turned off stays off.
         _run(["systemctl", "--user", "-M", f"{username}@", "try-restart", "nosarch-eyesight-reminder.timer"])
     elif name == "sysctl":
-        decman.core.output.print_info("Applying kernel parameters.")
+        engine.output.print_info("Applying kernel parameters.")
         _run(["sysctl", "--system", "--quiet"])
     elif name == "networkmanager":
-        decman.core.output.print_info("Reloading NetworkManager.")
+        engine.output.print_info("Reloading NetworkManager.")
         _run(["systemctl", "reload", "NetworkManager"])
     elif name == "journald":
-        decman.core.output.print_info("Restarting systemd-journald.")
+        engine.output.print_info("Restarting systemd-journald.")
         _run(["systemctl", "restart", "systemd-journald"])
     elif name == "tmpfiles":
-        decman.core.output.print_info("Cleaning tmp files.")
+        engine.output.print_info("Cleaning tmp files.")
         _run(["systemd-tmpfiles", "--create", "--clean"])
     elif name == "udev":
-        decman.core.output.print_info("Reloading udev.")
+        engine.output.print_info("Reloading udev.")
         _run(["udevadm", "control", "--reload"])
         _run(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
     elif name == "ufw":
-        decman.core.output.print_info("Restarting firewall (ufw).")
+        engine.output.print_info("Restarting firewall (ufw).")
         _run(["systemctl", "restart", "ufw"])
     elif name == "gsettings":
         # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
-        decman.core.output.print_info("Rebuilding GSettings cache.")
+        engine.output.print_info("Rebuilding GSettings cache.")
         _run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
 
 
@@ -258,32 +246,30 @@ def _run_session(commands: list[tuple[str, list[str]]]) -> None:
     try:
         graphical = utils.session.has_graphical_session()
     except Exception as error:
-        decman.core.output.print_warning(str(error))
+        engine.output.print_warning(str(error))
         graphical = False
 
     if graphical:
         for description, command in commands:
-            decman.core.output.print_info(description)
+            engine.output.print_info(description)
             try:
                 _ = utils.session.run_in_session(command)
             except Exception as error:
-                decman.core.output.print_warning(str(error))
+                engine.output.print_warning(str(error))
         return
 
-    decman.core.output.print_list(
-        "No graphical session found. These changes will apply on the next login: ",
+    engine.output.print_list(
+        "No graphical session found. These changes will apply on the next login:",
         [description for description, _ in commands],
-        1,
+        one_per_line=True,
     )
 
 
-def flush(store: Store) -> None:
-    """Run each recorded command once, then record logout and reboot for `tools/apply`."""
+def flush() -> None:
+    """Run each recorded command once. Logout and reboot requests go to the engine, which offers them at the end."""
 
     pending: set[str] = set(_pending)
     username: str | None = _user
-    logouts: list[str] = list(_logouts)
-    reboots: list[str] = list(_reboots)
     _clear()
 
     for name in _ROOT_ORDER:
@@ -293,15 +279,5 @@ def flush(store: Store) -> None:
     _run_session([(description, command) for name, description, command in _SESSION if name in pending])
 
     if "initramfs" in pending:
-        decman.core.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
+        engine.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
         _run(["limine-mkinitcpio"])
-
-    if logouts:
-        decman.core.output.print_list("These changes will take effect after logging out: ", logouts, 1)
-        for change in logouts:
-            utils.session_changes.defer(store, "logout", change)
-
-    if reboots:
-        decman.core.output.print_list("These changes will take effect after a reboot: ", reboots, 1)
-        for change in reboots:
-            utils.session_changes.defer(store, "reboot", change)

@@ -12,7 +12,7 @@ finalised, unused launchers' config will be removed completely.
 
 ## Every file is declared individually
 
-Decman offers `Directory()`, which deploys a whole source tree. NosArch does not use it. Every managed file is named
+The engine offers `Directory()`, which deploys a whole source tree. NosArch does not use it. Every managed file is named
 explicitly.
 
 This is more verbose, and this is deliberate:
@@ -83,47 +83,15 @@ def file_variables(self) -> dict[str, str]:
 ```
 
 Substitution applies to any text file, whether it is declared with `source_file=` or `content=`. Setting `bin_file=`
-to true skips it (`core/fs.py:45`).
+to true skips it. A module with no variables copies every file byte for byte, which is how the theme deploys its
+wallpapers without marking them binary.
 
 ## Removal is automatic
 
-Deleting a declaration deletes the file from the target system. decman keeps every path it has written to in
-`store["all_files"]`, and on each run removes those that no longer appear in any module (`core/file_manager.py:113`).
-Therefore, there is no uninstall step or cleanup migration.
+Deleting a declaration deletes the file from the target system. The engine records every path each module deployed,
+and on each run removes those no module declares any more. Therefore, there is no uninstall step or cleanup migration.
 
-## Tracking file changes
-
-Decman does not provide a way to track which files were just updated on a run. To track this for applying changes to
-the system later ([Applying changes](#applying-changes)), declarations should go through `utils/change_tracker.py`,
-which subclasses decman's `File`, `Directory` and `Symlink` to record every path actually written:
-
-```python
-self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
-```
-
-> - A module only needs one `ChangeTracker`, tracking both files and [package](packages.md#tracking-package-changes) changes.
-> - Each module should carry its own tracker so it sees only its own files.
-
-Then `tracked_files()` instead of `files()` (from `/nosarch/utils/paths.py`):
-
-```python
-files.update(
-    self._dotfiles.tracked_files(
-        self._tracker,
-        "/etc/sysctl.d/99-memory-parameters.conf",
-        #...
-    )
-)
-```
-
-Nothing is recorded during `--dry-run`.
-
-Only track what a hook reacts to. A declaration with no action to take on change (a config its owner reads once at
-start, or a script run fresh on each use) should stay on `files()`, because an untracked declaration is one less
-thing to keep in step, and a trigger nobody reads only invites false positives.
-
-A tracker sees only its own module's files, so a directory trigger in one module can never fire for another module's
-declarations. Ownership of a directory's trigger belongs to whichever module actually writes there.
+Two modules declaring the same path is an error rather than a silent override, so the dry run catches it.
 
 ## Applying changes
 
@@ -132,8 +100,18 @@ Sometimes updating a file requires running a command to apply the changes to the
 For example: `systemd-sysctl` read `/etc/sysctl.d/` once at boot. Changes can be applied live by running
 `sysctl --system`.
 
-To apply changes, check which files were changed ([Tracking file changes](#tracking-file-changes)) and take action accordingly
-in `on_change` hooks.
+A module's `on_change(changes)` hook gets every path the run wrote or removed for that module, including a change of
+mode or owner, and the packages and units it added or removed. Check what changed and request the apply:
+
+```python
+@override
+def on_change(self, changes: engine.Changes) -> None:
+    if changes.files_changed_in_dirs("/etc/sysctl.d"):
+        utils.apply.apply_sysctl()
+```
+
+`files_changed_in_dirs` compares path components, not prefixes, so `/etc/systemd/system` does not match
+`/etc/systemd/system.conf.d/`.
 
 ### Ordering
 
@@ -147,76 +125,43 @@ in `on_change` hooks.
 
 ### Hooks must be idempotent
 
-`on_change` fires once per module when **anything** in that module changed, not once per file. Being invoked is
+`on_change` runs once per module when **anything** in that module changed, not once per file. Being invoked is
 therefore not proof that the particular file a hook cares about is what changed. The hook must check which files
-changed itself ([Matching paths](#matching-paths)).
+changed itself.
 
-`on_change` also has no memory of having fired before, so a hook must tolerate running again on a later, unrelated
-change. It is **not** a one-time migration.
-
-#### Matching paths
-
-Test with `os.path.commonpath`, not `str.startswith`, so path boundaries are respected.
-For example: `/etc/systemd/system` must not match `/etc/systemd/system.conf.d/`.
-
-```python
-def changed_files_in(*target_dirs: str) -> bool:
-    for target_dir in target_dirs:
-        target_path: str = os.path.abspath(target_dir)
-
-        if any(os.path.commonpath([p, target_path]) == target_path for p in changed_files):
-            return True
-    return False
-```
+A hook can also see a change twice. Changes are saved before the hooks run and cleared only once the module's hook
+returns, so a run that stops partway hands them to the next run rather than losing them: by then the file is in place
+and nothing else would notice it changed. A hook is therefore **not** a one-time migration, and must tolerate running
+again.
 
 ### Reboot-only changes
 
 Some files have no safe live path. For example: applying **zram** config changes means `swapoff` on an active device
 holding compressed pages, which can OOM the machine under memory pressure.
 
-`on_change` is skipped under `--dry-run` (`app.py:343`), so hooks need no dry-run handling of their own.
+No hook runs during a dry run, so hooks need no dry-run handling of their own.
 
 ### Prompting ends the run
 
-Logging out or rebooting destroys the session decman is itself running in, so acting on a pending change from inside a
-hook kills the run partway through. That is worse than it looks, because applies are **edge-triggered**: a file is
-recorded only when it actually differed (`core/fs.py:124`), so an apply that never runs is not queued for later. It is
-simply lost, and no later run will notice the change again.
-
-It also takes the store down with it. `Store.save()` runs in `__exit__` (`core/store.py:49`), which is after every hook,
-so a run that dies mid-prompt leaves no record of `enabled_modules`, `all_files` or the per-module package sets. The
-next run then believes every package, unit and file is newly added.
-
-So a hook never acts on the change. It requests it:
+Logging out or rebooting destroys the session the run is itself in, so a hook never acts on such a change. It requests
+it:
 
 ```python
 utils.apply.request_reboot("ZRAM configuration")
 ```
 
-`ApplyModule` gathers those requests, prints one notice, and records them. `tools/apply` offers the action after decman
-has exited, which is when every hook has finished and the store is on disk. `tools/apply` reads the store, prompts
-once, and acts.
+The engine lists those requests and offers the action as its very last step, once every hook has finished and the
+state is saved. Declining is fine: the changes apply on the next login anyway.
 
 Every requested command runs. A command that fails is reported, and the commands after it still run, including the
-logout and reboot record. The failed command is not tried again on the next run: the file that requested it is already
+logout and reboot notice. The failed command is not tried again on the next run: the file that requested it is already
 saved.
-
-### The notice belongs inside, the prompt belongs outside
-
-The notice is printed by `ApplyModule`, still inside the decman run, so running `decman` directly informs the user. It
-cannot offer the action. Moving the notice out to the wrapper would mean the information exists only when the wrapper
-is used.
-
-`utils.session_changes.reset()` runs from a `before_update` hook, so each run reports only what it deferred itself. Any
-module can do this reset, because `before_update` precedes every `on_change` for every module (`app.py:199-200`). That
-relies on the phase. The flush relies on `ApplyModule` being registered last. See
-[Registration order](modules.md#registration-order).
 
 ### Session-scoped changes
 
 Applying a change to a running desktop often means running a command that only the graphical session can reach.
-`hyprctl`, `waybar` and the rest need the session's Wayland socket, its Hyprland instance signature and its bus.
-decman runs as root, and root has none of those, so these applies go through `utils/session.py`.
+`hyprctl`, `waybar` and the rest need the session's Wayland socket, its Hyprland instance signature and its bus. A real
+run is root, and root has none of those, so these applies go through `utils/session.py`.
 
 It finds the active graphical session with `loginctl`, reads that session's environment out of
 `systemctl --user -M <user>@ show-environment`, and runs the command as the session's owner. Reading the environment
@@ -229,8 +174,8 @@ Session applies are best-effort by nature: pass `check=False`, so a failed reloa
 
 ## Gotchas
 
-- **decman's own `daemon-reload` is not enough**: It runs only when the _set_ of enabled units changes
-  (`plugins/systemd.py:176`). Editing the body of a unit without changing which units are enabled reloads nothing.
+- **The systemd step only reloads a user manager when that user's enabled units change**: It reloads the system
+  manager on every run, but editing the body of a user unit reloads nothing. Request `reload_user_systemd` for that.
 - **`udevadm control --reload` only loads rules, it does not run them**: Rules execute on device events, and devices
   present since boot do not fire one, so a reload alone leaves new rules dormant. Pair it with
   `udevadm trigger --subsystem-match=power_supply --action=change`.
@@ -238,8 +183,8 @@ Session applies are best-effort by nature: pass `check=False`, so a failed reloa
       A bare `udevadm trigger` replays events for every device, which can rebind drivers and re-probe storage.
 - **`systemd-tmpfiles --remove` is not scoped to managed files**: It deletes every path marked `r`/`R` across all
   tmpfiles configs on the system. `--clean` should be used.
-- **systemd output parsed in a hook needs `pty=False`**: On a terminal, systemd colorizes `loginctl` and `systemctl`
-  output, and the escape codes land inside the fields being parsed.
+- **systemd output parsed in a hook needs `capture=True`**: On a terminal, systemd colorizes `loginctl` and `systemctl`
+  output, and the escape codes land inside the fields being parsed. Captured output is not a terminal.
 - **`systemctl --user -M <user>@` fails when the user manager is not running**: For example when applying from a TTY
   or during a fresh install. Pass `check=False` rather than guarding every call site.
 - **Restart a unit the user may have turned off with `try-restart`**: `restart` would start a timer the user had
@@ -248,7 +193,7 @@ Session applies are best-effort by nature: pass `check=False`, so a failed reloa
   `SIGUSR2` are the exceptions. `hyprpaper`, `hyprsunset`, `hypridle`, and swayosd read their config once, at start,
   and `hyprctl` has no request for them either, so restart the user service. A leftover uwsm app scope has to be
   stopped in the same command, or the scope keeps running beside the service. Walker is still started from Hyprland's
-  autostart and does not exit, so relaunch it in a new session (`setsid -f`) and drop its output, or decman waits on
+  autostart and does not exit, so relaunch it in a new session (`setsid -f`) and drop its output, or the run waits on
   the process and never reaches the logout and reboot offer.
 - **`hyprctl reload` re-applies monitors**: Pass `config-only` when only the config changed. `hyprmoncfgd` owns the
   monitor layout, and a full reload fights it.

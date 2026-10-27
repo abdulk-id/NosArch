@@ -1,10 +1,7 @@
 [
     {
         "label": "Files only dry-run",
-        "command": "sudo -E decman --only files --dry-run",
-        "env": {
-            "NOSARCH_DECMAN_SKIP_CHECKS": "1", // Skip checks
-        },
+        "command": "nosarch/apply.py --only files --dry-run",
         "use_new_terminal": false,
         "allow_concurrent_runs": false,
         "reveal": "always",
@@ -13,10 +10,7 @@
     },
     {
         "label": "Apply files only",
-        "command": "sudo -E decman --only files",
-        "env": {
-            "NOSARCH_DECMAN_SKIP_CHECKS": "1", // Skip checks
-        },
+        "command": "nosarch/apply.py --only files",
         "use_new_terminal": false,
         "allow_concurrent_runs": false,
         "reveal": "always",
@@ -24,23 +18,8 @@
         "save": "all",
     },
     {
-        "label": "Quick dry-run",
-        "command": "sudo -E decman --dry-run",
-        "env": {
-            "NOSARCH_DECMAN_SKIP_CHECKS": "1", // Skip checks
-        },
-        "use_new_terminal": false,
-        "allow_concurrent_runs": false,
-        "reveal": "always",
-        "reveal_target": "center",
-        "save": "all",
-    },
-    {
-        "label": "Complete dry-run",
-        "command": "sudo -E decman --dry-run",
-        "env": {
-            "NOSARCH_DECMAN_SKIP_CHECKS": "0",
-        },
+        "label": "Dry-run",
+        "command": "nosarch/apply.py --dry-run",
         "use_new_terminal": false,
         "allow_concurrent_runs": false,
         "reveal": "always",

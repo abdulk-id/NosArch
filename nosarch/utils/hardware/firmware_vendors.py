@@ -109,7 +109,7 @@ def get_firmware_packages() -> set[str]:
     Replaces the `linux-firmware` meta package, which depends on every vendor
     split and installs roughly 400 MiB regardless of the hardware present.
 
-    Detection only sees devices attached when decman runs. A wifi dongle plugged
+    Detection only sees devices attached when NosArch applies. A wifi dongle plugged
     in later is not covered, so a rebuild is needed after adding hardware that
     needs its own firmware.
     """

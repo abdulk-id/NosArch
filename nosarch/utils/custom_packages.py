@@ -1,8 +1,7 @@
 """
 Provides the PKGBUILDs of NosArch's custom packages, which live in their own repository.
 
-The PKGBUILDs live in their own repository. Modules declare those packages as Decman custom packages and this module
-provides the directory each PKGBUILD is built from.
+Modules declare custom packages by name. The engine asks `package_dir` for the directory each one is built from.
 """
 
 import io
@@ -14,8 +13,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-import decman.core.output
-from decman.plugins.aur import CustomPackage
+import engine.output
 
 # The PKGBUILDs, one directory per package.
 REPO_URL: str = "https://github.com/abdulk-id/NosArch-Packages.git"
@@ -30,9 +28,8 @@ BRANCH: str = "master"
 # Inside the packages repository, one directory per `pkgname`.
 PACKAGES_SUBDIR: str = "packages"
 
-# Root-owned. Decman reads these PKGBUILDs as root and hands them to `nobody` and `aurbuilduser`, and neither must be
-# able to change a PKGBUILD between the two. Decman copies the directory into its build area before building, so the
-# build user never reads this path directly.
+# Root-owned. The engine reads these PKGBUILDs as root and hands a copy to the build user, who must not be able to change
+# a PKGBUILD between the two. The build user only ever writes to that copy.
 CACHE_DIR: str = "/var/lib/nosarch/packages"
 
 # Which revision the cached copy came from, so an unchanged branch costs no download. Inside the cache rather than
@@ -42,7 +39,7 @@ REVISION_FILE: str = os.path.join(CACHE_DIR, ".revision")
 HTTP_TIMEOUT: int = 30
 USER_AGENT: str = "nosarch-custom-packages"
 
-# Resolved once per decman run. See ensure_packages().
+# Resolved once per run. See ensure_packages().
 _packages_dir: str | None = None
 
 
@@ -191,7 +188,7 @@ def _update() -> None:
 
         # Not fatal: the cached PKGBUILDs are still a usable set, so a run without network still works. It just does
         # not pick up a version bump, and the user is told which revision they are building.
-        decman.core.output.print_warning(
+        engine.output.print_warning(
             f"Could not check custom packages for updates: {error}. Using cached revision {cached}."
         )
         return
@@ -199,7 +196,7 @@ def _update() -> None:
     if cached == remote:
         return
 
-    decman.core.output.print_info(f"Fetching custom packages at {remote[:12]}")
+    engine.output.print_info(f"Fetching custom packages at {remote[:12]}")
 
     try:
         _install(remote)
@@ -207,7 +204,7 @@ def _update() -> None:
         if cached is None:
             raise SystemExit(f"Could not fetch custom packages from {REPO_URL}: {error}")
 
-        decman.core.output.print_warning(f"Could not update custom packages: {error}. Using cached revision {cached}.")
+        engine.output.print_warning(f"Could not update custom packages: {error}. Using cached revision {cached}.")
 
 
 def ensure_packages() -> str:
@@ -230,13 +227,13 @@ def ensure_packages() -> str:
     return _packages_dir
 
 
-def package_dir(pkgname: str) -> str:
-    """The directory holding one package's PKGBUILD, for Decman's `pkgbuild_directory`."""
+def package_dir(pkgname: str, fetch: bool = True) -> str | None:
+    """
+    The directory holding one package's PKGBUILD, or None when it is not there.
 
-    return os.path.join(ensure_packages(), pkgname)
+    `fetch` downloads the PKGBUILDs first when the branch has moved on. A dry run passes False, since the cache is
+    root-owned, and makes do with what is cached.
+    """
 
-
-def package(pkgname: str) -> CustomPackage:
-    """Declares one custom package for a module, from its PKGBUILD in the packages repository."""
-
-    return CustomPackage(pkgname=pkgname, pkgbuild_directory=package_dir(pkgname))
+    directory: str = os.path.join(ensure_packages() if fetch else os.path.join(CACHE_DIR, PACKAGES_SUBDIR), pkgname)
+    return directory if os.path.isfile(os.path.join(directory, "PKGBUILD")) else None

@@ -67,7 +67,6 @@
                                     { "const": "grok-build", "title": "Grok Build" },
                                     { "const": "kilocode", "title": "Kilo Code" },
                                     { "const": "mimocode", "title": "MiMo-Code" },
-                                    { "const": "muse-code", "title": "Muse Code" },
                                     { "const": "omp", "title": "Oh My Pi" },
                                     { "const": "opencode", "title": "OpenCode" },
                                     { "const": "pi", "title": "Pi" }
@@ -328,6 +327,11 @@
                     "type": "boolean",
                     "description": "Setup this machine for working on the NosArch codebase",
                     "default": false
+                },
+                "build_aur_in_clean_chroot": {
+                    "type": "boolean",
+                    "description": "Build AUR and custom packages in a clean chroot. Turning this off builds them on the host, which is faster but lets installed packages affect a build",
+                    "default": true
                 }
             }
         }

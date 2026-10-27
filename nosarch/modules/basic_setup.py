@@ -1,13 +1,13 @@
 from typing import override
 
-import decman
+import engine
 import utils.paths
-from decman import File
-from decman.plugins import aur, pacman, systemd
+from engine import File
+from engine.steps import aur, pacman, systemd
 from user_config import UserConfigReader
 
 
-class BasicSetupModule(decman.Module):
+class BasicSetupModule(engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="basic_setup")
 

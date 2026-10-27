@@ -1,16 +1,15 @@
 from typing import override
 
-import decman
+import engine
 import utils.apply
-import utils.change_tracker
 import utils.dotfile.dev_lang_config
 import utils.paths
-from decman import File, Store
-from decman.plugins import aur, pacman, systemd
+from engine import File
+from engine.steps import aur, pacman, systemd
 from user_config import UserConfigReader
 
 
-class DevSetupModule(decman.Module):
+class DevSetupModule(engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="dev_setup")
 
@@ -22,32 +21,27 @@ class DevSetupModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/dev-setup-root", self._username
         )
-        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
-    def on_change(self, store: Store) -> None:
+    def on_change(self, changes: engine.Changes) -> None:
         home: str = f"/home/{self._username}"
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/hypr"):
+        if changes.files_changed_in_dirs(f"{home}/.config/hypr"):
             utils.apply.reload_hyprland()
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/environment.d"):
+        if changes.files_changed_in_dirs(f"{home}/.config/environment.d"):
             # Read by `systemd-environment-d-generator` when the user manager starts.
             utils.apply.request_logout("development environment variables")
 
-        _ = decman.prg(cmd=["mise", "install"], user=self._username, mimic_login=True)
-        _ = decman.prg(cmd=["mise", "prune"], user=self._username, mimic_login=True)
+        _ = engine.run(["mise", "install"], user=self._username)
+        _ = engine.run(["mise", "prune"], user=self._username)
 
     @override
-    @staticmethod
-    def on_disable() -> None:
-        import decman
-        from user_config import UserConfigReader
-
-        # `on_disable` hooks run before everything else (after `before_update` hooks), so mise would still be present.
+    def on_disable(self) -> None:
+        # `on_disable` hooks run before every step (after `before_update` hooks), so mise would still be present.
         # needed to remove all mise installed tools
         # TODO: If this runs after mise has been removed, this command will fail.
-        _ = decman.prg(cmd=["mise", "implode"], user=UserConfigReader.load().user.username, mimic_login=True)
+        _ = engine.run(["mise", "implode"], user=self._username)
 
     @override
     def file_variables(self) -> dict[str, str]:
@@ -70,8 +64,7 @@ class DevSetupModule(decman.Module):
 
         ## ~/.config files
         files.update(
-            self._userhome_dotfiles.tracked_files(
-                self._tracker,
+            self._userhome_dotfiles.files(
                 "/.config/environment.d/dev.conf",
                 "/.config/environment.d/languages.conf",
                 "/.config/hypr/app-windows/jetbrains.lua",

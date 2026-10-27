@@ -4,7 +4,7 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 
 ## The modules
 
-| Module        | Class                 | Store name       | Enabled by                   | Sources                        |
+| Module        | Class                 | State name       | Enabled by                   | Sources                        |
 | ------------- | --------------------- | ---------------- | ---------------------------- | ------------------------------ |
 | System        | `SystemModule`        | `system`         | always                       | `dotfiles/system-root`         |
 | Desktop       | `DesktopModule`       | `desktop`        | always                       | `dotfiles/desktop-root`        |
@@ -25,40 +25,31 @@ The four setup modules live in `nosarch/modules/setups/`, the three packaging mo
 predates the split, so it sits in `nosarch/modules/basic_setup.py` rather than in `setups/`.
 
 `Enabled by` is the `enabled` yes/no setting on that section of the config classes in `nosarch/user_config.py`.
-`config.schema.json` is generated from those classes. The module is registered when that setting is true.
+`config.schema.json` is generated from those classes. The module is enabled when that setting is true.
 
 The `UserDefinedModule` (`nosarch/modules/user_defined.py`) installs packages the user listed in the config file, so
-decman does not remove them.
+the engine does not remove them.
 
 ## Registration
 
-System, Desktop, Theming, and User packages are always registered. The others register when their `setups.*` or
-`packaging.*` key is true. They extend the desktop, so `source.py` exits if no registered module is named
-`desktop`. Desktop is currently always registered, so this never trips on a normal run — the guard is there for when
-NosArch allows headless installs.
+`source.py` adds every module to the `Setup`, disabled ones included, with `enabled=` set from the config. A disabled
+module is never asked for its declarations. It is there so its `on_disable` can run, as an ordinary method with the
+module's own state, on the first run after it was turned off. A module deleted from the repository outright has no
+`on_disable` left to run, so turn a module off for a run before deleting it.
 
-## Module names are store keys
+The setups extend the desktop, so `source.py` stops if a setup is enabled without a module named `desktop`. Desktop is
+currently always registered, so this never trips on a normal run — the guard is there for when NosArch allows headless
+installs.
 
-`Store name` above is the module's decman `name`. Per-module package, unit, and flatpak entries, the `enabled_modules`
-list, and `ChangeTracker` diffs all use it. Renaming a module leaves the old entries in place, and on the next run
-`ChangeTracker` treats everything that module declares as newly added.
+## Module names are state keys
+
+`State name` above is the module's `name`. The files it deployed, its declarations from the last run, and the changes
+its `on_change` has not seen yet are all recorded under it. Renaming a module makes every package and unit it declares
+look newly added, so its `on_change` sees all of them.
 
 ## Registration order
 
-Decman runs hooks in phases, and within a phase it walks `decman.modules` from front to back:
+Within a phase, hooks run in the order modules were added. The phases are listed on `engine.Module`.
 
-1. **`before_update`**, for every module (`app.py:278`).
-2. The execution steps: files, then the plugins (`source.py`).
-3. **`on_change`**, for changed modules only (`app.py:338`).
-4. **`after_update`**, for every module (`app.py:347`).
-5. The store is written, in `__exit__`, after every hook (`app.py:77`, `core/store.py:49`). The process then exits.
-
-All `on_change` hooks finish before any `after_update` hook starts (`app.py:231-234`).
-
-`source.py` registers most modules in sets, and a set has no stable order, so a module must not depend on running
-before or after a neighbour. `ApplyModule` is the exception. It is added in its own statement after every other
-module, and its `after_update` runs the commands those modules requested. A module registered below it would run its
-own `after_update` after those commands.
-
-The offer to log out or reboot stays in `tools/apply`, after the store is saved. See
-[Prompting ends the run](files.md#prompting-ends-the-run).
+`ApplyModule` must stay last. Its `after_update` runs the commands every other module requested in `on_change`, so a
+module added below it would run its own `after_update` after those commands.

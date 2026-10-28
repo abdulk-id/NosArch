@@ -11,19 +11,19 @@ Action = "%VALUE%"
 function GetEntries()
     return {
         {
-            Text = "󰐕    Install package",
+            Text = "󰐕    Install",
             Value = "walker -m menus:installing"
         },
         {
-            Text = "    Update packages",
+            Text = "    Update",
             Value = "nosarch-launch-tui nosarch-package update"
         },
         {
-            Text = "󰭌    Remove package",
+            Text = "󰭌    Remove",
             Value = "nosarch-launch-tui nosarch-package remove"
         },
         {
-            Text = "󰩹    Remove unused packages",
+            Text = "󰩹    Remove unused",
             Value = "nosarch-launch-tui nosarch-package remove-unused"
         },
         {

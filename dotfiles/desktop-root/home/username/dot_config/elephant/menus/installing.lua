@@ -35,7 +35,7 @@ end
 -- Display order is fixed here rather than taken from the CLI, so the menu reads the same on
 -- every machine and only the set of entries changes.
 local METHODS = {
-    { name = "arch", icon = "󰣇", label = "Arch repositories" },
+    { name = "arch", icon = "󰣇", label = "Arch" },
     { name = "aur", icon = "󰣇", label = "AUR" },
     { name = "appimage", icon = "󰆧", label = "AppImage" },
     { name = "flatpak", icon = "󰏖", label = "Flatpak" },

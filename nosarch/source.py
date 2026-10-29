@@ -20,6 +20,8 @@ from plugins import homebrew
 from plugins import snap as snap_plugin
 from user_config import UserConfigReader
 
+decman.aur.ignored_packages |= {"fullgit-git", "fullgit-git-debug"}
+
 # User config
 user_config: UserConfigReader = UserConfigReader.load()
 _username: str = user_config.user.username

@@ -326,7 +326,7 @@ class SystemModule(decman.Module):
 
     @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
     def custom_pkgs(self) -> set[aur.CustomPackage]:
-        return {utils.custom_packages.package("yay-nosarch")}
+        return {utils.custom_packages.package("paru-nosarch")}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def system_services(self) -> set[str]:

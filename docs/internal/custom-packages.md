@@ -58,7 +58,7 @@ The cache is root-owned on purpose. Decman reads these PKGBUILDs as root and han
 
 ## `nosarch-package update` does not update these
 
-`nosarch-package update` runs `yay -Syu`, which does not touch custom packages. They are built from PKGBUILDs by decman,
+`nosarch-package update` runs `paru -Syu`, which does not touch custom packages. They are built from PKGBUILDs by decman,
 so a version bump in NosArch-Packages only reaches the system on the next decman run.
 
 This is worth knowing because the symptom is silent: the update reports success and the packages are still the old

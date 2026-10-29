@@ -67,8 +67,8 @@ aur_summary() {
 
 # Registered twice rather than as one `[arch]|[aur]` arm: an arm is a literal case
 # pattern, so the two tags have to be spelled out separately.
-register_preview '[arch]' 'yay -Qi -- {3}'
-register_preview '[aur]' 'yay -Qi -- {3}'
+register_preview '[arch]' 'paru -Qi -- {3}'
+register_preview '[aur]' 'paru -Qi -- {3}'
 
 arch_install() {
     for cmd in gum fzf; do
@@ -98,21 +98,21 @@ arch_install() {
 }
 
 aur_install() {
-    for cmd in gum fzf; do
+    for cmd in gum fzf paru; do
         _ensure_command "$cmd"
     done
 
-    candidates=$(yay -Slqa)
+    candidates=$(paru -Slqa)
 
     fzf_output=$(
-        fzf_select "$candidates" 'yay -Siia {1}' --color 'pointer:green,marker:green'
+        fzf_select "$candidates" 'paru -Siia {1}' --color 'pointer:green,marker:green'
     ) || return 0
 
     pkg_names=$(printf '%s\n' "$fzf_output" | tr '\n' ' ')
 
     if [ -n "$pkg_names" ]; then
         # shellcheck disable=SC2086
-        if with_sudo yay -S --noconfirm $pkg_names; then
+        if with_sudo paru -S --noconfirm $pkg_names; then
             update_db
 
             gum style --foreground 10 "✓ Installation complete!"
@@ -123,11 +123,11 @@ aur_install() {
     fi
 }
 
-# `yay -Syu` upgrades the repositories and the AUR in one transaction, so there is no separate AUR step. It asks for
-# the password itself rather than going through with_sudo, since yay invokes sudo for the sync and again for the build.
+# `paru -Syu` upgrades the repositories and the AUR in one transaction, so there is no separate AUR step. It asks for
+# the password itself rather than going through with_sudo, since paru invokes sudo for the sync and again for the build.
 arch_update() {
     _ensure_command gum
-    _ensure_command yay
+    _ensure_command paru
 
     gum style --foreground 10 "▸ Authenticating..."
 
@@ -143,8 +143,8 @@ arch_update() {
 
     gum style --foreground 10 "▸ Updating Arch and AUR packages..."
 
-    if yay -Syu --noconfirm; then
-        # yay -Syu = yay --sync --refresh --sysupgrade
+    if paru -Syu --noconfirm; then
+        # paru -Syu = paru --sync --refresh --sysupgrade
         update_db
 
         gum style --foreground 10 "✓ Arch and AUR packages updated!"
@@ -160,9 +160,9 @@ arch_update() {
 }
 
 arch_entries() {
-    command -v yay >/dev/null 2>&1 || return 0
+    command -v paru >/dev/null 2>&1 || return 0
 
-    yay -Qeqn | awk '{print "[arch]\tarch\t" $0}'
+    paru -Qeqn | awk '{print "[arch]\tarch\t" $0}'
 }
 
 # Removes the selected rows, whose package names are in column 3.
@@ -196,12 +196,12 @@ arch_remove_unused() {
 }
 
 aur_entries() {
-    command -v yay >/dev/null 2>&1 || return 0
+    command -v paru >/dev/null 2>&1 || return 0
 
-    yay -Qeqm | awk '{print "[aur]\taur\t" $0}'
+    paru -Qeqm | awk '{print "[aur]\taur\t" $0}'
 }
 
-# Removes the selected rows. `yay -Rns` handles an AUR package's build files and
+# Removes the selected rows. `paru -Rns` handles an AUR package's build files and
 # dependencies, which `pacman -Rns` alone would leave behind.
 aur_remove() {
     aur_pkgs=$(printf '%s\n' "$1" | cut -f 3 | tr '\n' ' ')
@@ -209,7 +209,7 @@ aur_remove() {
     gum style --foreground 10 "▸ Removing AUR packages..."
 
     # shellcheck disable=SC2086
-    if with_sudo yay -Rns --noconfirm $aur_pkgs; then
+    if with_sudo paru -Rns --noconfirm $aur_pkgs; then
         gum style --foreground 10 "✓ AUR packages removed!"
     else
         gum style --foreground 9 "x AUR removal failed."

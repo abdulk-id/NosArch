@@ -6,6 +6,7 @@ import utils.apply
 import utils.change_tracker
 import utils.custom_packages
 import utils.dotfile.luks_uuid
+import utils.dotfile.resume_offset
 import utils.dotfile.wireless_regdom
 import utils.hardware.chassis_type
 import utils.hardware.cpu_vendor
@@ -36,6 +37,7 @@ class SystemModule(decman.Module):
     def file_variables(self) -> dict[str, str]:
         return {
             "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
+            "%RESUME_OFFSET%": utils.dotfile.resume_offset.get_resume_offset(),
             "%USER%": self._username,
             "%FULLNAME%": self._user_config.user.fullname,
             "%GIT_EMAIL%": self._user_config.user.git_email,

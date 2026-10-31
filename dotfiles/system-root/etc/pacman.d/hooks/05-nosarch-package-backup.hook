@@ -29,7 +29,8 @@ Target = vulkan-radeon
 
 [Action]
 Description = Creating backup snapshot for critical packages...
-Exec = /usr/bin/bash -c 'snapper --config root create --type single --description "Critical package backup: $(xargs)"'
+# Skip until NosArch has installed the snapper root config, or a fresh install would abort on the missing config.
+Exec = /usr/bin/bash -c 'if [[ -e /etc/snapper/configs/root ]]; then snapper --config root create --type single --description "Critical package backup: $(xargs)"; fi'
 When = PreTransaction
 Depends = btrfs-progs
 Depends = snapper

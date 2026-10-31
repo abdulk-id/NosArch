@@ -58,6 +58,7 @@ class UserConfigReaderTest(unittest.TestCase):
             self.assertEqual(config.packaging.snap.install_classic_snaps, {})
             self.assertTrue(config.system.enable_lts_kernel)
             self.assertFalse(config.advanced.enable_nosarch_works)
+            self.assertFalse(config.advanced.enable_swapfile)
 
             config.save()
             saved = json.loads(config_path.read_text(encoding="utf-8"))

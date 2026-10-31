@@ -85,6 +85,11 @@ def file_variables(self) -> dict[str, str]:
 Substitution applies to any text file, whether it is declared with `source_file=` or `content=`. Setting `bin_file=`
 to true skips it (`core/fs.py:45`).
 
+`file_variables()` is read during the files step, after every `before_update` hook (`app.py:200`, `app.py:214`), so a
+value can depend on something a hook creates. `%RESUME_PARAMS%` does: `SystemModule.before_update` creates the swapfile
+whose offset it reads. Hooks are skipped under `--dry-run`, so on a machine without the swapfile a dry run substitutes
+a placeholder instead of failing.
+
 ## Removal is automatic
 
 Deleting a declaration deletes the file from the target system. decman keeps every path it has written to in

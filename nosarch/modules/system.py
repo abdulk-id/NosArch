@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import override
 
 import decman
@@ -6,7 +7,6 @@ import utils.apply
 import utils.change_tracker
 import utils.custom_packages
 import utils.dotfile.luks_uuid
-import utils.dotfile.resume_offset
 import utils.dotfile.wireless_regdom
 import utils.hardware.chassis_type
 import utils.hardware.cpu_vendor
@@ -14,6 +14,7 @@ import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.paths
 import utils.session_changes
+import utils.swapfile
 from decman import File, Store
 from decman.core.output import print_info
 from decman.plugins import aur, pacman, systemd
@@ -26,6 +27,7 @@ class SystemModule(decman.Module):
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.user.username
+        self._swapfile_enabled: bool = self._user_config.advanced.enable_swapfile
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
@@ -37,7 +39,7 @@ class SystemModule(decman.Module):
     def file_variables(self) -> dict[str, str]:
         return {
             "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
-            "%RESUME_OFFSET%": utils.dotfile.resume_offset.get_resume_offset(),
+            "%RESUME_PARAMS%": self._resume_params(),
             "%USER%": self._username,
             "%FULLNAME%": self._user_config.user.fullname,
             "%GIT_EMAIL%": self._user_config.user.git_email,
@@ -64,7 +66,6 @@ class SystemModule(decman.Module):
                 "/etc/sysctl.d/99-memory-parameters.conf",
                 "/etc/systemd/journald.conf.d/00-journal-size.conf",
                 "/etc/systemd/logind.conf.d/10-ignore-power-button.conf",
-                "/etc/systemd/system/swap-swapfile.swap",
                 "/etc/systemd/system.conf.d/00-service-timeouts.conf",
                 "/etc/systemd/system.conf.d/10-open-file-limit.conf",
                 "/etc/systemd/user.conf.d/10-open-file-limit.conf",
@@ -81,6 +82,9 @@ class SystemModule(decman.Module):
             )
         )
         files.update(self._dotfiles.tracked_files(self._tracker, "/etc/profile.d/nosarch.sh", permissions=0o644))
+
+        if self._swapfile_enabled:
+            files.update(self._dotfiles.tracked_files(self._tracker, "/etc/systemd/system/swap-swapfile.swap"))
 
         wireless_regdom: str | None = utils.dotfile.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
@@ -185,6 +189,10 @@ class SystemModule(decman.Module):
         utils.session_changes.reset(store)
         self._release_display_manager_alias()
 
+        # Before the files step, which reads the swapfile's offset for the kernel command line.
+        if self._swapfile_enabled:
+            utils.swapfile.create()
+
     @override
     def on_change(self, store: Store) -> None:
         if self._tracker.files_changed_in_dirs("/etc/systemd/system", "/usr/lib/systemd"):
@@ -215,7 +223,7 @@ class SystemModule(decman.Module):
 
         if self._tracker.files_changed_in_dirs(
             "/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes"
-        ) or self._tracker.files_changed("/etc/mkinitcpio.conf"):
+        ) or self._tracker.files_changed("/etc/mkinitcpio.conf", "/etc/default/limine"):
             utils.apply.rebuild_initramfs()
 
         if self._tracker.files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
@@ -341,8 +349,10 @@ class SystemModule(decman.Module):
             "snapper-cleanup.timer",
             "udisks2.service",
             "ufw.service",
-            "swap-swapfile.swap",
         }
+
+        if self._swapfile_enabled:
+            systemd_set.add("swap-swapfile.swap")
 
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             systemd_set.add("power-profiles-daemon.service")
@@ -358,6 +368,19 @@ class SystemModule(decman.Module):
     @systemd.user_units
     def system_user_services(self) -> dict[str, set[str]]:
         return {self._username: {"gnome-keyring-daemon.service", "gcr-ssh-agent.socket"}}
+
+    def _resume_params(self) -> str:
+        if not self._swapfile_enabled:
+            return ""
+
+        if not utils.swapfile.exists():
+            # `before_update` creates the swapfile before the files step, so this is a dry run on a machine
+            # that does not have one yet. Hooks are skipped on a dry run, so nothing may create it here.
+            if "--dry-run" in sys.argv:
+                return "resume=/dev/mapper/cryptroot resume_offset=<set after the swapfile is created>"
+            raise RuntimeError(f"{utils.swapfile.SWAPFILE_PATH} does not exist. Run decman without --no-hooks.")
+
+        return f"resume=/dev/mapper/cryptroot resume_offset={utils.swapfile.get_resume_offset()}"
 
     # `before_update` hook actions ---
     def _release_display_manager_alias(self) -> None:

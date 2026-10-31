@@ -237,6 +237,7 @@ class System:
 @dataclass
 class Advanced:
     enable_nosarch_works: bool = flag("Setup this machine for working on the NosArch codebase")
+    enable_swapfile: bool = flag("Create a Btrfs swapfile and configure the kernel to hibernate to it")
 
 
 @dataclass

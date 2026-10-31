@@ -5,6 +5,7 @@ from subprocess import CompletedProcess
 
 SWAP_DIR: str = "/swap"
 SWAPFILE_PATH: str = f"{SWAP_DIR}/swapfile"
+HEADROOM_GIB: int = 2  # Beyond RAM, so the file also has room for ordinary swapping
 
 
 def exists() -> bool:
@@ -12,7 +13,7 @@ def exists() -> bool:
 
 
 def create() -> None:
-    """Create the swapfile if it does not exist, sized to hold RAM so hibernation can write it all out.
+    """Create the swapfile if it does not exist, sized to hold RAM plus headroom so hibernation can write it all out.
 
     The file lives in its own subvolume. A subvolume that holds an active swapfile cannot be snapshotted, and a nested
     subvolume is skipped when its parent is, so snapshots of the root subvolume keep working.
@@ -27,7 +28,7 @@ def create() -> None:
     if not os.path.exists(SWAP_DIR):
         _ = _run(["btrfs", "subvolume", "create", SWAP_DIR])
 
-    _ = _run(["btrfs", "filesystem", "mkswapfile", "--size", f"{_ram_gib()}G", SWAPFILE_PATH])
+    _ = _run(["btrfs", "filesystem", "mkswapfile", "--size", f"{_ram_gib() + HEADROOM_GIB}G", SWAPFILE_PATH])
 
 
 def get_resume_offset() -> str:

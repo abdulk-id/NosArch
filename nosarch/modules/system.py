@@ -14,6 +14,7 @@ import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.paths
 import utils.session_changes
+import utils.snapshots
 import utils.swapfile
 from decman import File, Store
 from decman.core.output import print_info
@@ -61,6 +62,7 @@ class SystemModule(decman.Module):
                 "/etc/pacman.d/hooks/05-nosarch-package-backup.hook",
                 "/etc/pam.d/sddm",
                 "/etc/plymouth/plymouthd.conf",
+                "/etc/conf.d/snapper",
                 "/etc/snapper/configs/root",
                 "/etc/sysctl.d/90-sysctl.conf",
                 "/etc/sysctl.d/99-memory-parameters.conf",
@@ -188,6 +190,9 @@ class SystemModule(decman.Module):
     def before_update(self, store: Store) -> None:
         utils.session_changes.reset(store)
         self._release_display_manager_alias()
+
+        # Before the pacman step, whose package backup hook snapshots into it.
+        utils.snapshots.create_subvolume()
 
         # Before the files step, which reads the swapfile's offset for the kernel command line.
         if self._swapfile_enabled:

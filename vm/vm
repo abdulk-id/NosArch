@@ -15,8 +15,9 @@ a base image built once by 'create', and every instance is a copy-on-write clone
 nothing and 'reset' brings a fresh one back in a second.
 
 Setup (once):
-    create                  Download the Arch ISO and build the base image. Takes about 10 minutes.
-                            --force rebuilds it, which destroys every instance.
+    create                  Build the base image from the Arch ISO. Takes about 9 minutes. The ISO is kept in vm/,
+                            downloaded the first time and reused after. Delete it to fetch the latest.
+                            --force rebuilds the base image, which destroys every instance.
 
 Lifecycle:
     start [--gui]           Boot the instance, creating it from the base image first if needed. Waits for SSH.
@@ -65,9 +66,9 @@ GUEST_CHECKOUT="/home/${VM_USER}/NosArch"
 GUEST_SHIM_DIR=/usr/local/lib/nosarch-vm/bin
 ISO_MIRROR=https://geo.mirror.pkgbuild.com/iso/latest
 
-REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
+VM_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_DIR=$(dirname "$VM_DIR")
 VM_HOME="${NOSARCH_VM_HOME:-${XDG_DATA_HOME:-${HOME}/.local/share}/nosarch-vm}"
-CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/nosarch-vm"
 MEMORY="${NOSARCH_VM_MEMORY:-6144}"
 CPUS="${NOSARCH_VM_CPUS:-4}"
 DISK_SIZE="${NOSARCH_VM_DISK_SIZE:-40G}"
@@ -285,9 +286,17 @@ _ssh_poweroff() {
 
 ## === Features ===
 # --- create ---
-_download_iso() {
-    iso_dir="${CACHE_DIR}/iso"
-    mkdir --parents "$iso_dir"
+# Uses the ISO kept in vm/ as it is, without asking the mirror whether a newer one exists. Delete it to get the latest.
+_ensure_iso() {
+    ISO_FILE=
+    for found in "${VM_DIR}"/archlinux-*-x86_64.iso; do
+        # The names sort by date, so the last match is the newest.
+        [ -f "$found" ] && ISO_FILE=$found
+    done
+    if [ -n "$ISO_FILE" ]; then
+        _info "Using ${ISO_FILE}."
+        return 0
+    fi
 
     _info "Looking up the latest Arch ISO."
     sums=$(curl --fail --silent --show-error --location "${ISO_MIRROR}/sha256sums.txt") ||
@@ -296,16 +305,12 @@ _download_iso() {
     iso_sum=$(printf '%s\n' "$sums" | awk '/archlinux-[0-9.]+-x86_64\.iso$/ { print $1; exit }')
     [ -n "$iso_name" ] || _die "No ISO found in the mirror's checksum list."
 
-    ISO_FILE="${iso_dir}/${iso_name}"
-    if [ -f "$ISO_FILE" ] && printf '%s  %s\n' "$iso_sum" "$ISO_FILE" | sha256sum --check --status; then
-        return 0
-    fi
-
-    _info "Downloading ${iso_name}."
-    curl --fail --location --progress-bar --output "${ISO_FILE}.part" "${ISO_MIRROR}/${iso_name}"
-    printf '%s  %s\n' "$iso_sum" "${ISO_FILE}.part" | sha256sum --check --status ||
+    _info "Downloading ${iso_name} into ${VM_DIR}."
+    curl --fail --location --progress-bar --output "${VM_DIR}/${iso_name}.part" "${ISO_MIRROR}/${iso_name}"
+    printf '%s  %s\n' "$iso_sum" "${VM_DIR}/${iso_name}.part" | sha256sum --check --status ||
         _die "The downloaded ISO does not match its checksum."
-    mv "${ISO_FILE}.part" "$ISO_FILE"
+    mv "${VM_DIR}/${iso_name}.part" "${VM_DIR}/${iso_name}"
+    ISO_FILE="${VM_DIR}/${iso_name}"
 }
 
 _ensure_ssh_key() {
@@ -325,7 +330,8 @@ _serial_log_has() {
 _build_seed() {
     seed_dir="${1}/seed"
     mkdir --parents "$seed_dir"
-    cp "${REPO_DIR}/tools/vm-guest/install.sh" "${REPO_DIR}/tools/vm-guest/chroot.sh" "$seed_dir/"
+    cp "${VM_DIR}/guest-install.sh" "${seed_dir}/install.sh"
+    cp "${VM_DIR}/guest-chroot.sh" "${seed_dir}/chroot.sh"
     cp "${KEY_FILE}.pub" "${seed_dir}/authorized_keys"
     cat >"${seed_dir}/vm.env" <<EOF
 VM_HOSTNAME=nosarch-vm
@@ -385,7 +391,7 @@ _provision_base() {
     _cmd_start
 
     provision_dir=$(_instance_dir)
-    _ssh "root@nosarch" sh -s <"${REPO_DIR}/tools/vm-guest/provision.sh" ||
+    _ssh "root@nosarch" sh -s <"${VM_DIR}/guest-provision.sh" ||
         _die "Provisioning failed. The instance 'create-provision' is still there to look at, destroy it afterwards."
 
     _stop_qemu "$provision_dir"
@@ -421,7 +427,7 @@ _cmd_create() {
         _die "The base image exists. Use 'vm create --force' to rebuild it, which destroys every instance."
     fi
 
-    _download_iso
+    _ensure_iso
     _ensure_ssh_key
 
     build_dir="${VM_HOME}/base-build"

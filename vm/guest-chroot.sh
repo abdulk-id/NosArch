@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# The in-chroot half of `install.sh`. It configures the freshly installed system with a plain Limine entry, just enough
-# to boot it. `provision.sh` finishes the job once the system is running.
+# The in-chroot half of `guest-install.sh`. It configures the freshly installed system with a plain Limine entry, just enough
+# to boot it. `guest-provision.sh` finishes the job once the system is running.
 #
 # Expects VM_HOSTNAME, VM_USERNAME, VM_PASSWORD and LUKS_UUID in the environment.
 

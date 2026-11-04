@@ -47,4 +47,4 @@ in [AGENTS.md](../AGENTS.md#documentation).
 Maintainer procedures: setup, testing, releases, debugging.
 
 - [Development](operations/development.md) — NosArch Works, testing.
-- [Test VM](operations/vm.md) — running and testing NosArch in a QEMU VM with `tools/vm`.
+- [Test VM](operations/vm.md) — running and testing NosArch in a QEMU VM with `vm/vm`.

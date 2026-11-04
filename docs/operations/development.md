@@ -16,7 +16,7 @@ NosArch Works can be enabled by setting `advanced.enable_nosarch_works` to `true
 ## Testing
 
 - Shell scripts: `shellcheck`.
-- Definition code: dry-run decman. It requires root access, so use the [test VM](vm.md): `tools/vm apply --dry-run`.
+- Definition code: dry-run decman. It requires root access, so use the [test VM](vm.md): `vm/vm apply --dry-run`.
 - Config schema: `python tests/test_config_schema.py`. Settings are defined on the classes in
   `nosarch/user_config.py`. After changing a setting, run `python utils/config_schema_generator.py` to refresh
   `config.schema.json`. The test fails if that file does not match the classes.

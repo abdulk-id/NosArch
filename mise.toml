@@ -34,7 +34,7 @@ run = "python3 tests/test_config_schema.py"
 [tasks.vm]
 description = "Run the NosArch test VM, for example `mise vm apply --dry-run` (see `mise vm help`)"
 raw_args = true
-run = "tools/vm"
+run = "vm/vm"
 
 # Decman tasks ---
 [tasks.apply]

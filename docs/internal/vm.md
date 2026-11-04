@@ -1,6 +1,6 @@
 # Test VM internals
 
-How to use the VM is in [Test VM](../operations/vm.md). This records why `tools/vm` is built the way it is. Most of it
+How to use the VM is in [Test VM](../operations/vm.md). This records why `vm/vm` is built the way it is. Most of it
 works around something NosArch itself does to the system it is applied to.
 
 ## SSH goes over vsock, not TCP

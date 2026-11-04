@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# The second stage of building the test VM's base image. `tools/vm create` runs it as root inside the freshly
+# The second stage of building the test VM's base image. `vm/vm create` runs it as root inside the freshly
 # installed system, once that has booted: the first stage cannot, because the Limine entry tooling is built with a GraalVM
 # native image, and that build does not fit in the live ISO's environment.
 #

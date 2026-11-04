@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Installs the base system the NosArch test VM starts from. It runs inside the Arch live ISO, started by `tools/vm
+# Installs the base system the NosArch test VM starts from. It runs inside the Arch live ISO, started by `vm/vm
 # create`, and installs onto /dev/vda with the layout NosArch's definition code expects: UEFI, one LUKS2 container
 # mapped as `cryptroot`, the six Btrfs subvolumes NosArch expects, and Limine as the bootloader.
 #

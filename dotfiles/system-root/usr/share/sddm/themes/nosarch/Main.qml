@@ -11,7 +11,8 @@ Rectangle {
     height: 480
     color: "#1a1b26"
 
-    property string currentUser: userModel.lastUser
+    // `lastUser` is empty until someone has logged in, which is every fresh install, so fall back to the configured user.
+    property string currentUser: userModel.lastUser !== "" ? userModel.lastUser : config.defaultUser
     property bool loginFailed: false
     property int sessionIndex: {
         for (var i = 0; i < sessionModel.rowCount(); i++) {

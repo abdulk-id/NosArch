@@ -51,9 +51,3 @@ Every instance is a qcow2 overlay with the base image as its backing file, and t
 Rebuilding the base with `create --force` would leave the overlays pointing at a different disk, so it deletes them.
 Checkpoints are qcow2 internal snapshots plus a copy of the firmware variables, which is why they need the instance
 stopped.
-
-## The greeter needs a last user
-
-NosArch's SDDM theme logs in `userModel.lastUser`, with no username field. On a fresh instance nobody has logged in, so
-it tries an empty name and fails. `vm login` writes SDDM's state file with the `nosarch` user and restarts the greeter
-before typing the password.

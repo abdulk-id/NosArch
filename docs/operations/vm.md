@@ -4,9 +4,9 @@
 hardware. Every command works headless and needs no root on the host, so agents can drive it themselves. Inside the VM
 they have root.
 
-The VM is built to match what the definition code expects of a target system: UEFI, one LUKS container, a Btrfs root in
-the `@` subvolume, and Limine with the entries `limine-entry-tool` generates. Why it is built that way, and what traps
-that avoids, is in [Test VM internals](../internal/vm.md).
+The VM is built to match what the definition code expects of a target system: UEFI, one LUKS container, a Btrfs
+filesystem with the six [subvolumes](../internal/btrfs-layout.md), and Limine with the entries `limine-entry-tool`
+generates. Why it is built that way, and what traps that avoids, is in [Test VM internals](../internal/vm.md).
 
 ## Requirements
 

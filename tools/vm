@@ -724,10 +724,10 @@ _cmd_key() {
 
 _cmd_login() {
     _require_running
-    # The greeter logs in whoever logged in last, and nobody has on a fresh instance, so it would try an empty user name.
-    # It reads that when it starts, so it is restarted and given time to draw.
-    _ssh "root@nosarch" "mkdir --parents /var/lib/sddm && printf '[Last]\nUser=${VM_USER}\n' >/var/lib/sddm/state.conf && systemctl restart sddm"
-    sleep 10
+    _wait_until 120 _ssh "root@nosarch" systemctl is-active --quiet sddm ||
+        _die "SDDM is not running. It only starts after an apply and a reboot."
+    # The greeter takes a few seconds to draw after the service is up.
+    sleep 8
     _cmd_type "$VM_PASSWORD"
     _cmd_key ret
     _info "Logged in as ${VM_USER}. The desktop takes about 20 seconds to appear, see 'vm screenshot'."

@@ -2,7 +2,7 @@
 #
 # Installs the base system the NosArch test VM starts from. It runs inside the Arch live ISO, started by `tools/vm
 # create`, and installs onto /dev/vda with the layout NosArch's definition code expects: UEFI, one LUKS2 container
-# mapped as `cryptroot`, a Btrfs root in the `@` subvolume, and Limine as the bootloader.
+# mapped as `cryptroot`, the six Btrfs subvolumes NosArch expects, and Limine as the bootloader.
 #
 # The seed directory (mounted at SEED_DIR) holds `vm.env`, `authorized_keys` and `chroot.sh`.
 
@@ -46,17 +46,23 @@ _encrypt_and_format() {
     mkfs.btrfs --force --label nosarch /dev/mapper/cryptroot
 
     mount /dev/mapper/cryptroot "$TARGET"
-    for subvolume in @ @home @log @pkg; do
+    for subvolume in @ @home @log @pkg @swap @snapshots; do
         btrfs subvolume create "${TARGET}/${subvolume}"
     done
     umount "$TARGET"
 
+    # The layout NosArch expects, see docs/internal/btrfs-layout.md.
     options="noatime,compress=zstd"
     mount --options "${options},subvol=@" /dev/mapper/cryptroot "$TARGET"
-    mkdir --parents "${TARGET}/boot" "${TARGET}/home" "${TARGET}/var/log" "${TARGET}/var/cache/pacman/pkg"
+    mkdir --parents "${TARGET}/boot" "${TARGET}/home" "${TARGET}/var/log" "${TARGET}/var/cache/pacman/pkg" \
+        "${TARGET}/swap" "${TARGET}/.snapshots"
     mount --options "${options},subvol=@home" /dev/mapper/cryptroot "${TARGET}/home"
     mount --options "${options},subvol=@log" /dev/mapper/cryptroot "${TARGET}/var/log"
     mount --options "${options},subvol=@pkg" /dev/mapper/cryptroot "${TARGET}/var/cache/pacman/pkg"
+    mount --options "noatime,subvol=@swap" /dev/mapper/cryptroot "${TARGET}/swap"
+    mount --options "${options},subvol=@snapshots" /dev/mapper/cryptroot "${TARGET}/.snapshots"
+    # Snapper refuses a snapshot directory other users can read.
+    chmod 0750 "${TARGET}/.snapshots"
     mount "$ESP" "${TARGET}/boot"
 }
 

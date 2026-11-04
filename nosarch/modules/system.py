@@ -304,7 +304,7 @@ class SystemModule(decman.Module):
         elif utils.hardware.cpu_vendor.is_cpu_amd():
             system_set.add("amd-ucode")
 
-        security_set: set[str] = {"apparmor", "firewalld", "ufw"}
+        security_set: set[str] = {"apparmor", "firewalld", "gnome-keyring", "ufw"}
 
         connectivity_set: set[str] = {
             "bluez",

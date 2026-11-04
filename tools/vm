@@ -1,0 +1,791 @@
+#!/bin/sh
+
+set -eu
+
+show_help() {
+    cat <<EOF
+Usage:
+    vm [--name NAME] COMMAND [ARGS]
+
+Runs NosArch in a QEMU virtual machine, so definition code can be applied and tested without touching real hardware.
+Every command works headless, and the user in the VM has root. An agent can run all of it by itself.
+
+The VM has the layout the definition code expects: UEFI, one LUKS container, a Btrfs root and Limine. It starts from
+a base image built once by 'create', and every instance is a copy-on-write clone of it, so an instance costs almost
+nothing and 'reset' brings a fresh one back in a second.
+
+Setup (once):
+    create                  Download the Arch ISO and build the base image. Takes about 10 minutes.
+                            --force rebuilds it, which destroys every instance.
+
+Lifecycle:
+    start [--gui]           Boot the instance, creating it from the base image first if needed. Waits for SSH.
+    stop                    Shut the instance down gracefully.
+    reboot                  Reboot the instance and wait until it accepts SSH again.
+    reset                   Throw the instance away and start a fresh one from the base image.
+    destroy                 Delete the instance.
+    status                  Show whether the instance is running.
+    list                    List all instances.
+    checkpoint NAME         Save the instance's disk. The instance is stopped for it, 'start' brings it back.
+    restore NAME            Roll the instance's disk back to a checkpoint. The instance is stopped for it.
+
+Working in it:
+    ssh [--user] [COMMAND]  Run a command as root in the VM, or open a root shell. --user runs it as 'nosarch'.
+    sync                    Copy this checkout into the VM at ~/NosArch, replacing what is there.
+    apply [DECMAN OPTIONS]  Sync, then run tools/apply in the VM as the 'nosarch' user, like the README does.
+                            Example: vm apply --dry-run
+    screenshot [FILE]       Save a PNG of the screen. Prints the path.
+    login                   Log the nosarch user in at the display manager's greeter, once NosArch's SDDM is running.
+    type TEXT               Type text on the VM's keyboard.
+    key KEY...              Press keys, for example: key ctrl-alt-f3, key ret. Names are QEMU key codes.
+    console                 Print the serial console log.
+
+Options:
+    --name NAME             Instance name, for running several VMs at once. Default: \$NOSARCH_VM_NAME or 'default'.
+
+Environment:
+    NOSARCH_VM_HOME         Where the base image and instances live. Default: \$XDG_DATA_HOME/nosarch-vm
+    NOSARCH_VM_MEMORY       Memory in MiB. Default: 6144
+    NOSARCH_VM_CPUS         CPU count. Default: 4
+    NOSARCH_VM_DISK_SIZE    Size of the base image's disk. Default: 40G
+
+Accounts: root and 'nosarch' both log in over SSH with a key only. The disk passphrase is 'nosarch', and the VM
+unlocks it by itself at boot, so nobody has to type it. The 'nosarch' password, for the login screen, is 'nosarch'.
+The login screen only exists after an apply and a reboot, and 'vm login' gets past it.
+
+SSH goes over virtio-vsock rather than TCP, because NosArch's firewall blocks everything but what it allows.
+EOF
+}
+
+## === Utilities ===
+VM_USER=nosarch
+VM_PASSWORD=nosarch
+DISK_PASSPHRASE=nosarch
+GUEST_CHECKOUT="/home/${VM_USER}/NosArch"
+GUEST_SHIM_DIR=/usr/local/lib/nosarch-vm/bin
+ISO_MIRROR=https://geo.mirror.pkgbuild.com/iso/latest
+
+REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
+VM_HOME="${NOSARCH_VM_HOME:-${XDG_DATA_HOME:-${HOME}/.local/share}/nosarch-vm}"
+CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/nosarch-vm"
+MEMORY="${NOSARCH_VM_MEMORY:-6144}"
+CPUS="${NOSARCH_VM_CPUS:-4}"
+DISK_SIZE="${NOSARCH_VM_DISK_SIZE:-40G}"
+INSTANCE_NAME="${NOSARCH_VM_NAME:-default}"
+DISPLAY_MODE=none
+
+BASE_DIR="${VM_HOME}/base"
+KEY_FILE="${VM_HOME}/ssh/id_ed25519"
+
+_die() {
+    printf 'Error: %s\n' "$*" >&2
+    exit 1
+}
+
+_info() {
+    printf '%s\n' "$*" >&2
+}
+
+_require_commands() {
+    for command_name in "$@"; do
+        command -v "$command_name" >/dev/null 2>&1 || _die "'${command_name}' is required but not installed."
+    done
+}
+
+_find_firmware() {
+    # The path differs between the Arch and Debian-style packages of OVMF.
+    for directory in /usr/share/edk2/x64 /usr/share/edk2-ovmf/x64 /usr/share/OVMF /usr/share/ovmf/x64; do
+        for pair in "OVMF_CODE.4m.fd OVMF_VARS.4m.fd" "OVMF_CODE.fd OVMF_VARS.fd"; do
+            code=${pair% *}
+            vars=${pair#* }
+            if [ -f "${directory}/${code}" ] && [ -f "${directory}/${vars}" ]; then
+                FIRMWARE_CODE="${directory}/${code}"
+                FIRMWARE_VARS="${directory}/${vars}"
+                return 0
+            fi
+        done
+    done
+    _die "UEFI firmware for QEMU not found. Install edk2-ovmf."
+}
+
+_instance_dir() {
+    printf '%s/instances/%s' "$VM_HOME" "$INSTANCE_NAME"
+}
+
+_validate_name() {
+    case "$INSTANCE_NAME" in
+        '' | *[!A-Za-z0-9_-]*) _die "Instance names may only contain letters, digits, '-' and '_': '${INSTANCE_NAME}'" ;;
+    esac
+}
+
+_is_running() {
+    pid_file="${1}/qemu.pid"
+    [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null
+}
+
+# Retries `$@` every 2 seconds until it succeeds or $1 seconds have passed.
+_wait_until() {
+    deadline=$(($(date +%s) + $1))
+    shift
+    while ! "$@"; do
+        [ "$(date +%s)" -lt "$deadline" ] || return 1
+        sleep 2
+    done
+}
+
+# Removes directories that may hold read-only files, such as what bsdtar extracts from an ISO.
+_remove_tree() {
+    for tree in "$@"; do
+        [ -e "$tree" ] || continue
+        chmod --recursive u+w "$tree"
+        rm --recursive --force "$tree"
+    done
+}
+
+_random_cid() {
+    # Guest context IDs 0 to 2 are reserved. Only a running VM holds one, so a clash is rare and QEMU reports it.
+    printf '%s' "$(($(od --address-radix=n --read-bytes=2 --format=u2 /dev/urandom | tr --delete ' ') + 100))"
+}
+
+_require_base() {
+    [ -f "${BASE_DIR}/disk.qcow2" ] || _die "There is no base image yet. Run 'vm create' first."
+}
+
+_require_running() {
+    _is_running "$(_instance_dir)" || _die "Instance '${INSTANCE_NAME}' is not running. Run 'vm start' first."
+}
+
+# Sends one or more QMP commands, given one per argument, on a single connection to the instance at $1.
+_qmp() {
+    qmp_dir=$1
+    shift
+    qmp_reply=$(
+        {
+            printf '%s\n' '{"execute":"qmp_capabilities"}'
+            for qmp_command in "$@"; do
+                printf '%s\n' "$qmp_command"
+            done
+        } | socat -t 1 - "UNIX-CONNECT:${qmp_dir}/qmp.sock"
+    ) || _die "Could not reach the instance's QMP socket."
+    case "$qmp_reply" in
+        *'"error"'*) _die "QEMU refused the command: ${qmp_reply}" ;;
+    esac
+}
+
+# Runs ssh against the instance. Arguments before `--` are ssh options, the rest is the destination and command.
+_ssh() {
+    ssh_dir=$(_instance_dir)
+    ssh_cid=$(cat "${ssh_dir}/cid")
+    ssh -i "$KEY_FILE" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o ServerAliveInterval=30 \
+        -o "ProxyCommand=socat - VSOCK-CONNECT:${ssh_cid}:22" "$@"
+}
+
+_ssh_ready() {
+    _ssh "root@nosarch" true 2>/dev/null
+}
+
+_wait_for_boot() {
+    _wait_until 240 _boot_finished ||
+        _die "The VM did not accept SSH in time. Look at 'vm console' and 'vm screenshot'."
+}
+
+# Succeeds once the VM accepts SSH. A firmware crash never will, so it ends the wait instead of letting it time out.
+_boot_finished() {
+    if grep --text --quiet 'X64 Exception' "$(_instance_dir)/serial.log" 2>/dev/null; then
+        _die "The firmware crashed while booting. Look at 'vm console' and 'vm screenshot'."
+    fi
+    _ssh_ready
+}
+
+# QEMU arguments shared by the installer VM and every instance. $1 is the directory holding the disk, the firmware
+# variables and the sockets.
+_machine_args() {
+    machine_dir=$1
+    machine_cid=$2
+    printf '%s\n' \
+        -machine q35,accel=kvm \
+        -cpu host \
+        -smp "$CPUS" \
+        -m "$MEMORY" \
+        -display "$DISPLAY_MODE" \
+        -device virtio-vga \
+        -device qemu-xhci -device usb-kbd -device usb-tablet \
+        -drive "if=pflash,format=raw,readonly=on,file=${FIRMWARE_CODE}" \
+        -drive "if=pflash,format=raw,file=${machine_dir}/vars.fd" \
+        -drive "file=${machine_dir}/disk.qcow2,if=virtio,format=qcow2,discard=unmap" \
+        -nic user,model=virtio-net-pci \
+        -device "vhost-vsock-pci,guest-cid=${machine_cid}" \
+        -chardev "socket,id=serial0,path=${machine_dir}/serial.sock,server=on,wait=off,logfile=${machine_dir}/serial.log" \
+        -serial chardev:serial0 \
+        -qmp "unix:${machine_dir}/qmp.sock,server=on,wait=off" \
+        -pidfile "${machine_dir}/qemu.pid" \
+        -daemonize
+}
+
+# Starts QEMU in the background. $1 is the machine directory, the rest are extra QEMU arguments.
+_launch_qemu() {
+    launch_dir=$1
+    shift
+    rm --force "${launch_dir}/serial.log" "${launch_dir}/serial.sock" "${launch_dir}/qmp.sock"
+
+    attempts=0
+    while :; do
+        launch_cid=$(_random_cid)
+        printf '%s\n' "$launch_cid" >"${launch_dir}/cid"
+        # Words are split on newlines only, so paths with spaces survive.
+        old_ifs=$IFS
+        IFS='
+'
+        # shellcheck disable=SC2046
+        if qemu-system-x86_64 $(_machine_args "$launch_dir" "$launch_cid") "$@" 2>"${launch_dir}/qemu.err"; then
+            IFS=$old_ifs
+            return 0
+        fi
+        IFS=$old_ifs
+
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge 5 ] || ! grep --quiet 'Address already in use' "${launch_dir}/qemu.err"; then
+            cat "${launch_dir}/qemu.err" >&2
+            _die "QEMU did not start."
+        fi
+    done
+}
+
+# systemd hands this to the initrd's sd-encrypt, which unlocks the disk with it. It is not stored in the guest, so it
+# survives NosArch rewriting the kernel command line and mkinitcpio.conf.
+_credential_args() {
+    printf '%s\n' -smbios "type=11,value=io.systemd.credential:cryptsetup.passphrase=${DISK_PASSPHRASE}"
+}
+
+_stop_qemu() {
+    stop_dir=$1
+    [ -f "${stop_dir}/qemu.pid" ] || return 0
+    stop_pid=$(cat "${stop_dir}/qemu.pid")
+    kill -0 "$stop_pid" 2>/dev/null || return 0
+
+    # The ACPI power button does not work after NosArch is applied: it sets logind to ignore it. Ask over SSH first.
+    _ssh_poweroff || :
+
+    _wait_until 40 _pid_gone "$stop_pid" && return 0
+    _info "The guest did not shut down in time, stopping QEMU."
+    # QEMU hangs up before it answers `quit`, which _qmp would report as a failure.
+    printf '%s\n%s\n' '{"execute":"qmp_capabilities"}' '{"execute":"quit"}' |
+        socat -t 1 - "UNIX-CONNECT:${stop_dir}/qmp.sock" >/dev/null 2>&1 || :
+    _wait_until 10 _pid_gone "$stop_pid" || kill "$stop_pid" 2>/dev/null || :
+}
+
+_pid_gone() {
+    ! kill -0 "$1" 2>/dev/null
+}
+
+_ssh_poweroff() {
+    _ssh "root@nosarch" systemctl poweroff >/dev/null 2>&1
+}
+
+## === Features ===
+# --- create ---
+_download_iso() {
+    iso_dir="${CACHE_DIR}/iso"
+    mkdir --parents "$iso_dir"
+
+    _info "Looking up the latest Arch ISO."
+    sums=$(curl --fail --silent --show-error --location "${ISO_MIRROR}/sha256sums.txt") ||
+        _die "Could not fetch ${ISO_MIRROR}/sha256sums.txt"
+    iso_name=$(printf '%s\n' "$sums" | awk '/archlinux-[0-9.]+-x86_64\.iso$/ { print $2; exit }')
+    iso_sum=$(printf '%s\n' "$sums" | awk '/archlinux-[0-9.]+-x86_64\.iso$/ { print $1; exit }')
+    [ -n "$iso_name" ] || _die "No ISO found in the mirror's checksum list."
+
+    ISO_FILE="${iso_dir}/${iso_name}"
+    if [ -f "$ISO_FILE" ] && printf '%s  %s\n' "$iso_sum" "$ISO_FILE" | sha256sum --check --status; then
+        return 0
+    fi
+
+    _info "Downloading ${iso_name}."
+    curl --fail --location --progress-bar --output "${ISO_FILE}.part" "${ISO_MIRROR}/${iso_name}"
+    printf '%s  %s\n' "$iso_sum" "${ISO_FILE}.part" | sha256sum --check --status ||
+        _die "The downloaded ISO does not match its checksum."
+    mv "${ISO_FILE}.part" "$ISO_FILE"
+}
+
+_ensure_ssh_key() {
+    [ -f "$KEY_FILE" ] && return 0
+    mkdir --parents "$(dirname "$KEY_FILE")"
+    ssh-keygen -q -t ed25519 -N '' -C nosarch-vm -f "$KEY_FILE"
+}
+
+_serial_send() {
+    printf '%s' "$2" | socat -t 1 - "UNIX-CONNECT:${1}/serial.sock" >/dev/null
+}
+
+_serial_log_has() {
+    grep --text --quiet "$2" "${1}/serial.log" 2>/dev/null
+}
+
+_build_seed() {
+    seed_dir="${1}/seed"
+    mkdir --parents "$seed_dir"
+    cp "${REPO_DIR}/tools/vm-guest/install.sh" "${REPO_DIR}/tools/vm-guest/chroot.sh" "$seed_dir/"
+    cp "${KEY_FILE}.pub" "${seed_dir}/authorized_keys"
+    cat >"${seed_dir}/vm.env" <<EOF
+VM_HOSTNAME=nosarch-vm
+VM_USERNAME=${VM_USER}
+VM_PASSWORD=${VM_PASSWORD}
+PASSPHRASE=${DISK_PASSPHRASE}
+EOF
+    # An ext4 image filled from a directory needs neither root nor loop devices.
+    mkfs.ext4 -q -F -d "$seed_dir" -L SEED "${1}/seed.img" 16M
+}
+
+_run_installer() {
+    work_dir=$1
+    iso_boot="${work_dir}/iso-boot"
+    mkdir --parents "$iso_boot"
+    bsdtar -xf "$ISO_FILE" -C "$iso_boot" arch/boot/x86_64
+
+    qemu-img create -q -f qcow2 "${work_dir}/disk.qcow2" "$DISK_SIZE"
+    cp "$FIRMWARE_VARS" "${work_dir}/vars.fd"
+    _build_seed "$work_dir"
+
+    # Booting the kernel directly gives the live system a serial console, and OVMF still gives it UEFI.
+    _info "Booting the Arch ISO."
+    _launch_qemu "$work_dir" \
+        -kernel "${iso_boot}/arch/boot/x86_64/vmlinuz-linux" \
+        -initrd "${iso_boot}/arch/boot/x86_64/initramfs-linux.img" \
+        -append "archisobasedir=arch archisodevice=/dev/sr0 console=ttyS0,115200" \
+        -drive "file=${ISO_FILE},media=cdrom,readonly=on,if=ide" \
+        -drive "file=${work_dir}/seed.img,if=virtio,format=raw,readonly=on"
+
+    _wait_until 240 _serial_log_has "$work_dir" 'archiso login:' || _die "The live ISO never reached its login prompt."
+
+    # The live ISO's root account has no password.
+    _serial_send "$work_dir" 'root
+'
+    sleep 2
+    _serial_send "$work_dir" '
+'
+    sleep 4
+    _info "Installing. This takes several minutes, see ${work_dir}/serial.log."
+    _serial_send "$work_dir" 'mkdir -p /run/nosarch-seed && mount -o ro /dev/vdb /run/nosarch-seed && sh /run/nosarch-seed/install.sh; echo "NOSARCH-VM: installer exit status $?"
+'
+
+    _wait_until 1800 _serial_log_has "$work_dir" 'installer exit status [0-9]' || _die "The installer timed out."
+    _serial_log_has "$work_dir" 'installer exit status 0' || _die "The installer failed. See ${work_dir}/serial.log."
+
+    _serial_send "$work_dir" 'poweroff
+'
+    _wait_until 60 _pid_gone "$(cat "${work_dir}/qemu.pid")" || _die "The live system did not power off."
+}
+
+_provision_base() {
+    # Runs the second stage in the booted system, through an instance, then folds what it changed into the base image.
+    _info "Provisioning the base image: building decman and the Limine tooling. This takes several minutes."
+    INSTANCE_NAME=create-provision
+    _cmd_destroy
+    _cmd_start
+
+    provision_dir=$(_instance_dir)
+    _ssh "root@nosarch" sh -s <"${REPO_DIR}/tools/vm-guest/provision.sh" ||
+        _die "Provisioning failed. The instance 'create-provision' is still there to look at, destroy it afterwards."
+
+    _stop_qemu "$provision_dir"
+    qemu-img commit -q "${provision_dir}/disk.qcow2"
+    cp "${provision_dir}/vars.fd" "${BASE_DIR}/vars.fd"
+    _cmd_destroy
+}
+
+_smoke_test_base() {
+    # Boots the new base once through a throwaway instance, which proves it unlocks, boots and accepts SSH.
+    _info "Booting the new base image to check it."
+    INSTANCE_NAME=create-check
+    _cmd_destroy
+    _cmd_start
+    _cmd_stop
+    _cmd_destroy
+}
+
+_cmd_create() {
+    force=false
+    for argument in "$@"; do
+        case "$argument" in
+            --force) force=true ;;
+            *) _die "Unknown option for create: ${argument}" ;;
+        esac
+    done
+
+    _require_commands qemu-system-x86_64 qemu-img socat ssh ssh-keygen curl bsdtar mkfs.ext4 sha256sum awk
+    _find_firmware
+    [ -e /dev/kvm ] && [ -w /dev/kvm ] || _die "/dev/kvm is not usable. The VM needs hardware virtualization."
+
+    if [ -f "${BASE_DIR}/disk.qcow2" ] && [ "$force" = false ]; then
+        _die "The base image exists. Use 'vm create --force' to rebuild it, which destroys every instance."
+    fi
+
+    _download_iso
+    _ensure_ssh_key
+
+    build_dir="${VM_HOME}/base-build"
+    _remove_tree "$build_dir"
+    mkdir --parents "$build_dir"
+    _run_installer "$build_dir"
+
+    if [ -d "${VM_HOME}/instances" ]; then
+        for stale in "${VM_HOME}"/instances/*; do
+            [ -d "$stale" ] || continue
+            INSTANCE_NAME=$(basename "$stale")
+            _cmd_destroy
+        done
+    fi
+
+    _remove_tree "$BASE_DIR"
+    mkdir --parents "$BASE_DIR"
+    mv "${build_dir}/disk.qcow2" "${build_dir}/vars.fd" "$BASE_DIR/"
+    _remove_tree "$build_dir"
+
+    _provision_base
+    chmod a-w "${BASE_DIR}/disk.qcow2"
+
+    _smoke_test_base
+    _info "The base image is ready. Start a VM with 'vm start'."
+}
+
+# --- lifecycle ---
+_cmd_start() {
+    gui=false
+    for argument in "$@"; do
+        case "$argument" in
+            --gui) gui=true ;;
+            *) _die "Unknown option for start: ${argument}" ;;
+        esac
+    done
+
+    _require_commands qemu-system-x86_64 qemu-img socat ssh
+    _require_base
+    _find_firmware
+
+    dir=$(_instance_dir)
+    if _is_running "$dir"; then
+        # It may be partway through a reboot, so wait for it as a fresh start would.
+        _wait_for_boot
+        _info "Instance '${INSTANCE_NAME}' is running."
+        return 0
+    fi
+
+    if [ ! -f "${dir}/disk.qcow2" ]; then
+        mkdir --parents "$dir"
+        qemu-img create -q -f qcow2 -b "${BASE_DIR}/disk.qcow2" -F qcow2 "${dir}/disk.qcow2"
+        cp "${BASE_DIR}/vars.fd" "${dir}/vars.fd"
+    fi
+
+    if [ "$gui" = true ]; then
+        DISPLAY_MODE=gtk
+    fi
+
+    old_ifs=$IFS
+    IFS='
+'
+    # shellcheck disable=SC2046
+    _launch_qemu "$dir" $(_credential_args)
+    IFS=$old_ifs
+
+    _info "Waiting for SSH."
+    _wait_for_boot
+    _info "Instance '${INSTANCE_NAME}' is running."
+}
+
+_cmd_reboot() {
+    _require_running
+    old_boot_id=$(_ssh "root@nosarch" cat /proc/sys/kernel/random/boot_id)
+    # The connection drops with the shutdown, so its failure says nothing.
+    _ssh "root@nosarch" systemctl reboot 2>/dev/null || :
+
+    _info "Waiting for the VM to come back."
+    _wait_until 300 _booted_again "$old_boot_id" || _die "The VM did not come back. Look at 'vm console' and 'vm screenshot'."
+    _info "Instance '${INSTANCE_NAME}' is running."
+}
+
+_booted_again() {
+    _boot_finished && [ "$(_ssh "root@nosarch" cat /proc/sys/kernel/random/boot_id 2>/dev/null)" != "$1" ]
+}
+
+_cmd_stop() {
+    _stop_qemu "$(_instance_dir)"
+}
+
+_cmd_destroy() {
+    dir=$(_instance_dir)
+    _stop_qemu "$dir"
+    _remove_tree "$dir"
+}
+
+_cmd_reset() {
+    _cmd_destroy
+    _cmd_start "$@"
+}
+
+_cmd_status() {
+    dir=$(_instance_dir)
+    if _is_running "$dir"; then
+        printf 'Instance %s: running (vsock CID %s)\n' "$INSTANCE_NAME" "$(cat "${dir}/cid")"
+    elif [ -f "${dir}/disk.qcow2" ]; then
+        printf 'Instance %s: stopped\n' "$INSTANCE_NAME"
+    else
+        printf 'Instance %s: does not exist\n' "$INSTANCE_NAME"
+    fi
+}
+
+_cmd_list() {
+    [ -d "${VM_HOME}/instances" ] || return 0
+    for dir in "${VM_HOME}"/instances/*; do
+        [ -d "$dir" ] || continue
+        INSTANCE_NAME=$(basename "$dir")
+        _cmd_status
+    done
+}
+
+_cmd_checkpoint() {
+    [ "$#" -eq 1 ] || _die "Usage: vm checkpoint NAME"
+    dir=$(_instance_dir)
+    [ -f "${dir}/disk.qcow2" ] || _die "Instance '${INSTANCE_NAME}' does not exist."
+    _stop_qemu "$dir"
+    qemu-img snapshot -c "$1" "${dir}/disk.qcow2"
+    cp "${dir}/vars.fd" "${dir}/vars.${1}.fd"
+    _info "Saved checkpoint '${1}'. Run 'vm start' to boot the instance again."
+}
+
+_cmd_restore() {
+    [ "$#" -eq 1 ] || _die "Usage: vm restore NAME"
+    dir=$(_instance_dir)
+    [ -f "${dir}/vars.${1}.fd" ] || _die "Instance '${INSTANCE_NAME}' has no checkpoint '${1}'."
+    _stop_qemu "$dir"
+    qemu-img snapshot -a "$1" "${dir}/disk.qcow2"
+    cp "${dir}/vars.${1}.fd" "${dir}/vars.fd"
+    _info "Restored checkpoint '${1}'. Run 'vm start' to boot the instance."
+}
+
+# --- working in the VM ---
+_cmd_ssh() {
+    _require_running
+    ssh_account=root
+    if [ "${1:-}" = "--user" ]; then
+        ssh_account=$VM_USER
+        shift
+    fi
+
+    if [ "$#" -eq 0 ] && [ -t 0 ]; then
+        _ssh -t "${ssh_account}@nosarch"
+    elif [ "$#" -eq 0 ]; then
+        _ssh "${ssh_account}@nosarch"
+    else
+        _ssh "${ssh_account}@nosarch" "$@"
+    fi
+}
+
+_cmd_sync() {
+    _require_running
+    _require_commands git tar
+    _info "Copying ${REPO_DIR} to ${GUEST_CHECKOUT}."
+    # The file list is what git would consider part of the tree, so ignored files such as .drafts/ stay behind. Files
+    # that are tracked but deleted in the working tree are skipped.
+    git -C "$REPO_DIR" ls-files -z --cached --others --exclude-standard |
+        tar --directory "$REPO_DIR" --null --files-from - --ignore-failed-read --create |
+        _ssh "${VM_USER}@nosarch" "rm --recursive --force '${GUEST_CHECKOUT}' && mkdir '${GUEST_CHECKOUT}' && tar --directory '${GUEST_CHECKOUT}' --extract"
+}
+
+_press_enter_forever() {
+    # Ends by itself: the write fails once ssh has exited.
+    while :; do
+        printf '\n' || return 0
+        sleep 1
+    done
+}
+
+_cmd_apply() {
+    _cmd_sync
+
+    # Decman asks "Proceed?" whenever --source is given, which nobody can answer here. Without --source it runs the
+    # source stored from the last run, silently once the store says so. A dry run never writes the store, so the
+    # entries are written here, with the same keys decman itself uses.
+    #
+    # Decman also pages through every AUR PKGBUILD it builds, with `less`. The shim makes that a no-op, so the PKGBUILDs
+    # are built without review. That is acceptable in a VM nobody keeps.
+    _ssh "root@nosarch" python3 - "${GUEST_CHECKOUT}/nosarch/source.py" "$GUEST_SHIM_DIR" <<'PYTHON'
+import json
+import os
+import sys
+
+STORE_PATH = "/var/lib/decman/store.json"
+source_file, shim_dir = sys.argv[1], sys.argv[2]
+
+store = {}
+if os.path.exists(STORE_PATH):
+    with open(STORE_PATH, "r", encoding="utf-8") as store_file:
+        store = json.load(store_file)
+
+store["source_file"] = source_file
+store["allow_running_source_without_prompt"] = True
+
+os.makedirs(os.path.dirname(STORE_PATH), exist_ok=True)
+with open(STORE_PATH, "w", encoding="utf-8") as store_file:
+    json.dump(store, store_file, indent=2)
+
+os.makedirs(shim_dir, exist_ok=True)
+shim = os.path.join(shim_dir, "less")
+with open(shim, "w", encoding="utf-8") as shim_file:
+    shim_file.write("#!/bin/sh\nexit 0\n")
+os.chmod(shim, 0o755)
+PYTHON
+
+    # Decman runs pacman on a pty and refuses to start without one, so ssh gets one. Pressing Enter once a second
+    # answers every prompt with its default, and the prompts that default to "no", such as tools/apply's "Restart
+    # now?", decline. It cannot be a flood of Enters: decman blocks writing them to pacman, and stops reading
+    # pacman's output, which deadlocks both. Run through sudo as the user, as the README does: the definition code
+    # finds ~/.nosarch_config.json from SUDO_USER.
+    _press_enter_forever | _ssh -tt "${VM_USER}@nosarch" "sudo env PATH='${GUEST_SHIM_DIR}':\"\$PATH\" GIT_PAGER=true '${GUEST_CHECKOUT}/tools/apply' $*"
+}
+
+_cmd_screenshot() {
+    _require_running
+    dir=$(_instance_dir)
+    target=${1:-"${dir}/screenshot.png"}
+    case "$target" in
+        /*) ;;
+        *) target="$(pwd)/${target}" ;;
+    esac
+    _qmp "$dir" "{\"execute\":\"screendump\",\"arguments\":{\"filename\":\"${target}\",\"format\":\"png\"}}"
+    printf '%s\n' "$target"
+}
+
+# Maps one typed character to the QEMU key codes that produce it, a space-separated list ending in the key itself.
+_key_codes() {
+    case "$1" in
+        [a-z0-9]) printf '%s' "$1" ;;
+        [A-Z]) printf 'shift %s' "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" ;;
+        ' ') printf 'spc' ;;
+        '-') printf 'minus' ;;
+        '_') printf 'shift minus' ;;
+        '=') printf 'equal' ;;
+        '+') printf 'shift equal' ;;
+        '.') printf 'dot' ;;
+        ',') printf 'comma' ;;
+        '/') printf 'slash' ;;
+        ':') printf 'shift semicolon' ;;
+        ';') printf 'semicolon' ;;
+        '!') printf 'shift 1' ;;
+        '@') printf 'shift 2' ;;
+        '#') printf 'shift 3' ;;
+        *) return 1 ;;
+    esac
+}
+
+# Builds the QMP send-key command for a space-separated list of key codes.
+_send_key_command() {
+    keys=
+    for code in $1; do
+        keys="${keys}${keys:+,}{\"type\":\"qcode\",\"data\":\"${code}\"}"
+    done
+    printf '{"execute":"send-key","arguments":{"keys":[%s]}}' "$keys"
+}
+
+_cmd_type() {
+    _require_running
+    [ "$#" -ge 1 ] || _die "Usage: vm type TEXT"
+    text="$*"
+
+    commands=
+    while [ -n "$text" ]; do
+        rest=${text#?}
+        char=${text%"$rest"}
+        text=$rest
+        codes=$(_key_codes "$char") || _die "Cannot type the character '${char}'. Use 'vm key' for special keys."
+        commands="${commands}$(_send_key_command "$codes")
+"
+    done
+
+    # One command per line, each as its own argument, because QMP answers them one by one.
+    old_ifs=$IFS
+    IFS='
+'
+    set -f
+    # shellcheck disable=SC2086
+    _qmp "$(_instance_dir)" $commands
+    set +f
+    IFS=$old_ifs
+}
+
+_cmd_key() {
+    _require_running
+    [ "$#" -ge 1 ] || _die "Usage: vm key KEY..."
+    for combination in "$@"; do
+        # "ctrl-alt-f3" presses the three keys together.
+        _qmp "$(_instance_dir)" "$(_send_key_command "$(printf '%s' "$combination" | tr '-' ' ')")"
+    done
+}
+
+_cmd_login() {
+    _require_running
+    # The greeter logs in whoever logged in last, and nobody has on a fresh instance, so it would try an empty user name.
+    # It reads that when it starts, so it is restarted and given time to draw.
+    _ssh "root@nosarch" "mkdir --parents /var/lib/sddm && printf '[Last]\nUser=${VM_USER}\n' >/var/lib/sddm/state.conf && systemctl restart sddm"
+    sleep 10
+    _cmd_type "$VM_PASSWORD"
+    _cmd_key ret
+    _info "Logged in as ${VM_USER}. The desktop takes about 20 seconds to appear, see 'vm screenshot'."
+}
+
+_cmd_console() {
+    log="$(_instance_dir)/serial.log"
+    [ -f "$log" ] || _die "Instance '${INSTANCE_NAME}' has no console log yet."
+    cat "$log"
+}
+
+## ===
+main() {
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --name)
+                [ "$#" -ge 2 ] || _die "--name needs a value."
+                INSTANCE_NAME=$2
+                shift 2
+                ;;
+            help | -h | --help)
+                show_help
+                return
+                ;;
+            *) break ;;
+        esac
+    done
+
+    [ "$#" -gt 0 ] || {
+        show_help
+        return 1
+    }
+
+    _validate_name
+    command_name=$1
+    shift
+
+    case "$command_name" in
+        create) _cmd_create "$@" ;;
+        start) _cmd_start "$@" ;;
+        stop) _cmd_stop ;;
+        reboot) _cmd_reboot ;;
+        reset) _cmd_reset "$@" ;;
+        destroy) _cmd_destroy ;;
+        status) _cmd_status ;;
+        list) _cmd_list ;;
+        checkpoint) _cmd_checkpoint "$@" ;;
+        restore) _cmd_restore "$@" ;;
+        ssh) _cmd_ssh "$@" ;;
+        sync) _cmd_sync ;;
+        apply) _cmd_apply "$@" ;;
+        screenshot) _cmd_screenshot "$@" ;;
+        login) _cmd_login ;;
+        type) _cmd_type "$@" ;;
+        key) _cmd_key "$@" ;;
+        console) _cmd_console ;;
+        *) _die "Unknown command '${command_name}'. Run 'vm help'." ;;
+    esac
+}
+
+main "$@"

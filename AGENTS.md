@@ -19,8 +19,9 @@ Most code changes do not need an internal documentation change.
 
 ## Testing
 
-- Testing the definition code requires a dry-run as root, which you cannot do yourself. Ask the user to dry-run and
-  report back.
+- Testing the definition code requires a dry-run as root, which you cannot do on the host. Dry-run it in the test VM
+  instead: `tools/vm apply --dry-run`. See `docs/operations/vm.md`. If the VM is not set up or cannot be used, ask the
+  user to dry-run and report back.
 
 ## Formatting
 

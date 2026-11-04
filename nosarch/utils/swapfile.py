@@ -15,8 +15,8 @@ def exists() -> bool:
 def create() -> None:
     """Create the swapfile if it does not exist, sized to hold RAM plus headroom so hibernation can write it all out.
 
-    The file lives in its own subvolume. A subvolume that holds an active swapfile cannot be snapshotted, and a nested
-    subvolume is skipped when its parent is, so snapshots of the root subvolume keep working.
+    `/swap` is the `@swap` subvolume, which `utils.btrfs_layout.verify` has already checked. A subvolume that holds an
+    active swapfile cannot be snapshotted, which is why the file does not live in `@`.
     """
     if exists():
         return
@@ -24,9 +24,6 @@ def create() -> None:
     root_fstype: str = _run(["findmnt", "--noheadings", "--output", "FSTYPE", "--target", "/"])
     if root_fstype != "btrfs":
         raise RuntimeError(f"A swapfile is only created on Btrfs. The root filesystem is: {root_fstype}")
-
-    if not os.path.exists(SWAP_DIR):
-        _ = _run(["btrfs", "subvolume", "create", SWAP_DIR])
 
     _ = _run(["btrfs", "filesystem", "mkswapfile", "--size", f"{_ram_gib() + HEADROOM_GIB}G", SWAPFILE_PATH])
 

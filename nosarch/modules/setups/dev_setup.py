@@ -38,7 +38,6 @@ class DevSetupModule(decman.Module):
         _ = decman.prg(cmd=["mise", "install"], user=self._username, mimic_login=True)
         _ = decman.prg(cmd=["mise", "prune"], user=self._username, mimic_login=True)
 
-    @override
     @staticmethod
     def on_disable() -> None:
         import decman

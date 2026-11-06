@@ -70,6 +70,7 @@ class DesktopModule(decman.Module):
                 "/.config/swaync/style.css",
                 "/.config/swayosd/config.toml",
                 "/.config/swayosd/style.css",
+                "/.config/systemd/user/elephant.service",
                 "/.config/systemd/user/nosarch-eyesight-reminder.service",
                 "/.config/systemd/user/nosarch-eyesight-reminder.timer",
                 "/.config/systemd/user/swayosd.service",

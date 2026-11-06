@@ -30,6 +30,12 @@ run = ["mise test-config"]
 description = "Test config.schema.json match the config data classes"
 run = "python3 tests/test_config_schema.py"
 
+# Test VM ---
+[tasks.vm]
+description = "Run the NosArch test VM, for example `mise vm apply --dry-run` (see `mise vm help`)"
+raw_args = true
+run = "vm/vm"
+
 # Decman tasks ---
 [tasks.apply]
 description = "Apply the configuration, then offer to log out or reboot if a change needs one"

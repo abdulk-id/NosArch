@@ -3,3 +3,10 @@ __pycache__
 mise.local.toml
 
 .drafts/
+
+# The test VM keeps its Arch ISO here. Only the scripts are tracked, and each is added as an exception by hand.
+/vm/*
+!/vm/vm
+!/vm/guest-install.sh
+!/vm/guest-chroot.sh
+!/vm/guest-provision.sh

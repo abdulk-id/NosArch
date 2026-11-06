@@ -4,6 +4,7 @@ from typing import override
 
 import decman
 import utils.apply
+import utils.btrfs_layout
 import utils.change_tracker
 import utils.custom_packages
 import utils.dotfile.luks_uuid
@@ -14,7 +15,6 @@ import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.paths
 import utils.session_changes
-import utils.snapshots
 import utils.swapfile
 from decman import File, Store
 from decman.core.output import print_info
@@ -191,8 +191,9 @@ class SystemModule(decman.Module):
         utils.session_changes.reset(store)
         self._release_display_manager_alias()
 
-        # Before the pacman step, whose package backup hook snapshots into it.
-        utils.snapshots.create_subvolume()
+        # Before anything below relies on `/.snapshots` and `/swap` being subvolumes of their own. The pacman step's
+        # package backup hook snapshots into the first.
+        utils.btrfs_layout.verify()
 
         # Before the files step, which reads the swapfile's offset for the kernel command line.
         if self._swapfile_enabled:
@@ -303,7 +304,7 @@ class SystemModule(decman.Module):
         elif utils.hardware.cpu_vendor.is_cpu_amd():
             system_set.add("amd-ucode")
 
-        security_set: set[str] = {"apparmor", "firewalld", "ufw"}
+        security_set: set[str] = {"apparmor", "firewalld", "gnome-keyring", "ufw"}
 
         connectivity_set: set[str] = {
             "bluez",

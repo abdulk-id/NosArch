@@ -39,9 +39,12 @@ in [AGENTS.md](../AGENTS.md#documentation).
 - [Packages](internal/packages.md) — declaring and tracking package changes.
 - [Custom packages](internal/custom-packages.md) — where the PKGBUILDs live, and how a module declares one.
 - [AppImages](internal/appimages.md) — how nosarch-package installs and removes AppImages.
+- [Btrfs layout](internal/btrfs-layout.md) — the six subvolumes NosArch expects, and why.
+- [Test VM internals](internal/vm.md) — why the test VM is built the way it is, and the NosArch traps it works around.
 
 ### Operations
 
 Maintainer procedures: setup, testing, releases, debugging.
 
 - [Development](operations/development.md) — NosArch Works, testing.
+- [Test VM](operations/vm.md) — running and testing NosArch in a QEMU VM with `vm/vm`.

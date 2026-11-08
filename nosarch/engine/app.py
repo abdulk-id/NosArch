@@ -9,6 +9,7 @@ from collections.abc import Callable
 import engine.aur
 import engine.changes
 import engine.command
+import engine.fs
 import engine.module
 import engine.output
 import engine.session
@@ -130,6 +131,13 @@ def _report_dry_run(
             engine.output.print_list(f"on_change of {module.name} would see:", unseen.summary(), one_per_line=True)
 
 
+def _run_step(ctx: engine.setup.Context, step: str, carried: dict[str, engine.changes.Changes]) -> None:
+    engine.steps.STEPS[step](ctx)
+    _diff_declarations(ctx, engine.steps.KINDS.get(step, ()))
+    if not ctx.dry_run:
+        _save_unseen(ctx, carried)
+
+
 def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
     dry: bool = args.dry_run
     hooks: bool = not args.no_hooks and not dry
@@ -150,6 +158,10 @@ def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
     for module in setup.modules:
         ctx.declarations[module.name] = engine.module.declarations(module)
 
+    # Accounts come first, so a hook can rely on the user that the setup declares, even on the run that creates it.
+    if "users" in steps:
+        _run_step(ctx, "users", carried)
+
     if hooks:
         engine.output.print_summary("Running before_update hooks.")
         for module in setup.modules:
@@ -167,10 +179,8 @@ def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
             state.save()
 
     for step in steps:
-        engine.steps.STEPS[step](ctx)
-        _diff_declarations(ctx, engine.steps.KINDS.get(step, ()))
-        if not dry:
-            _save_unseen(ctx, carried)
+        if step != "users":
+            _run_step(ctx, step, carried)
 
     if "users" in steps and not dry:
         engine.steps.users.finish(ctx)
@@ -232,12 +242,19 @@ def main(build_setup: Callable[[], engine.setup.Setup]) -> None:
         if error.output:
             print(error.output, file=sys.stderr)
         sys.exit(1)
+    except ValueError as error:
+        engine.output.print_error("ValueError raised from the source.")
+        engine.output.print_error(str(error))
+        if args.debug:
+            traceback.print_exc()
+        sys.exit(1)
     except (
         engine.aur.AurError,
+        engine.command.AccountNotFoundError,
+        engine.fs.InstallError,
         engine.steps.files.DuplicateTargetError,
         PermissionError,
         RuntimeError,
-        ValueError,
     ) as error:
         engine.output.print_error(str(error))
         if args.debug:

@@ -5,6 +5,7 @@ import stat
 import tempfile
 from dataclasses import dataclass
 
+import engine.command
 import engine.fs
 import engine.output
 import engine.setup
@@ -99,18 +100,33 @@ def _make_parents(directory: str, uid: int | None, gid: int | None) -> None:
 
 
 def _write_file(target: str, content: bytes, mode: int, uid: int | None, gid: int | None) -> None:
-    """Writes through a temporary file and a rename, so a reader never sees a half-written file."""
+    """
+    Writes through a temporary file and a rename, so a reader never sees a half-written file.
+
+    A file with no owner declared keeps the owner of the file it replaces. The owner is set before the mode, and the
+    mode after the data is flushed: changing the owner of a file clears its setuid and setgid bits, and so does
+    writing to it.
+    """
 
     directory: str = os.path.dirname(target)
     _make_parents(directory, uid, gid)
+
+    try:
+        existing: os.stat_result | None = os.lstat(target)
+    except FileNotFoundError:
+        existing = None
+    if existing is not None and stat.S_ISREG(existing.st_mode):
+        uid = existing.st_uid if uid is None else uid
+        gid = existing.st_gid if gid is None else gid
 
     descriptor, temporary = tempfile.mkstemp(dir=directory, prefix=f".{os.path.basename(target)}.")
     try:
         with os.fdopen(descriptor, "wb") as file:
             file.write(content)
-            os.fchmod(file.fileno(), mode)
+            file.flush()
             if uid is not None or gid is not None:
                 os.fchown(file.fileno(), uid if uid is not None else -1, gid if gid is not None else -1)
+            os.fchmod(file.fileno(), mode)
         os.replace(temporary, target)
     except BaseException:
         if os.path.lexists(temporary):
@@ -130,6 +146,46 @@ def _write_link(target: str, link: engine.fs.Symlink) -> None:
         os.lchown(target, uid if uid is not None else -1, gid if gid is not None else -1)
 
 
+def _render(file: engine.fs.File, target: str, variables: dict[str, str]) -> bytes:
+    """The file's bytes, with a failure to read its source reported as the file that could not be installed."""
+
+    prefix: str = f"Failed to install file from {file.describe()} to {target}: "
+    try:
+        return file.render(variables)
+    except PermissionError:
+        raise
+    except FileNotFoundError as error:
+        raise engine.fs.InstallError(f"{prefix}Source file doesn't exist.") from error
+    except UnicodeDecodeError as error:
+        raise engine.fs.InstallError(f"{prefix}Unicode decoding failed.") from error
+    except UnicodeEncodeError as error:
+        raise engine.fs.InstallError(f"{prefix}Unicode encoding failed.") from error
+    except OSError as error:
+        raise engine.fs.InstallError(f"{prefix}{error.strerror or error}.") from error
+
+
+def _install(file: engine.fs.File, target: str, content: bytes, mode: int, uid: int | None, gid: int | None) -> None:
+    try:
+        _write_file(target, content, mode, uid, gid)
+    except PermissionError:
+        raise
+    except OSError as error:
+        raise engine.fs.InstallError(
+            f"Failed to install file from {file.describe()} to {target}: {error.strerror or error}."
+        ) from error
+
+
+def _install_link(target: str, link: engine.fs.Symlink) -> None:
+    try:
+        _write_link(target, link)
+    except PermissionError:
+        raise
+    except OSError as error:
+        raise engine.fs.InstallError(
+            f"Failed to install symlink from {target} to {link.target}: {error.strerror or error}."
+        ) from error
+
+
 def run(ctx: engine.setup.Context) -> None:
     engine.output.print_summary("Checking files.")
 
@@ -142,24 +198,24 @@ def run(ctx: engine.setup.Context) -> None:
             if entry.symlink is not None:
                 differences: list[str] = _link_differences(target, entry.symlink)
                 if differences and not ctx.dry_run:
-                    _write_link(target, entry.symlink)
+                    _install_link(target, entry.symlink)
             else:
                 assert entry.file is not None and entry.variables is not None
-                content: bytes = entry.file.render(entry.variables)
+                content: bytes = _render(entry.file, target, entry.variables)
                 uid, gid = entry.file.ids()
                 differences = _file_differences(target, content, entry.file.permissions, uid, gid)
                 if differences and not ctx.dry_run:
-                    _write_file(target, content, entry.file.permissions, uid, gid)
+                    _install(entry.file, target, content, entry.file.permissions, uid, gid)
         except PermissionError:
             if not ctx.dry_run:
                 raise
             unreadable.append(target)
             continue
-        except KeyError as error:
+        except engine.command.AccountNotFoundError:
             # The owner or group of a file does not exist yet. The users step creates it on a real run.
             if not ctx.dry_run:
                 raise
-            differences = [f"owner {error} does not exist yet"]
+            differences = ["owner does not exist yet"]
 
         if differences:
             updated.append(f"{target} ({', '.join(differences)})")
@@ -186,8 +242,8 @@ def run(ctx: engine.setup.Context) -> None:
             except OSError as error:
                 engine.output.print_warning(f"Could not remove '{path}': {error.strerror or error}.")
 
-    engine.output.print_list("Updated files:" if not ctx.dry_run else "Files to update:", updated, one_per_line=True)
-    engine.output.print_list("Removed files:" if not ctx.dry_run else "Files to remove:", removed, one_per_line=True)
+    engine.output.print_list("Updated files:", updated, one_per_line=True)
+    engine.output.print_list("Removed files:", removed, one_per_line=True)
     engine.output.print_list("Files that need root to compare:", unreadable, one_per_line=True)
 
     if not ctx.dry_run:

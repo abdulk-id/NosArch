@@ -11,25 +11,38 @@ import engine.output
 
 class CommandFailedError(Exception):
     def __init__(self, cmd: list[str], code: int, output: str | None) -> None:
-        super().__init__(f"Command '{shlex.join(cmd)}' exited with code {code}.")
+        super().__init__(f"Command '{shlex.join(cmd)}' returned with a non-zero exit code {code}.")
         self.cmd: list[str] = cmd
         self.code: int = code
         self.output: str | None = output
+
+
+class AccountNotFoundError(LookupError):
+    """A user or group the definition code names does not exist."""
 
 
 def is_root() -> bool:
     return os.geteuid() == 0
 
 
+def passwd_entry(user: str) -> pwd.struct_passwd:
+    """`user`'s passwd entry. Raises `AccountNotFoundError` with a message instead of a bare `KeyError`."""
+
+    try:
+        return pwd.getpwnam(user)
+    except KeyError as error:
+        raise AccountNotFoundError(f"The user '{user}' doesn't exist.") from error
+
+
 def can_run_as(user: str) -> bool:
     """Whether `run(..., user=user)` can work: as root, or as that user."""
-    return is_root() or pwd.getpwnam(user).pw_uid == os.geteuid()
+    return is_root() or passwd_entry(user).pw_uid == os.geteuid()
 
 
 def login_environment(user: str) -> dict[str, str]:
     """The variables a login as `user` would set, so programs find their own home and config."""
 
-    entry: pwd.struct_passwd = pwd.getpwnam(user)
+    entry: pwd.struct_passwd = passwd_entry(user)
     return {"HOME": entry.pw_dir, "USER": entry.pw_name, "LOGNAME": entry.pw_name, "SHELL": entry.pw_shell}
 
 
@@ -61,7 +74,7 @@ def run(
 
     if user is not None:
         environment |= login_environment(user)
-        entry: pwd.struct_passwd = pwd.getpwnam(user)
+        entry: pwd.struct_passwd = passwd_entry(user)
         if entry.pw_uid != os.geteuid():
             if not is_root():
                 raise PermissionError(f"Running '{shlex.join(cmd)}' as {user} needs root.")
@@ -96,7 +109,7 @@ def run(
     if completed.returncode != 0:
         if check:
             raise CommandFailedError(cmd, completed.returncode, completed.stdout if capture else None)
-        engine.output.print_warning(f"Command '{shlex.join(cmd)}' exited with code {completed.returncode}.")
+        engine.output.print_warning(f"Command '{shlex.join(cmd)}' returned with an exit code {completed.returncode}.")
 
     return completed.stdout if capture and completed.stdout is not None else ""
 

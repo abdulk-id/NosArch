@@ -20,56 +20,70 @@ def run(ctx: engine.setup.Context) -> None:
     """
 
     engine.output.print_summary("Checking systemd units.")
+
+    try:
+        _apply(ctx)
+    except engine.command.CommandFailedError:
+        engine.output.print_error("Running a systemd command failed.")
+        raise
+
+
+def _apply(ctx: engine.setup.Context) -> None:
     dry: bool = ctx.dry_run
 
     declared: set[str] = ctx.declared("systemd")
     enabled: set[str] = set(ctx.state.systemd_units)
 
+    declared_user: dict[str, set[str]] = ctx.declared("systemd_user")
+    enabled_user: dict[str, list[str]] = ctx.state.systemd_user_units
+    # A user stays in the state once it has had units, even with none left. Its manager is reloaded on every run, since
+    # the files step may have rewritten a unit file that is already enabled.
+    users: list[str] = sorted(set(declared_user) | set(enabled_user))
+    user_enable: dict[str, set[str]] = {
+        user: declared_user.get(user, set()) - set(enabled_user.get(user, [])) for user in users
+    }
+    user_disable: dict[str, set[str]] = {
+        user: set(enabled_user.get(user, [])) - declared_user.get(user, set()) for user in users
+    }
+
     to_enable: set[str] = declared - enabled
     to_disable: set[str] = enabled - declared
 
-    engine.output.print_list("Enabling systemd units:" if not dry else "Systemd units to enable:", to_enable)
-    engine.output.print_list("Disabling systemd units:" if not dry else "Systemd units to disable:", to_disable)
+    # The order is system enable, system disable, user enable, user disable, then the reloads.
+    engine.output.print_list("Enabling systemd units:", to_enable)
+    if to_enable and not dry:
+        engine.command.run(["systemctl", "enable", *sorted(to_enable)])
+
+    engine.output.print_list("Disabling systemd units:", to_disable)
+    if to_disable and not dry:
+        # A unit whose package is gone cannot be disabled, and there is nothing left to disable.
+        engine.command.run(["systemctl", "disable", *sorted(to_disable)], check=False)
 
     if not dry:
-        if to_enable:
-            engine.command.run(["systemctl", "enable", *sorted(to_enable)])
-        if to_disable:
-            # A unit whose package is gone cannot be disabled, and there is nothing left to disable.
-            engine.command.run(["systemctl", "disable", *sorted(to_disable)], check=False)
         ctx.state.systemd_units = sorted(declared)
-        # Unit files the files step just wrote are only seen after a reload.
-        engine.command.run(["systemctl", "daemon-reload"])
 
-    declared_user: dict[str, set[str]] = ctx.declared("systemd_user")
-    enabled_user: dict[str, list[str]] = ctx.state.systemd_user_units
+    # `-M user@` reaches the user's manager through the system manager, so it works without the user's session.
+    for user in users:
+        engine.output.print_list(f"Enabling systemd units for {user}:", user_enable[user])
+        if not dry:
+            if user_enable[user]:
+                engine.command.run(["systemctl", "--user", "-M", f"{user}@", "enable", *sorted(user_enable[user])])
+            enabled_user[user] = sorted(set(enabled_user.get(user, [])) | user_enable[user])
 
-    for user in sorted(set(declared_user) | set(enabled_user)):
-        wanted: set[str] = declared_user.get(user, set())
-        current: set[str] = set(enabled_user.get(user, []))
-        user_enable: set[str] = wanted - current
-        user_disable: set[str] = current - wanted
+    for user in users:
+        engine.output.print_list(f"Disabling systemd units for {user}:", user_disable[user])
+        if not dry:
+            if user_disable[user]:
+                engine.command.run(
+                    ["systemctl", "--user", "-M", f"{user}@", "disable", *sorted(user_disable[user])], check=False
+                )
+            enabled_user[user] = sorted(set(enabled_user.get(user, [])) - user_disable[user])
 
-        engine.output.print_list(
-            f"Enabling systemd units for {user}:" if not dry else f"Units to enable for {user}:", user_enable
-        )
-        engine.output.print_list(
-            f"Disabling systemd units for {user}:" if not dry else f"Units to disable for {user}:", user_disable
-        )
+    if dry:
+        return
 
-        if dry or not (user_enable or user_disable):
-            continue
-
-        # `-M user@` reaches the user's manager through the system manager, so it works without the user's session.
-        manager: list[str] = ["systemctl", "--user", "-M", f"{user}@"]
-        if user_enable:
-            engine.command.run([*manager, "enable", *sorted(user_enable)])
-        if user_disable:
-            engine.command.run([*manager, "disable", *sorted(user_disable)], check=False)
+    # Unit files the files step just wrote are only seen after a reload.
+    engine.command.run(["systemctl", "daemon-reload"])
+    for user in users:
         # The user manager is not running when applying from a TTY or during a fresh install.
-        engine.command.run([*manager, "daemon-reload"], check=False)
-
-        if wanted:
-            enabled_user[user] = sorted(wanted)
-        else:
-            enabled_user.pop(user, None)
+        engine.command.run(["systemctl", "--user", "-M", f"{user}@", "daemon-reload"], check=False)

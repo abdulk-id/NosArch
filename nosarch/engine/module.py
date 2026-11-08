@@ -37,12 +37,13 @@ class Module:
 
     Hooks run in phases, and within a phase in registration order:
 
-    1. `before_update`, for every enabled module.
-    2. `on_disable`, for each module that was enabled on the last run and is not now.
-    3. The steps: users, files, then the package and unit steps.
-    4. `on_enable`, for modules enabled for the first time.
-    5. `on_change`, for modules the steps changed something for.
-    6. `after_update`, for every enabled module.
+    1. The users step, so the accounts the setup declares exist for every hook.
+    2. `before_update`, for every enabled module.
+    3. `on_disable`, for each module that was enabled on the last run and is not now.
+    4. The other steps: files, then the package and unit steps.
+    5. `on_enable`, for modules enabled for the first time.
+    6. `on_change`, for modules the steps changed something for.
+    7. `after_update`, for every enabled module.
 
     No hook runs during a dry run.
     """

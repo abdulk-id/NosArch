@@ -4,6 +4,12 @@ import grp
 import os
 import pwd
 
+import engine.command
+
+
+class InstallError(Exception):
+    """A file, directory, or symlink could not be put in place. The message says which and why."""
+
 
 def _ids(owner: str | None, group: str | None) -> tuple[int | None, int | None]:
     """
@@ -17,11 +23,14 @@ def _ids(owner: str | None, group: str | None) -> tuple[int | None, int | None]:
     gid: int | None = None
 
     if owner is not None:
-        entry: pwd.struct_passwd = pwd.getpwnam(owner)
+        entry: pwd.struct_passwd = engine.command.passwd_entry(owner)
         uid, gid = entry.pw_uid, entry.pw_gid
 
     if group is not None:
-        gid = grp.getgrnam(group).gr_gid
+        try:
+            gid = grp.getgrnam(group).gr_gid
+        except KeyError as error:
+            raise engine.command.AccountNotFoundError(f"The group '{group}' doesn't exist.") from error
 
     return uid, gid
 
@@ -111,6 +120,14 @@ class Directory:
         self.permissions: int = permissions
 
     def files(self, target_directory: str) -> dict[str, File]:
+        if not os.path.isdir(self.source_directory):
+            # os.walk would find nothing, and a directory with no files declares none, so everything already deployed
+            # from it would be removed as undeclared.
+            raise InstallError(
+                f"Failed to install file from {self.source_directory} to {target_directory}: "
+                "Source directory doesn't exist."
+            )
+
         files: dict[str, File] = {}
 
         for root, _, names in os.walk(self.source_directory):

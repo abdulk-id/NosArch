@@ -27,7 +27,12 @@ def _group_exists(name: str) -> bool:
 def _create(ctx: engine.setup.Context, user: engine.setup.User) -> None:
     cmd: list[str] = ["useradd"]
     if user.group:
-        cmd += ["--gid", user.group] if _group_exists(user.group) else ["--user-group"]
+        # The engine declares no groups, so a user's own group does not exist on the first run. useradd makes it. Any
+        # other missing group is a mistake, and useradd fails on it.
+        if _group_exists(user.group) or user.group != user.username:
+            cmd += ["--gid", user.group]
+        else:
+            cmd.append("--user-group")
     if user.home:
         cmd += ["--create-home", "--home-dir", user.home]
     if user.shell:
@@ -50,11 +55,14 @@ def _sync(ctx: engine.setup.Context, user: engine.setup.User, final: bool) -> No
     entry: pwd.struct_passwd = pwd.getpwnam(user.username)
     cmd: list[str] = ["usermod"]
 
-    if user.shell and user.shell != entry.pw_shell:
-        cmd += ["--shell", user.shell]
-
     if user.group and _group_exists(user.group) and grp.getgrnam(user.group).gr_gid != entry.pw_gid:
         cmd += ["--gid", user.group]
+
+    if user.home and user.home != entry.pw_dir:
+        cmd += ["--move-home", "--home", user.home]
+
+    if user.shell and user.shell != entry.pw_shell:
+        cmd += ["--shell", user.shell]
 
     # A group a package creates, such as `libvirt`, does not exist until the package step has run. Those are added
     # when this runs again after the steps.

@@ -52,6 +52,32 @@ once nothing needs them.
 AUR PKGBUILDs are offered for review before they run: the diff since the last reviewed commit, or every file the first
 time. Custom packages are not, since they come from NosArch's own repository.
 
+## Where it differs from decman on purpose
+
+Definition code written for decman reads the same, but these behave differently, each by decision:
+
+- **No change is lost.** A change is saved before the hooks run and carried until `on_change` has seen it, so a failed
+  run, `--no-hooks`, or a removal does not swallow it. Mode and owner drift count as changes, since a hook that
+  reloads a service has to hear about a file that was put back.
+- **`on_disable` needs the module registered with `enabled=False`.** decman ran a script it saved at enable time, so it
+  worked after the class was deleted. A module gone from the code is forgotten with a warning, and adding it back
+  later fires `on_enable` again.
+- **A step name that does not exist is an error**, for `--only`, `--skip` and the setup, not a silent no-op.
+- **Files are replaced through a temporary file and a rename.** A hard link keeps the old content, and a file declared
+  on a symlink replaces the link. A dry run reads the source files, so a missing one shows before a real run.
+- **A command either streams or is captured**, and a captured one returns stdout only: definition code that parses
+  `loginctl` output must not get stderr mixed in. A command run as a user gets that user's `HOME`.
+- **Hooks get no store, and there are no standalone groups or uids.** Users are declared with their groups, and only
+  accounts the engine created are deleted.
+- **Two modules declaring one path is an error**, where decman flapped between the two contents.
+
+## Testing
+
+`tests/engine/` is plain pytest, run in-process against a temporary directory. The `box` fixture replaces
+`engine.command.run` with a recorder, so no test runs `systemctl`, `useradd` or `pacman`. That only works while steps
+call `engine.command.run` at call time. A step that calls `subprocess` directly, or binds `run` at import, would run
+the real command inside a test.
+
 ## Switching from decman
 
 `nosarch/apply.py --import-decman` turns decman's store into the engine's state. A real run does it by itself when

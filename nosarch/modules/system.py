@@ -259,7 +259,7 @@ class SystemModule(engine.Module):
             system_set.add("devtools")
 
         if self._user_config.advanced.enable_nosarch_works:
-            system_set |= {"desktop-file-utils", "lynis", "namcap", "pacman-contrib", "shellcheck"}
+            system_set |= {"desktop-file-utils", "lynis", "namcap", "pacman-contrib", "python-pytest", "shellcheck"}
 
         if self._user_config.system.enable_lts_kernel:
             system_set.add("linux-lts")

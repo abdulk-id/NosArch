@@ -24,15 +24,19 @@ run = "python3 utils/config_schema_generator.py"
 # Tests ---
 [tasks.test-all]
 description = "Run all tests"
-run = ["mise test-config", "mise test-engine"]
+run = ["mise test-config", "mise test-engine", "mise test-engine-root"]
 
 [tasks.test-config]
 description = "Test config.schema.json match the config data classes"
 run = "python3 tests/test_config_schema.py"
 
 [tasks.test-engine]
-description = "Test the engine's run order and file deployment, without root"
-run = "python3 -B tests/test_engine.py"
+description = "Test the engine without root: run order, hooks, files, units, users and the command runner"
+run = "python3 -B -m pytest tests/engine -q"
+
+[tasks.test-engine-root]
+description = "Test what needs root (owners, running as a user) in a user namespace that fakes it"
+run = "unshare --user --map-auto --map-root-user python3 -B -m pytest tests/engine -q -m needs_root"
 
 # Apply tasks ---
 # A real run asks for root itself. Dry runs need none.

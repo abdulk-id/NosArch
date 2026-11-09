@@ -366,11 +366,13 @@ class SystemModule(engine.Module):
         if not self._swapfile_enabled:
             return ""
 
+        # A dry run is not root and skips hooks, so it can neither create the swapfile nor read its offset (the file is
+        # root-only), and the offset is not known yet.
+        if "--dry-run" in sys.argv:
+            return "resume=/dev/mapper/cryptroot resume_offset=<read at apply time>"
+
+        # `before_update` creates the swapfile before the files step.
         if not utils.swapfile.exists():
-            # `before_update` creates the swapfile before the files step, so this is a dry run on a machine
-            # that does not have one yet. Hooks are skipped on a dry run, so nothing may create it here.
-            if "--dry-run" in sys.argv:
-                return "resume=/dev/mapper/cryptroot resume_offset=<set after the swapfile is created>"
             raise RuntimeError(f"{utils.swapfile.SWAPFILE_PATH} does not exist. Run without --no-hooks.")
 
         return f"resume=/dev/mapper/cryptroot resume_offset={utils.swapfile.get_resume_offset()}"

@@ -332,6 +332,11 @@
                     "type": "boolean",
                     "description": "Build AUR and custom packages in a clean chroot. Turning this off builds them on the host, which is faster but lets installed packages affect a build",
                     "default": true
+                },
+                "enable_swapfile": {
+                    "type": "boolean",
+                    "description": "Create a Btrfs swapfile and configure the kernel to hibernate to it",
+                    "default": false
                 }
             }
         }

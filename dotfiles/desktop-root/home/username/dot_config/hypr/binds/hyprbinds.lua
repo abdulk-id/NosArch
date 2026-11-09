@@ -9,8 +9,7 @@ hl.bind("SUPER + W", hl.dsp.window.close(), { description = "Close window" })
 hl.bind("SUPER + J", hl.dsp.layout("togglesplit"), { description = "Toggle window split" })
 hl.bind("SUPER + T", hl.dsp.window.float("toggle"), { description = "Toggle window floating/tiling" })
 hl.bind("SUPER + C", hl.dsp.window.center(), { description = "Center floating window" })
-hl.bind("SUPER + F", hl.dsp.window.fullscreen("fullscreen", "toggle"), { description = "Toggle Full screen window" })
-hl.bind("SUPER + ALT + F", hl.dsp.window.fullscreen("maximize", "toggle"), { description = "Toggle Maximize window" })
+hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action =  "toggle"}), { description = "Toggle Full screen window" })
 hl.bind("SUPER + P", hl.dsp.window.pseudo("toggle"), { description = "Pseudo window" })
 
 -- Mouse binds to move (left-click) and resize (right-click) window

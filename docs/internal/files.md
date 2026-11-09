@@ -86,6 +86,11 @@ Substitution applies to any text file, whether it is declared with `source_file=
 to true skips it. A module with no variables copies every file byte for byte, which is how the theme deploys its
 wallpapers without marking them binary.
 
+`file_variables()` is read during the files step, after every `before_update` hook (`app.py:200`, `app.py:214`), so a
+value can depend on something a hook creates. `%RESUME_PARAMS%` does: `SystemModule.before_update` creates the swapfile
+whose offset it reads. Hooks are skipped under `--dry-run`, so on a machine without the swapfile a dry run substitutes
+a placeholder instead of failing.
+
 ## Removal is automatic
 
 Deleting a declaration deletes the file from the target system. The engine records every path each module deployed,

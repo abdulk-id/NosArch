@@ -50,7 +50,7 @@ build, who should not be able to change a PKGBUILD between those two steps.
 
 ## `nosarch-package update` does not update these
 
-`nosarch-package update` runs `yay -Syu`, which does not touch custom packages. They are built from PKGBUILDs by
+`nosarch-package update` runs `paru -Syu`, which does not touch custom packages. They are built from PKGBUILDs by
 `nosarch/apply.py`, so a version bump in NosArch-Packages only reaches the system on the next apply.
 
 This is worth knowing because the symptom is silent: the update reports success and the packages are still the old

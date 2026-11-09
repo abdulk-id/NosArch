@@ -242,6 +242,7 @@ class Advanced:
         " but lets installed packages affect a build",
         default=True,
     )
+    enable_swapfile: bool = flag("Create a Btrfs swapfile and configure the kernel to hibernate to it")
 
 
 @dataclass

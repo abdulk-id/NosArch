@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import override
 
 import engine
@@ -10,6 +11,8 @@ import utils.hardware.cpu_vendor
 import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.paths
+import utils.snapshots
+import utils.swapfile
 from engine import File
 from engine.output import print_info
 from engine.steps import aur, pacman, systemd
@@ -22,6 +25,7 @@ class SystemModule(engine.Module):
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.user.username
+        self._swapfile_enabled: bool = self._user_config.advanced.enable_swapfile
 
         self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
@@ -32,6 +36,7 @@ class SystemModule(engine.Module):
     def file_variables(self) -> dict[str, str]:
         return {
             "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
+            "%RESUME_PARAMS%": self._resume_params(),
             "%USER%": self._username,
             "%FULLNAME%": self._user_config.user.fullname,
             "%GIT_EMAIL%": self._user_config.user.git_email,
@@ -52,12 +57,12 @@ class SystemModule(engine.Module):
                 "/etc/pacman.d/hooks/05-nosarch-package-backup.hook",
                 "/etc/pam.d/sddm",
                 "/etc/plymouth/plymouthd.conf",
+                "/etc/conf.d/snapper",
                 "/etc/snapper/configs/root",
                 "/etc/sysctl.d/90-sysctl.conf",
                 "/etc/sysctl.d/99-memory-parameters.conf",
                 "/etc/systemd/journald.conf.d/00-journal-size.conf",
                 "/etc/systemd/logind.conf.d/10-ignore-power-button.conf",
-                "/etc/systemd/system/swap-swapfile.swap",
                 "/etc/systemd/system.conf.d/00-service-timeouts.conf",
                 "/etc/systemd/system.conf.d/10-open-file-limit.conf",
                 "/etc/systemd/user.conf.d/10-open-file-limit.conf",
@@ -74,6 +79,9 @@ class SystemModule(engine.Module):
             )
         )
         files.update(self._dotfiles.files("/etc/profile.d/nosarch.sh", permissions=0o644))
+
+        if self._swapfile_enabled:
+            files.update(self._dotfiles.files("/etc/systemd/system/swap-swapfile.swap"))
 
         wireless_regdom: str | None = utils.dotfile.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
@@ -168,6 +176,13 @@ class SystemModule(engine.Module):
     def before_update(self) -> None:
         self._release_display_manager_alias()
 
+        # Before the pacman step, whose package backup hook snapshots into it.
+        utils.snapshots.create_subvolume()
+
+        # Before the files step, which reads the swapfile's offset for the kernel command line.
+        if self._swapfile_enabled:
+            utils.swapfile.create()
+
     @override
     def on_change(self, changes: engine.Changes) -> None:
         if changes.files_changed_in_dirs("/etc/systemd/system", "/usr/lib/systemd"):
@@ -198,7 +213,7 @@ class SystemModule(engine.Module):
 
         if changes.files_changed_in_dirs(
             "/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes"
-        ) or changes.files_changed("/etc/mkinitcpio.conf"):
+        ) or changes.files_changed("/etc/mkinitcpio.conf", "/etc/default/limine"):
             utils.apply.rebuild_initramfs()
 
         if changes.files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
@@ -314,7 +329,7 @@ class SystemModule(engine.Module):
 
     @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
     def custom_pkgs(self) -> set[str]:
-        return {"yay-nosarch"}
+        return {"paru-nosarch"}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def system_services(self) -> set[str]:
@@ -327,8 +342,10 @@ class SystemModule(engine.Module):
             "snapper-cleanup.timer",
             "udisks2.service",
             "ufw.service",
-            "swap-swapfile.swap",
         }
+
+        if self._swapfile_enabled:
+            systemd_set.add("swap-swapfile.swap")
 
         if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
             systemd_set.add("power-profiles-daemon.service")
@@ -344,6 +361,19 @@ class SystemModule(engine.Module):
     @systemd.user_units
     def system_user_services(self) -> dict[str, set[str]]:
         return {self._username: {"gnome-keyring-daemon.service", "gcr-ssh-agent.socket"}}
+
+    def _resume_params(self) -> str:
+        if not self._swapfile_enabled:
+            return ""
+
+        if not utils.swapfile.exists():
+            # `before_update` creates the swapfile before the files step, so this is a dry run on a machine
+            # that does not have one yet. Hooks are skipped on a dry run, so nothing may create it here.
+            if "--dry-run" in sys.argv:
+                return "resume=/dev/mapper/cryptroot resume_offset=<set after the swapfile is created>"
+            raise RuntimeError(f"{utils.swapfile.SWAPFILE_PATH} does not exist. Run without --no-hooks.")
+
+        return f"resume=/dev/mapper/cryptroot resume_offset={utils.swapfile.get_resume_offset()}"
 
     # `before_update` hook actions ---
     def _release_display_manager_alias(self) -> None:

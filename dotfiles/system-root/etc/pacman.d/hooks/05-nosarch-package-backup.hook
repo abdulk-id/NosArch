@@ -29,9 +29,10 @@ Target = vulkan-radeon
 
 [Action]
 Description = Creating backup snapshot for critical packages...
-Exec = /usr/bin/bash -c 'snapper --config root create --type single --description "Critical package backup: $(xargs)"'
+# No `Depends`: pacman fails the transaction when one is unmet, and snapper is not installed yet on a fresh machine.
+# Skip until snapper is installed and knows the root config. The config file alone is not enough: snapper only lists
+# configs named in /etc/conf.d/snapper, and it needs the /.snapshots subvolume.
+Exec = /usr/bin/bash -c 'if command -v snapper >/dev/null && [[ -d /.snapshots ]] && snapper --no-dbus list-configs --columns config 2>/dev/null | grep -qw root; then snapper --config root create --type single --description "Critical package backup: $(xargs)"; fi'
 When = PreTransaction
-Depends = btrfs-progs
-Depends = snapper
 AbortOnFail
 NeedsTargets

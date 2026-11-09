@@ -1,0 +1,4 @@
+# Managed by NosArch
+
+# snapper only knows the configs listed here; /etc/snapper/configs/root alone is not enough.
+SNAPPER_CONFIGS="root"

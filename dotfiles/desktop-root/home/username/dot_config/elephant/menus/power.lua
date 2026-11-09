@@ -21,9 +21,14 @@ function GetEntries()
 
         if profile_name then
             local is_current = line:match("^%*")
+            local display_name = profile_name:gsub("^%l", string.upper):gsub("-", " ")
+
+            if is_current then
+                display_name = "✓ " .. display_name
+            end
 
             table.insert(entries, {
-                Text = profile_name:gsub("^%l", string.upper):gsub("-", " "),
+                Text = display_name,
                 Value = profile_name,
                 state = is_current and { "current" } or nil,
             })
@@ -31,15 +36,6 @@ function GetEntries()
     end
 
     handle:close()
-
-    --[[
-    if #entries == 0 then
-        table.insert(entries, {
-            Text = "No power profiles found",
-            Value = "",
-        })
-    end
-    --]]
 
     return entries
 end

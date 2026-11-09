@@ -110,7 +110,7 @@ def test_a_run_limited_to_files_does_not_record_unit_declarations(box: harness.B
 
 @pytest.mark.parametrize("flag", ["only", "skip"])
 def test_a_step_that_does_not_exist_fails_before_anything_runs(box: harness.Box, flag: str) -> None:
-    # decman ran the hooks and no step for `--only`, and only warned for an unknown step in its order.
+    # A mistyped step name must not silently run nothing.
     with pytest.raises(ValueError, match="Unknown step 'nosuchstep'"):
         box.apply(box.rec("m", files=_a_file(box, "a")), **{flag: ["nosuchstep"]})
 

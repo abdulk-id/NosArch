@@ -109,7 +109,7 @@ def test_a_module_that_is_gone_from_the_code_is_forgotten_with_a_warning(
 ) -> None:
     box.apply(box.rec("m"), box.rec("keep"))
 
-    # decman kept running a saved copy of on_disable. Here the module has to be registered as disabled for that.
+    # on_disable only runs for a module still registered as disabled. One gone from the code is forgotten.
     box.apply(box.rec("keep"))
 
     assert box.hooks == ["before_update:keep", "after_update:keep"]

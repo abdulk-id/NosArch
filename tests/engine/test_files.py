@@ -66,7 +66,7 @@ def test_exact_permissions_are_applied(box: harness.Box, permissions: int) -> No
 
 
 def test_mode_drift_is_healed_and_counts_as_a_change(box: harness.Box) -> None:
-    # decman healed drift without telling the module. A hook that reloads a service has to hear about it.
+    # A hook that reloads a service has to hear about a file that was put back.
     def module() -> harness.Rec:
         return box.rec("m", files={box.path("etc/a.conf"): engine.File(content="x\n")})
 
@@ -94,7 +94,7 @@ def test_missing_parent_directories_are_created_and_not_tracked(box: harness.Box
 
 
 def test_a_changed_file_is_replaced_atomically(box: harness.Box) -> None:
-    # decman wrote in place, so a hard link saw the new content. A reader of the target never sees half a file.
+    # A reader of the target never sees half a file, and a hard link keeps the old content.
     box.apply(box.rec("m", files={box.path("etc/a.conf"): engine.File(content="one\n")}))
     os.link(box.path("etc/a.conf"), box.path("etc/hardlink"))
 
@@ -151,7 +151,7 @@ def test_variable_values_are_inserted_literally(box: harness.Box) -> None:
 
 
 def test_variables_are_replaced_one_after_another(box: harness.Box) -> None:
-    # Kept from decman: a value that contains another key is replaced again, if that key comes later.
+    # A value that contains another key is replaced again, if that key comes later.
     box.apply(
         box.rec(
             "forward", files={box.path("forward"): engine.File(content="%A%\n")}, variables={"%A%": "%B%", "%B%": "x"}
@@ -577,7 +577,7 @@ def test_a_dry_run_lists_what_a_real_run_would_change(box: harness.Box, capsys: 
 
 
 def test_a_dry_run_reads_a_missing_source(box: harness.Box) -> None:
-    # decman's dry run never opened it. Reading it shows the mistake before a real run.
+    # Reading the source shows a missing one before a real run.
     module: harness.Rec = box.rec("m", files={box.path("p/a"): engine.File(source_file=box.path("missing"))})
 
     with pytest.raises(engine.fs.InstallError, match="Source file doesn't exist"):

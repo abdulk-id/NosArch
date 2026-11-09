@@ -30,7 +30,6 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--skip", nargs="+", default=[], metavar="STEP", help="skip these steps")
     parser.add_argument("--no-hooks", action="store_true", help="run no module hooks")
     parser.add_argument("--aur-upgrade-devel", action="store_true", help="rebuild VCS packages such as -git ones")
-    parser.add_argument("--import-decman", action="store_true", help="only import decman's state, then exit")
     parser.add_argument("--debug", action="store_true", help="print every command that runs")
     return parser.parse_args()
 
@@ -41,27 +40,6 @@ def _reexec_as_root() -> None:
     engine.output.print_info("Applying needs root, re-running with sudo.")
     script: str = os.path.abspath(sys.argv[0])
     os.execvp("sudo", ["sudo", sys.executable, "-B", script, *sys.argv[1:]])
-
-
-def _load_state(dry_run: bool) -> engine.state.State:
-    state: engine.state.State | None = engine.state.load()
-    if state is not None:
-        return state
-
-    if not engine.state.decman_store_exists():
-        return engine.state.State()
-
-    if engine.command.is_root():
-        state = engine.state.import_decman_store()
-        if not dry_run:
-            state.save()
-        return state
-
-    engine.output.print_warning(
-        "There is no NosArch state yet, and decman's is only readable by root. Run `nosarch/apply.py --import-decman` "
-        "once. Until then a dry run sees every module as new."
-    )
-    return engine.state.State()
 
 
 def _selected_steps(setup: engine.setup.Setup, args: argparse.Namespace) -> list[str]:
@@ -143,7 +121,7 @@ def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
     hooks: bool = not args.no_hooks and not dry
     setup.aur.upgrade_devel = args.aur_upgrade_devel
 
-    state: engine.state.State = _load_state(dry)
+    state: engine.state.State = engine.state.load() or engine.state.State()
     ctx: engine.setup.Context = engine.setup.Context(setup=setup, state=state, dry_run=dry)
     steps: list[str] = _selected_steps(setup, args)
 
@@ -220,17 +198,8 @@ def main(build_setup: Callable[[], engine.setup.Setup]) -> None:
     args: argparse.Namespace = _arguments()
     engine.output.debug_output = args.debug
 
-    # decman's store is root-only, so importing it needs root even alongside --dry-run.
-    if (not args.dry_run or args.import_decman) and not engine.command.is_root():
+    if not args.dry_run and not engine.command.is_root():
         _reexec_as_root()
-
-    if args.import_decman:
-        if not engine.state.decman_store_exists():
-            engine.output.print_error(f"There is no decman store at {engine.state.DECMAN_STORE}.")
-            sys.exit(1)
-        engine.state.import_decman_store().save()
-        engine.output.print_info(f"Saved to {engine.state.STATE_FILE}.")
-        return
 
     try:
         run(build_setup(), args)

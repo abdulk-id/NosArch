@@ -14,7 +14,7 @@ from engine.command import CommandFailedError, sh, succeeds
 
 
 def test_capture_returns_stdout_only(capfd: pytest.CaptureFixture[str]) -> None:
-    # decman merged stderr into the result. Output that definition code parses must not get the error text mixed in.
+    # Output that definition code parses, such as `loginctl`, must not get the error text mixed in.
     output: str = harness.real_run(["sh", "-c", "echo out; echo err >&2"], capture=True)
 
     assert output == "out\n"
@@ -74,7 +74,7 @@ def test_cwd_is_where_the_command_starts(tmp_path: Path) -> None:
 
 
 def test_a_command_run_as_a_user_gets_that_users_login_environment() -> None:
-    # decman left root's HOME unless asked. A command run as a user, such as brew or mise, needs that user's.
+    # A command run as a user, such as brew or mise, needs that user's HOME.
     me: pwd.struct_passwd = pwd.getpwuid(os.geteuid())
 
     output: str = harness.real_run(["sh", "-c", 'echo "$HOME|$USER|$LOGNAME|$SHELL"'], user=me.pw_name, capture=True)

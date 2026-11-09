@@ -380,11 +380,6 @@ class Box:
         engine.app.run(
             setup,
             argparse.Namespace(
-                dry_run=dry_run,
-                only=list(only),
-                skip=list(skip),
-                no_hooks=no_hooks,
-                aur_upgrade_devel=False,
-                import_decman=False,
+                dry_run=dry_run, only=list(only), skip=list(skip), no_hooks=no_hooks, aur_upgrade_devel=False
             ),
         )

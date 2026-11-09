@@ -143,7 +143,7 @@ def test_a_failing_useradd_fails_the_run_before_any_hook_or_step(box: harness.Bo
 
 
 def test_only_accounts_the_engine_created_are_deleted(box: harness.Box, accounts: harness.Accounts) -> None:
-    # decman deleted every account it was ever told about, including the login user it only listed.
+    # Only an account the engine created is deleted, never the login user it was only told about.
     _alice(accounts)
 
     box.apply(users=[engine.User("bob"), engine.User("alice", group="alice", groups=("wheel",))], steps=STEPS)
@@ -174,7 +174,7 @@ def test_a_dry_run_does_not_touch_users(box: harness.Box, accounts: harness.Acco
 def test_a_dry_run_where_a_files_owner_does_not_exist_yet_reports_it(
     box: harness.Box, accounts: harness.Accounts, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # decman's dry run failed here. Owners are resolved at the files step, so it can say the user is coming.
+    # Owners are resolved at the files step, so a dry run can say the user is coming.
     module: harness.Rec = box.rec("m", files={box.path("a.conf"): engine.File(content="x\n", owner="bob")})
 
     box.apply(module, users=[engine.User("bob")], steps=STEPS, dry_run=True)

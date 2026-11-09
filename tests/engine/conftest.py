@@ -28,7 +28,6 @@ def box(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[harness.Box
     commands: harness.Commands = harness.Commands(log)
     monkeypatch.setattr(engine.command, "run", commands)
     monkeypatch.setattr(engine.state, "STATE_FILE", str(tmp_path / "var" / "state.json"))
-    monkeypatch.setattr(engine.state, "DECMAN_STORE", str(tmp_path / "var" / "decman-store.json"))
 
     root: Path = tmp_path / "machine"
     root.mkdir()

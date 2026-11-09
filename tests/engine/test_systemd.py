@@ -116,7 +116,7 @@ def test_decorated_methods_of_one_module_are_unioned(box: harness.Box) -> None:
 
     box.apply(Two("m", box.log), steps=STEPS)
 
-    # decman let the later method win a user's key. The units of both are wanted, so both are enabled.
+    # The units of both methods are wanted, so both are enabled.
     assert box.argv == [
         ["systemctl", "enable", "a.service", "b.service"],
         ["systemctl", "--user", "-M", "alice@", "enable", "x.service", "y.service"],

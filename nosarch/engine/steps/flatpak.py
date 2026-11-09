@@ -1,5 +1,3 @@
-"""Installs, updates, and removes Flatpak apps, system-wide and per user."""
-
 import shutil
 
 import engine.command
@@ -7,18 +5,8 @@ import engine.module
 import engine.output
 import engine.setup
 
-# Marks a module method as returning `set[str]` of system-wide Flatpak app ids.
 packages = engine.module.declares("flatpak")
-# Marks a module method as returning `dict[str, set[str]]` of user name to that user's Flatpak app ids.
 user_packages = engine.module.declares("flatpak_user")
-
-
-def _installed(user: str | None) -> set[str]:
-    scope: str = "--user" if user else "--system"
-    output: str = engine.command.run(
-        ["flatpak", "list", "--app", scope, "--columns=application"], user=user, capture=True
-    )
-    return {line.strip() for line in output.splitlines() if line.strip() and line.strip() != "Application ID"}
 
 
 def _apply(ctx: engine.setup.Context, user: str | None, wanted: set[str]) -> None:
@@ -30,7 +18,12 @@ def _apply(ctx: engine.setup.Context, user: str | None, wanted: set[str]) -> Non
         engine.output.print_warning(f"Flatpak apps of {user} can only be checked as root or as {user}.")
         return
 
-    installed: set[str] = _installed(user)
+    listed: str = engine.command.run(
+        ["flatpak", "list", "--app", scope, "--columns=application"], user=user, capture=True
+    )
+    installed: set[str] = {
+        line.strip() for line in listed.splitlines() if line.strip() and line.strip() != "Application ID"
+    }
     to_remove: set[str] = installed - wanted
     to_install: set[str] = wanted - installed
 
@@ -58,7 +51,6 @@ def run(ctx: engine.setup.Context) -> None:
     engine.output.print_summary("Checking Flatpak apps.")
 
     if shutil.which("flatpak") is None:
-        # The pacman step installs the runtime, so only a dry run of the run that enables Flatpak gets here.
         engine.output.print_warning("Flatpak is not installed yet, so its apps cannot be checked.")
         if not ctx.dry_run:
             raise RuntimeError("The flatpak command is missing.")

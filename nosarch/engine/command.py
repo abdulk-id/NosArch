@@ -1,5 +1,3 @@
-"""Running commands, as root or as another user."""
-
 import os
 import pwd
 import shlex
@@ -18,7 +16,7 @@ class CommandFailedError(Exception):
 
 
 class AccountNotFoundError(LookupError):
-    """A user or group the definition code names does not exist."""
+    pass
 
 
 def is_root() -> bool:
@@ -26,8 +24,6 @@ def is_root() -> bool:
 
 
 def passwd_entry(user: str) -> pwd.struct_passwd:
-    """`user`'s passwd entry. Raises `AccountNotFoundError` with a message instead of a bare `KeyError`."""
-
     try:
         return pwd.getpwnam(user)
     except KeyError as error:
@@ -35,15 +31,7 @@ def passwd_entry(user: str) -> pwd.struct_passwd:
 
 
 def can_run_as(user: str) -> bool:
-    """Whether `run(..., user=user)` can work: as root, or as that user."""
     return is_root() or passwd_entry(user).pw_uid == os.geteuid()
-
-
-def login_environment(user: str) -> dict[str, str]:
-    """The variables a login as `user` would set, so programs find their own home and config."""
-
-    entry: pwd.struct_passwd = passwd_entry(user)
-    return {"HOME": entry.pw_dir, "USER": entry.pw_name, "LOGNAME": entry.pw_name, "SHELL": entry.pw_shell}
 
 
 def run(
@@ -56,25 +44,14 @@ def run(
     check: bool = True,
     cwd: str | None = None,
 ) -> str:
-    """
-    Runs `cmd` and returns its standard output when `capture` is set, otherwise an empty string.
-
-    Without `capture`, the command shares this terminal, so interactive programs such as pacman can prompt.
-
-    `user` runs the command as that user, with a login environment. Root can run as anyone. Anyone else can only
-    run as themselves, which is what a dry run does, so the same call works in both.
-
-    `check` raises `CommandFailedError` on a non-zero exit. Without it a failure is only reported.
-    """
-
     environment: dict[str, str] = dict(os.environ) if pass_environment else {}
     uid: int | None = None
     gid: int | None = None
     groups: list[int] | None = None
 
     if user is not None:
-        environment |= login_environment(user)
         entry: pwd.struct_passwd = passwd_entry(user)
+        environment |= {"HOME": entry.pw_dir, "USER": entry.pw_name, "LOGNAME": entry.pw_name, "SHELL": entry.pw_shell}
         if entry.pw_uid != os.geteuid():
             if not is_root():
                 raise PermissionError(f"Running '{shlex.join(cmd)}' as {user} needs root.")
@@ -115,15 +92,12 @@ def run(
 
 
 def sh(script: str, *, user: str | None = None, check: bool = True) -> str:
-    """Runs a shell script, see `run`."""
     return run(["/bin/sh", "-c", script], user=user, check=check)
 
 
 def succeeds(cmd: list[str], *, user: str | None = None) -> bool:
-    """Whether `cmd` exits zero. Its output is discarded."""
-
     try:
-        run([*cmd], user=user, capture=True, check=True)
+        run(cmd, user=user, capture=True)
     except CommandFailedError:
         return False
     return True

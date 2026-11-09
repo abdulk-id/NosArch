@@ -1,20 +1,15 @@
-"""Terminal output for the engine and for the definition code."""
-
 import os
 import shutil
 import sys
 import textwrap
 
-# Debug lines are only printed when this is set, by `--debug` or NosArch Works.
 debug_output: bool = False
 
 
-def _color_enabled() -> bool:
-    return sys.stdout.isatty() and "NO_COLOR" not in os.environ
-
-
 def _paint(code: str, text: str) -> str:
-    return f"\033[{code}m{text}\033[0m" if _color_enabled() else text
+    if sys.stdout.isatty() and "NO_COLOR" not in os.environ:
+        return f"\033[{code}m{text}\033[0m"
+    return text
 
 
 def _tag() -> str:
@@ -43,8 +38,6 @@ def print_error(message: str) -> None:
 
 
 def print_list(message: str, items: list[str] | set[str], one_per_line: bool = False) -> None:
-    """Prints a message followed by its items, or nothing at all when there are no items."""
-
     if not items:
         return
 
@@ -62,8 +55,6 @@ def print_list(message: str, items: list[str] | set[str], one_per_line: bool = F
 
 
 def prompt_confirm(message: str, default: bool) -> bool:
-    """Asks a yes/no question. Without a terminal to ask on, the default is the answer."""
-
     if not sys.stdin.isatty():
         return default
 
@@ -84,8 +75,6 @@ def prompt_confirm(message: str, default: bool) -> bool:
 
 
 def prompt_choice(message: str, choices: list[str]) -> str:
-    """Asks the user to pick one of `choices`. The first one is the default."""
-
     print_summary(message)
     for index, choice in enumerate(choices, start=1):
         print(f"    {index}: {choice}", flush=True)

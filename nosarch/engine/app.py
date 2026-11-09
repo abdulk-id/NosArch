@@ -1,5 +1,3 @@
-"""The command line, and the order a run goes in."""
-
 import argparse
 import os
 import sys
@@ -35,8 +33,6 @@ def _arguments() -> argparse.Namespace:
 
 
 def _reexec_as_root() -> None:
-    """A real run needs root. Asking for it here means nobody has to remember `sudo`, and a dry run never needs it."""
-
     engine.output.print_info("Applying needs root, re-running with sudo.")
     script: str = os.path.abspath(sys.argv[0])
     os.execvp("sudo", ["sudo", sys.executable, "-B", script, *sys.argv[1:]])
@@ -52,8 +48,6 @@ def _selected_steps(setup: engine.setup.Setup, args: argparse.Namespace) -> list
 
 
 def _diff_declarations(ctx: engine.setup.Context, kinds: tuple[str, ...]) -> None:
-    """Records what each module added or removed, for the kinds a step that just ran acts on."""
-
     for module in ctx.setup.modules:
         previous: dict[str, list[str]] = ctx.state.declared.get(module.name, {})
         for kind in kinds:
@@ -69,21 +63,17 @@ def _diff_declarations(ctx: engine.setup.Context, kinds: tuple[str, ...]) -> Non
 def _unseen_changes(
     ctx: engine.setup.Context, carried: dict[str, engine.changes.Changes], module: str
 ) -> engine.changes.Changes:
-    """What `module`'s on_change has not seen yet: what earlier runs left, and what this run changed."""
-
     merged: engine.changes.Changes = engine.changes.Changes()
     merged.merge(carried.get(module, engine.changes.Changes()))
     merged.merge(ctx.changes.get(module, engine.changes.Changes()))
     return merged
 
 
-def _save_unseen(ctx: engine.setup.Context, carried: dict[str, engine.changes.Changes]) -> None:
-    """
-    Saves the changes no hook has seen yet, after every step.
-
-    A change is only noticed on the run that makes it: the next run finds the file already in place. Saving it before
-    the hooks run means a run that stops partway still hands it to the hook on the next run.
-    """
+def _run_step(ctx: engine.setup.Context, step: str, carried: dict[str, engine.changes.Changes]) -> None:
+    engine.steps.STEPS[step](ctx)
+    _diff_declarations(ctx, engine.steps.KINDS.get(step, ()))
+    if ctx.dry_run:
+        return
 
     for module in ctx.setup.modules:
         unseen: engine.changes.Changes = _unseen_changes(ctx, carried, module.name)
@@ -92,28 +82,6 @@ def _save_unseen(ctx: engine.setup.Context, carried: dict[str, engine.changes.Ch
         else:
             ctx.state.pending.pop(module.name, None)
     ctx.state.save()
-
-
-def _report_dry_run(
-    ctx: engine.setup.Context,
-    carried: dict[str, engine.changes.Changes],
-    new: list[engine.module.Module],
-    disabled: list[str],
-) -> None:
-    engine.output.print_list("Modules that would be enabled:", [module.name for module in new])
-    engine.output.print_list("Modules that would be disabled, running on_disable:", disabled)
-
-    for module in ctx.setup.modules:
-        unseen: engine.changes.Changes = _unseen_changes(ctx, carried, module.name)
-        if unseen:
-            engine.output.print_list(f"on_change of {module.name} would see:", unseen.summary(), one_per_line=True)
-
-
-def _run_step(ctx: engine.setup.Context, step: str, carried: dict[str, engine.changes.Changes]) -> None:
-    engine.steps.STEPS[step](ctx)
-    _diff_declarations(ctx, engine.steps.KINDS.get(step, ()))
-    if not ctx.dry_run:
-        _save_unseen(ctx, carried)
 
 
 def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
@@ -136,7 +104,6 @@ def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
     for module in setup.modules:
         ctx.declarations[module.name] = engine.module.declarations(module)
 
-    # Accounts come first, so a hook can rely on the user that the setup declares, even on the run that creates it.
     if "users" in steps:
         _run_step(ctx, "users", carried)
 
@@ -164,7 +131,12 @@ def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
         engine.steps.users.finish(ctx)
 
     if dry:
-        _report_dry_run(ctx, carried, new, disabled)
+        engine.output.print_list("Modules that would be enabled:", [module.name for module in new])
+        engine.output.print_list("Modules that would be disabled, running on_disable:", disabled)
+        for module in setup.modules:
+            unseen: engine.changes.Changes = _unseen_changes(ctx, carried, module.name)
+            if unseen:
+                engine.output.print_list(f"on_change of {module.name} would see:", unseen.summary(), one_per_line=True)
         engine.output.print_summary("Dry run finished. Nothing was changed.")
         return
 

@@ -1,11 +1,3 @@
-"""
-Looks up, resolves, and builds AUR and custom packages.
-
-Packages are built by an unprivileged user and installed by root with `pacman -U`. By default every build runs in a
-fresh chroot, so nothing installed on the host can leak into it. With the chroot off, makepkg runs on the host, and
-whatever a build needs is installed as a dependency first and removed once nothing needs it.
-"""
-
 import json
 import os
 import re
@@ -25,7 +17,6 @@ import engine.state
 _RPC_URL: str = "https://aur.archlinux.org/rpc/v5"
 _GIT_URL: str = "https://aur.archlinux.org/{base}.git"
 _RPC_TIMEOUT: int = 30
-# The AUR caps a request's URL length. 150 names keep well under it.
 _RPC_BATCH: int = 150
 
 _DEVEL_SUFFIXES: tuple[str, ...] = ("-git", "-hg", "-bzr", "-svn", "-cvs", "-darcs")
@@ -48,7 +39,6 @@ class PackageInfo:
     makedepends: list[str] = field(default_factory=list)
     checkdepends: list[str] = field(default_factory=list)
     provides: list[str] = field(default_factory=list)
-    # Where a custom package's PKGBUILD lives. None for an AUR package, which is cloned from the AUR.
     custom_dir: str | None = None
 
     def build_dependencies(self) -> list[str]:
@@ -63,17 +53,7 @@ def is_devel(name: str) -> bool:
     return name.endswith(_DEVEL_SUFFIXES)
 
 
-def vercmp(installed: str, available: str) -> int:
-    """Below zero when `available` is newer than `installed`, as pacman orders versions."""
-    return int(engine.command.run(["vercmp", installed, available], capture=True).strip())
-
-
-# --- Package metadata ---
-
-
 class Rpc:
-    """The AUR's RPC interface, with every answer cached for the run."""
-
     def __init__(self) -> None:
         self._cache: dict[str, PackageInfo | None] = {}
 
@@ -118,8 +98,6 @@ class Rpc:
 
 
 def parse_srcinfo(srcinfo: str, pkgname: str, custom_dir: str) -> PackageInfo:
-    """Reads one package out of `makepkg --printsrcinfo`, including split packages and arch-specific fields."""
-
     arch: str = os.uname().machine
     base: str | None = None
     values: dict[str, str] = {}
@@ -142,7 +120,6 @@ def parse_srcinfo(srcinfo: str, pkgname: str, custom_dir: str) -> PackageInfo:
             found = found or value == pkgname
             continue
 
-        # Base fields apply to every package, a package's own fields override them.
         if current is not None and current != pkgname:
             continue
 
@@ -167,12 +144,8 @@ def parse_srcinfo(srcinfo: str, pkgname: str, custom_dir: str) -> PackageInfo:
 
 
 def custom_info(pkgname: str, directory: str, build_user: str) -> PackageInfo:
-    """Metadata of a custom package. makepkg refuses root, so root asks the build user."""
-
     user: str | None = build_user if engine.command.is_root() else None
 
-    # makepkg insists its build directories are writable even when it only prints metadata, and the PKGBUILD cache is
-    # root-owned. A scratch directory satisfies it.
     scratch: str = tempfile.mkdtemp(prefix="nosarch-srcinfo-")
     try:
         if user is not None:
@@ -187,16 +160,7 @@ def custom_info(pkgname: str, directory: str, build_user: str) -> PackageInfo:
     return parse_srcinfo(srcinfo, pkgname, directory)
 
 
-# --- Dependency resolution ---
-
-
 def repo_unresolvable(dependencies: set[str]) -> set[str]:
-    """
-    The dependencies no sync repository can satisfy, by name or by what a package provides.
-
-    pacman resolves this itself, version constraints and all, and reports each target it cannot find.
-    """
-
     if not dependencies:
         return set()
 
@@ -221,12 +185,9 @@ def repo_unresolvable(dependencies: set[str]) -> set[str]:
 
 
 def unsatisfied_on_host(dependencies: set[str]) -> set[str]:
-    """The dependencies no installed package satisfies, which `pacman -T` prints."""
-
     if not dependencies:
         return set()
 
-    # pacman exits 127 when anything is unsatisfied, which is the expected answer here rather than a failure.
     completed: subprocess.CompletedProcess[str] = subprocess.run(
         ["pacman", "-T", "--", *sorted(dependencies)], capture_output=True, text=True, check=False
     )
@@ -238,16 +199,11 @@ def unsatisfied_on_host(dependencies: set[str]) -> set[str]:
 @dataclass
 class Plan:
     infos: dict[str, PackageInfo] = field(default_factory=dict)
-    # Every package found, dependencies before what needs them, members of one package base next to each other.
     build_order: list[str] = field(default_factory=list)
-    # For each package, the foreign packages its build needs installed: runtime, make, and check dependencies.
     build_needs: dict[str, set[str]] = field(default_factory=dict)
-    # For each package, the foreign packages it needs installed to run.
     runtime_needs: dict[str, set[str]] = field(default_factory=dict)
 
     def runtime_closure(self, names: set[str]) -> set[str]:
-        """`names` and everything they need to run, transitively."""
-
         closure: set[str] = set()
         stack: list[str] = sorted(names)
         while stack:
@@ -261,11 +217,6 @@ class Plan:
 
 class Resolver:
     def __init__(self, rpc: Rpc, custom: dict[str, PackageInfo], host_satisfies: bool) -> None:
-        """
-        `host_satisfies` takes what is installed on the host as satisfying a dependency, which is true when builds
-        run on the host. A chroot starts empty, so there every foreign dependency has to be found and built.
-        """
-
         self._rpc: Rpc = rpc
         self._custom: dict[str, PackageInfo] = custom
         self._host_satisfies: bool = host_satisfies
@@ -280,8 +231,6 @@ class Resolver:
         return info
 
     def _foreign_provider(self, dependency: str) -> str:
-        """The foreign package that satisfies `dependency`, asking the user when several do."""
-
         name: str = strip_version(dependency)
         if name in self._chosen:
             return self._chosen[name]
@@ -308,8 +257,6 @@ class Resolver:
         return choice
 
     def resolve(self, targets: set[str]) -> Plan:
-        """Finds every foreign package the targets need, at runtime or to build, and orders the builds."""
-
         plan: Plan = Plan()
         infos: dict[str, PackageInfo] = plan.infos
         queue: list[str] = sorted(targets)
@@ -339,7 +286,6 @@ class Resolver:
                     plan.runtime_needs[name].add(provider)
                 queue.append(provider)
 
-        # Depth-first order by package base, so a split package is built once and before what needs it.
         visiting: set[str] = set()
         done: set[str] = set()
 
@@ -364,12 +310,7 @@ class Resolver:
         return plan
 
 
-# --- Package files ---
-
-
 def _parse_package_file(filename: str) -> tuple[str, str] | None:
-    """The package name and version of a built package file, or None for anything else."""
-
     match: re.Match[str] | None = _PACKAGE_FILE.match(filename)
     if match is None:
         return None
@@ -383,8 +324,6 @@ def _parse_package_file(filename: str) -> tuple[str, str] | None:
 
 
 def _package_files(directory: str) -> dict[str, tuple[str, str]]:
-    """Package name to (version, path) for every package file in `directory`, keeping the newest file per name."""
-
     found: dict[str, tuple[str, str]] = {}
     if not os.path.isdir(directory):
         return found
@@ -399,9 +338,6 @@ def _package_files(directory: str) -> dict[str, tuple[str, str]]:
     return found
 
 
-# --- Building ---
-
-
 class Builder:
     def __init__(self, settings: engine.setup.AurSettings, state: engine.state.State) -> None:
         self._settings: engine.setup.AurSettings = settings
@@ -414,8 +350,6 @@ class Builder:
         return os.path.join(self._settings.build_dir, "chroot")
 
     def cached(self, info: PackageInfo) -> str | None:
-        """A package file built earlier at the version the AUR has now. VCS packages are never taken from cache."""
-
         if is_devel(info.name):
             return None
         entry: tuple[str, str] | None = _package_files(self._settings.package_cache_dir).get(info.name)
@@ -441,11 +375,6 @@ class Builder:
         self._review(info.base, directory)
 
     def _review(self, base: str, directory: str) -> None:
-        """
-        Offers the PKGBUILD for review before anything in it runs: the diff since the last reviewed commit, or every
-        file the first time.
-        """
-
         head: str = engine.command.run(["git", "-C", directory, "rev-parse", "HEAD"], capture=True).strip()
         reviewed: str | None = self._state.aur_reviewed.get(base)
 
@@ -475,10 +404,6 @@ class Builder:
         engine.output.print_info("Creating a clean chroot to build in.")
         os.makedirs(self._chroot_dir, mode=0o755, exist_ok=True)
 
-        # mkarchroot installs into an empty root with the host's pacman config, so the host's own hooks in
-        # /etc/pacman.d/hooks run against that empty root. A hook with `Depends =` can never be satisfied there, and
-        # one with `AbortOnFail` takes the build down. Package-provided hooks in /usr/share/libalpm/hooks are what the
-        # chroot actually needs, and pacman always reads those.
         empty_hooks: str = os.path.join(self._settings.build_dir, "empty-hooks")
         os.makedirs(empty_hooks, exist_ok=True)
         conf: str = os.path.join(self._settings.build_dir, "chroot-pacman.conf")
@@ -494,7 +419,6 @@ class Builder:
         with open(conf, "w", encoding="utf-8") as chroot_conf:
             chroot_conf.writelines(lines)
 
-        # mkarchroot sets up its own keyring. A GNUPGHOME from the caller points it at the wrong one.
         environment: dict[str, str] = {key: value for key, value in os.environ.items() if key != "GNUPGHOME"}
         engine.command.run(
             ["mkarchroot", "-C", conf, os.path.join(self._chroot_dir, "root"), "base-devel"],
@@ -504,13 +428,6 @@ class Builder:
         self._chroot_ready = True
 
     def build(self, infos: list[PackageInfo], needed_files: list[str]) -> None:
-        """
-        Builds one package base, and records the file of each package in `infos`.
-
-        `needed_files` are package files of foreign dependencies, installed into the chroot before the build. A build
-        without the chroot gets its dependencies installed on the host by the caller instead.
-        """
-
         base: str = infos[0].base
         directory: str = os.path.join(self._settings.build_dir, base)
         self._fetch(infos[0], directory)

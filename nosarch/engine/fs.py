@@ -1,5 +1,3 @@
-"""Declarations of the files, directories, and symlinks a module deploys."""
-
 import grp
 import os
 import pwd
@@ -8,17 +6,10 @@ import engine.command
 
 
 class InstallError(Exception):
-    """A file, directory, or symlink could not be put in place. The message says which and why."""
+    pass
 
 
 def _ids(owner: str | None, group: str | None) -> tuple[int | None, int | None]:
-    """
-    Resolves names to ids when the files step runs, not when a module declares them.
-
-    A module declares its files before the users step has created the accounts they belong to, so on a first run the
-    owner does not exist yet at declaration time.
-    """
-
     uid: int | None = None
     gid: int | None = None
 
@@ -36,12 +27,7 @@ def _ids(owner: str | None, group: str | None) -> tuple[int | None, int | None]:
 
 
 class File:
-    """
-    A file deployed from `source_file` or from `content`, exactly one of the two.
-
-    Text files have every key of the module's `file_variables()` replaced with its value. `bin_file` copies bytes
-    verbatim instead.
-    """
+    """A file from exactly one of source_file or content."""
 
     def __init__(
         self,
@@ -68,10 +54,6 @@ class File:
         return _ids(self.owner, self.group)
 
     def render(self, variables: dict[str, str]) -> bytes:
-        """The exact bytes this file should hold on the target system."""
-
-        # Without variables there is nothing to substitute, so even a text file is copied byte for byte. A module with
-        # no variables, such as the theme's, can deploy images without marking them binary.
         if self.bin_file or not variables:
             if self.source_file is not None:
                 with open(self.source_file, "rb") as source:
@@ -96,12 +78,7 @@ class File:
 
 
 class Directory:
-    """
-    Every file under `source_directory`, deployed with the same settings.
-
-    NosArch declares files one by one. This exists for trees whose contents are not known in advance, such as a
-    theme's wallpapers.
-    """
+    """Every file under source_directory, deployed with the same settings."""
 
     def __init__(
         self,
@@ -121,8 +98,6 @@ class Directory:
 
     def files(self, target_directory: str) -> dict[str, File]:
         if not os.path.isdir(self.source_directory):
-            # os.walk would find nothing, and a directory with no files declares none, so everything already deployed
-            # from it would be removed as undeclared.
             raise InstallError(
                 f"Failed to install file from {self.source_directory} to {target_directory}: "
                 "Source directory doesn't exist."
@@ -147,7 +122,7 @@ class Directory:
 
 
 class Symlink:
-    """A symlink pointing at `target`. The target does not have to exist."""
+    """A symlink pointing at target. The target does not have to exist."""
 
     def __init__(self, target: str, owner: str | None = None, group: str | None = None) -> None:
         self.target: str = target

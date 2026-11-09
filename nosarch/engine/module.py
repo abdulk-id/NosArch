@@ -1,5 +1,3 @@
-"""The module base class, and how a module's declarations are gathered."""
-
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -8,7 +6,6 @@ import engine.fs
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
-# Kinds whose declarations map a user to a set of names, and kinds that map a name to one detail (a snap's channel).
 USER_KINDS: tuple[str, ...] = ("systemd_user", "flatpak_user")
 DETAIL_KINDS: tuple[str, ...] = ("snap", "snap_classic")
 
@@ -16,8 +13,6 @@ _ATTRIBUTE: str = "__nosarch_declares__"
 
 
 def declares(kind: str) -> Callable[[_F], _F]:
-    """Marks a module method as returning declarations of `kind`. The step modules export these as decorators."""
-
     if kind not in engine.changes.KINDS:
         raise ValueError(f"Unknown declaration kind '{kind}'.")
 
@@ -28,47 +23,34 @@ def declares(kind: str) -> Callable[[_F], _F]:
     return decorator
 
 
+def _absorb(kind: str, into: Any, value: Any) -> None:
+    if kind in USER_KINDS:
+        for user, names in value.items():
+            into.setdefault(user, set()).update(names)
+        return
+    into.update(value)
+
+
 class Module:
-    """
-    A unit of definition code: what it deploys, and hooks that run around deploying it.
-
-    `name` is the key everything about the module is stored under. Renaming a module makes everything it declares
-    look newly added.
-
-    Hooks run in phases, and within a phase in registration order:
-
-    1. The users step, so the accounts the setup declares exist for every hook.
-    2. `before_update`, for every enabled module.
-    3. `on_disable`, for each module that was enabled on the last run and is not now.
-    4. The other steps: files, then the package and unit steps.
-    5. `on_enable`, for modules enabled for the first time.
-    6. `on_change`, for modules the steps changed something for.
-    7. `after_update`, for every enabled module.
-
-    No hook runs during a dry run.
-    """
+    """What a module deploys, and the hooks that run around deploying it."""
 
     def __init__(self, name: str) -> None:
         self.name: str = name
 
     def before_update(self) -> None:
-        pass
+        """Runs for every enabled module before the steps other than users."""
 
     def on_enable(self) -> None:
-        pass
+        """Runs once, after the steps, the first time the module is enabled."""
 
     def on_change(self, changes: engine.changes.Changes) -> None:
-        pass
+        """Runs after the steps when something this module declares changed."""
 
     def after_update(self) -> None:
-        pass
+        """Runs for every enabled module after the other hooks."""
 
     def on_disable(self) -> None:
-        """
-        Runs on the first run after the module stops being registered as enabled, before any step.
-
-        So whatever the module installed is still installed here, and is removed by the steps that follow.
-        """
+        """Runs when the module stops being enabled, before the steps remove what it installed."""
 
     def files(self) -> dict[str, engine.fs.File]:
         return {}
@@ -84,39 +66,25 @@ class Module:
 
 
 def declarations(module: Module) -> dict[str, Any]:
-    """
-    Every declaration of `module`, by kind.
-
-    Set kinds come back as `set[str]`, user kinds as `dict[str, set[str]]`, detail kinds as `dict[str, str]`. A kind
-    the module never declares comes back empty, so callers can index any kind.
-    """
-
-    result: dict[str, Any] = {}
-    for kind in engine.changes.KINDS:
-        result[kind] = {} if kind in USER_KINDS or kind in DETAIL_KINDS else set()
-
+    result: dict[str, Any] = {
+        kind: {} if kind in USER_KINDS or kind in DETAIL_KINDS else set() for kind in engine.changes.KINDS
+    }
     for attribute_name in dir(type(module)):
         attribute: Any = getattr(type(module), attribute_name, None)
         kind: str | None = getattr(attribute, _ATTRIBUTE, None)
-        if kind is None:
-            continue
-
-        value: Any = getattr(module, attribute_name)()
-
-        if kind in USER_KINDS:
-            for user, names in value.items():
-                result[kind].setdefault(user, set()).update(names)
-        elif kind in DETAIL_KINDS:
-            result[kind].update(value)
-        else:
-            result[kind] |= set(value)
-
+        if kind is not None:
+            _absorb(kind, result[kind], getattr(module, attribute_name)())
     return result
 
 
 def identities(kind: str, value: Any) -> set[str]:
-    """Flattens one kind's declarations to the names that identify them, as recorded in `Changes`."""
-
     if kind in USER_KINDS:
         return {f"{user}:{name}" for user, names in value.items() for name in names}
     return set(value)
+
+
+def collect(kind: str, by_module: dict[str, dict[str, Any]]) -> Any:
+    result: Any = {} if kind in USER_KINDS or kind in DETAIL_KINDS else set()
+    for module_declarations in by_module.values():
+        _absorb(kind, result, module_declarations[kind])
+    return result

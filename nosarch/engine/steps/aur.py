@@ -1,5 +1,3 @@
-"""Installs, upgrades, and removes foreign packages: AUR packages, and custom packages built from local PKGBUILDs."""
-
 import engine.aur
 import engine.command
 import engine.module
@@ -7,10 +5,7 @@ import engine.output
 import engine.pacman_db
 import engine.setup
 
-# Mark a module method as returning `set[str]` of AUR package names.
 packages = engine.module.declares("aur")
-# Mark a module method as returning `set[str]` of custom package names. `AurSettings.custom_pkgbuild_dir` says where
-# each one's PKGBUILD is.
 custom_packages = engine.module.declares("custom")
 
 
@@ -22,7 +17,6 @@ def _custom_infos(ctx: engine.setup.Context, names: set[str]) -> dict[str, engin
     for name in sorted(names):
         directory: str | None = None
         if settings.custom_pkgbuild_dir is not None:
-            # A dry run only reads what is already on disk, since fetching writes to a root-owned cache.
             directory = settings.custom_pkgbuild_dir(name, not ctx.dry_run)
         if directory is None:
             unavailable.append(name)
@@ -61,7 +55,10 @@ def _upgrades(
             continue
 
         devel: bool = ctx.setup.aur.upgrade_devel and engine.aur.is_devel(name)
-        if devel or engine.aur.vercmp(installed[name].version, info.version) < 0:
+        if (
+            devel
+            or int(engine.command.run(["vercmp", installed[name].version, info.version], capture=True).strip()) < 0
+        ):
             upgrades.add(name)
 
     engine.output.print_list("Foreign packages not in the AUR, so not upgraded:", unknown)
@@ -80,15 +77,11 @@ def _build_and_install(
     builder: engine.aur.Builder = engine.aur.Builder(settings, ctx.state)
 
     def build_requirements(name: str) -> set[str]:
-        """Foreign packages that have to be present to build `name`."""
         required: set[str] = plan.runtime_closure(plan.build_needs[name])
-        # On the host, what is installed already is there for the build. A chroot starts empty.
         return required if settings.clean_chroot else required - set(installed)
 
-    # What ends up installed: the targets and whatever they need to run that is not installed yet.
     to_install: set[str] = targets | (plan.runtime_closure(targets) - set(installed))
 
-    # What has to be built or taken from the cache: those, and in turn whatever their builds need.
     needed: set[str] = set(to_install)
     changed: bool = True
     while changed:
@@ -128,7 +121,6 @@ def _build_and_install(
                 for member in plan.build_order
                 if plan.infos[member].base == info.base and member in needed and member not in files
             ]
-            # Members of one package base are built together, so one never has to be installed for another.
             requirements: set[str] = {
                 requirement
                 for member in members
@@ -152,7 +144,6 @@ def _build_and_install(
         engine.command.run(["pacman", "-D", "--asexplicit", *sorted(explicit)], capture=True)
 
     if not settings.clean_chroot:
-        # What a build needed and nothing installed needs now.
         leftovers: set[str] = set(engine.command.run(["pacman", "-Qqdt"], capture=True, check=False).split())
         leftovers &= set(engine.pacman_db.local_packages()) - before
         if leftovers:
@@ -163,8 +154,6 @@ def _build_and_install(
 def _install_build_dependencies(
     members: list[engine.aur.PackageInfo], requirements: set[str], files: dict[str, str], installed_for_build: set[str]
 ) -> None:
-    """Without a chroot, a build runs on the host, so whatever it needs has to be installed there first."""
-
     foreign_files: list[str] = [files[name] for name in sorted(requirements)]
     if foreign_files:
         engine.command.run(["pacman", "-U", "--asdeps", "--noconfirm", *foreign_files])
@@ -193,7 +182,6 @@ def run(ctx: engine.setup.Context) -> None:
     remove, demote = engine.pacman_db.split_removals(
         installed,
         (explicit_foreign | orphans) - declared - settings.ignored,
-        # An ignored package's dependencies stay, since the package itself stays.
         keep=declared | explicit_native | (settings.ignored & explicit_foreign),
     )
     demote -= orphans

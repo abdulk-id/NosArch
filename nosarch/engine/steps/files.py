@@ -1,8 +1,7 @@
-"""Deploys every declared file and symlink, and removes the ones no module declares any more."""
-
 import os
 import stat
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import engine.command
@@ -51,12 +50,6 @@ def _gather(ctx: engine.setup.Context) -> dict[str, _Entry]:
 
 
 def _file_differences(target: str, content: bytes, mode: int, uid: int | None, gid: int | None) -> list[str]:
-    """
-    How `target` differs from what is declared, or an empty list when it already matches.
-
-    Raises PermissionError when the target cannot be read, which only a dry run without root can run into.
-    """
-
     try:
         status: os.stat_result = os.lstat(target)
     except FileNotFoundError:
@@ -82,14 +75,13 @@ def _file_differences(target: str, content: bytes, mode: int, uid: int | None, g
 def _link_differences(target: str, link: engine.fs.Symlink) -> list[str]:
     if not os.path.islink(target):
         return ["new"] if not os.path.lexists(target) else ["replaces a non-link"]
-    if os.readlink(target) != link.target:
-        return [f"was -> {os.readlink(target)}"]
+    current: str = os.readlink(target)
+    if current != link.target:
+        return [f"was -> {current}"]
     return []
 
 
 def _make_parents(directory: str, uid: int | None, gid: int | None) -> None:
-    """Creates missing parent directories, owned like the file going into them."""
-
     if os.path.isdir(directory):
         return
 
@@ -100,14 +92,6 @@ def _make_parents(directory: str, uid: int | None, gid: int | None) -> None:
 
 
 def _write_file(target: str, content: bytes, mode: int, uid: int | None, gid: int | None) -> None:
-    """
-    Writes through a temporary file and a rename, so a reader never sees a half-written file.
-
-    A file with no owner declared keeps the owner of the file it replaces. The owner is set before the mode, and the
-    mode after the data is flushed: changing the owner of a file clears its setuid and setgid bits, and so does
-    writing to it.
-    """
-
     directory: str = os.path.dirname(target)
     _make_parents(directory, uid, gid)
 
@@ -147,8 +131,6 @@ def _write_link(target: str, link: engine.fs.Symlink) -> None:
 
 
 def _render(file: engine.fs.File, target: str, variables: dict[str, str]) -> bytes:
-    """The file's bytes, with a failure to read its source reported as the file that could not be installed."""
-
     prefix: str = f"Failed to install file from {file.describe()} to {target}: "
     try:
         return file.render(variables)
@@ -164,26 +146,13 @@ def _render(file: engine.fs.File, target: str, variables: dict[str, str]) -> byt
         raise engine.fs.InstallError(f"{prefix}{error.strerror or error}.") from error
 
 
-def _install(file: engine.fs.File, target: str, content: bytes, mode: int, uid: int | None, gid: int | None) -> None:
+def _guard(prefix: str, action: Callable[[], None]) -> None:
     try:
-        _write_file(target, content, mode, uid, gid)
+        action()
     except PermissionError:
         raise
     except OSError as error:
-        raise engine.fs.InstallError(
-            f"Failed to install file from {file.describe()} to {target}: {error.strerror or error}."
-        ) from error
-
-
-def _install_link(target: str, link: engine.fs.Symlink) -> None:
-    try:
-        _write_link(target, link)
-    except PermissionError:
-        raise
-    except OSError as error:
-        raise engine.fs.InstallError(
-            f"Failed to install symlink from {target} to {link.target}: {error.strerror or error}."
-        ) from error
+        raise engine.fs.InstallError(f"{prefix}{error.strerror or error}.") from error
 
 
 def run(ctx: engine.setup.Context) -> None:
@@ -196,23 +165,29 @@ def run(ctx: engine.setup.Context) -> None:
     for target, entry in entries.items():
         try:
             if entry.symlink is not None:
-                differences: list[str] = _link_differences(target, entry.symlink)
+                link: engine.fs.Symlink = entry.symlink
+                differences: list[str] = _link_differences(target, link)
                 if differences and not ctx.dry_run:
-                    _install_link(target, entry.symlink)
+                    _guard(
+                        f"Failed to install symlink from {target} to {link.target}: ", lambda: _write_link(target, link)
+                    )
             else:
                 assert entry.file is not None and entry.variables is not None
-                content: bytes = _render(entry.file, target, entry.variables)
-                uid, gid = entry.file.ids()
-                differences = _file_differences(target, content, entry.file.permissions, uid, gid)
+                file: engine.fs.File = entry.file
+                content: bytes = _render(file, target, entry.variables)
+                uid, gid = file.ids()
+                differences = _file_differences(target, content, file.permissions, uid, gid)
                 if differences and not ctx.dry_run:
-                    _install(entry.file, target, content, entry.file.permissions, uid, gid)
+                    _guard(
+                        f"Failed to install file from {file.describe()} to {target}: ",
+                        lambda: _write_file(target, content, file.permissions, uid, gid),
+                    )
         except PermissionError:
             if not ctx.dry_run:
                 raise
             unreadable.append(target)
             continue
         except engine.command.AccountNotFoundError:
-            # The owner or group of a file does not exist yet. The users step creates it on a real run.
             if not ctx.dry_run:
                 raise
             differences = ["owner does not exist yet"]
@@ -221,11 +196,7 @@ def run(ctx: engine.setup.Context) -> None:
             updated.append(f"{target} ({', '.join(differences)})")
             ctx.changes_for(entry.module).changed_files.add(target)
 
-    # Every path deployed on the last run, by the module that deployed it.
-    previous_owner: dict[str, str] = {}
-    for module, paths in ctx.state.files.items():
-        for path in paths:
-            previous_owner[path] = module
+    previous_owner: dict[str, str] = {path: module for module, paths in ctx.state.files.items() for path in paths}
 
     removed: list[str] = []
     for path, module in sorted(previous_owner.items()):
@@ -247,7 +218,6 @@ def run(ctx: engine.setup.Context) -> None:
     engine.output.print_list("Files that need root to compare:", unreadable, one_per_line=True)
 
     if not ctx.dry_run:
-        deployed: dict[str, list[str]] = {}
+        ctx.state.files = {}
         for target, entry in entries.items():
-            deployed.setdefault(entry.module, []).append(target)
-        ctx.state.files = deployed
+            ctx.state.files.setdefault(entry.module, []).append(target)

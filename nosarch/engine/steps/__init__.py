@@ -1,5 +1,3 @@
-"""The steps of a run, in the order `Setup.steps` lists them."""
-
 from collections.abc import Callable
 
 import engine.setup
@@ -16,8 +14,6 @@ STEPS: dict[str, Callable[[engine.setup.Context], None]] = {
     "snap": snap.run,
 }
 
-# The declaration kinds each step acts on. A kind is only diffed, and only counts as changed, when its step runs, so
-# `--only files` never reports a package change it did not make.
 KINDS: dict[str, tuple[str, ...]] = {
     "pacman": ("pacman",),
     "aur": ("aur", "custom"),

@@ -1,5 +1,3 @@
-"""Creates the declared accounts and keeps their groups in step."""
-
 import grp
 import pwd
 
@@ -27,8 +25,6 @@ def _group_exists(name: str) -> bool:
 def _create(ctx: engine.setup.Context, user: engine.setup.User) -> None:
     cmd: list[str] = ["useradd"]
     if user.group:
-        # The engine declares no groups, so a user's own group does not exist on the first run. useradd makes it. Any
-        # other missing group is a mistake, and useradd fails on it.
         if _group_exists(user.group) or user.group != user.username:
             cmd += ["--gid", user.group]
         else:
@@ -64,13 +60,10 @@ def _sync(ctx: engine.setup.Context, user: engine.setup.User, final: bool) -> No
     if user.shell and user.shell != entry.pw_shell:
         cmd += ["--shell", user.shell]
 
-    # A group a package creates, such as `libvirt`, does not exist until the package step has run. Those are added
-    # when this runs again after the steps.
     wanted: set[str] = {name for name in user.groups if _group_exists(name)}
     missing: set[str] = set(user.groups) - wanted
     current: set[str] = _supplementary_groups().get(user.username, set())
 
-    # The primary group is never listed as a member of itself, so it is left out of the comparison.
     primary: str = grp.getgrgid(entry.pw_gid).gr_name
     if wanted - {primary} != current - {primary}:
         engine.output.print_list(f"Setting groups of {user.username}:", sorted(wanted))
@@ -106,8 +99,6 @@ def run(ctx: engine.setup.Context) -> None:
 
 
 def finish(ctx: engine.setup.Context) -> None:
-    """Adds the groups that only came into existence during this run's package steps."""
-
     for user in ctx.setup.users:
         try:
             pwd.getpwnam(user.username)

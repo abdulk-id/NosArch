@@ -3,20 +3,19 @@
 NosArch is responsible for managing packages on the system. The kinds of packages include:
 
 - Arch and AUR,
-- Homebrew (via NosArch's own `plugins/homebrew.py`, if enabled by user),
+- Homebrew (if enabled by user),
 - Flatpak (system and per-user, if enabled by user),
-- Snap (via NosArch's own `plugins/snap.py`, if enabled by user. See [Snap](snap.md)),
+- Snap (if enabled by user. See [Snap](snap.md)),
 - Custom pacman packages ([Custom Packages](custom-packages.md)), built from
   [NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages).
 
 ## Declaring
 
-Each plugin exposes decorators. A module method annotated with one returns the set (or dict, for user-scoped kinds and
-for kinds that carry per-package detail) of packages that module wants:
+Each step in `nosarch/engine/steps/` exposes decorators. A module method annotated with one returns the set (or dict,
+for user-scoped kinds and for kinds that carry per-package detail) of packages that module wants:
 
 ```python
-from decman.plugins import aur, flatpak, pacman
-from plugins import homebrew, snap
+from engine.steps import aur, flatpak, homebrew, pacman, snap
 
 @pacman.packages
 def arch_pkgs(self) -> set[str]:
@@ -48,13 +47,13 @@ disabled method is inert rather than an error.
 
 ## Flathub
 
-Enabling Flatpak adds the system-wide Flathub remote. `flatpak install` and the flatpak plugin search configured
+Enabling Flatpak adds the system-wide Flathub remote. `flatpak install` and the flatpak step search configured
 remotes, so a machine with the runtime and no remote has nothing to install.
 
 `FlatpakModule.before_update` adds the remote when `flatpak` is already on `PATH`. `before_update` runs before
 pacman, so the run that first installs the `flatpak` package cannot add the remote there. The module also ships
 `/etc/pacman.d/hooks/10-flatpak-flathub.hook`, which runs the same `flatpak remote-add --if-not-exists` at the end of
-that transaction, before the flatpak plugin installs apps. A remote the user already added under the name `flathub`
+that transaction, before the flatpak step installs apps. A remote the user already added under the name `flathub`
 is left alone.
 
 ## The `nosarch-package` CLI
@@ -109,44 +108,22 @@ same `_<method>_leftovers` helper that lists them, so a path added to one is del
 
 ## Tracking package changes
 
-Decman gives each `on_change` hook the `Store`, but the store only holds the current run's entries per plugin, and a
-hook still has to know each plugin's store key and per-user shape to make sense of it.
-
-`ChangeTracker` (`utils/change_tracker.py`) does that work: it snapshots every plugin's entries in `before_update`,
-diffs them after, and records which packages were added or removed across every plugin (pacman, AUR, custom,
-flatpak, homebrew), normalizing user-scoped kinds into a flat set of names. Hooks just call `package_changed(...)`.
-
-```python
-self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
-```
-
-> - A module only needs one `ChangeTracker`, tracking both [files](files.md#tracking-file-changes) and package changes.
-> - Each module should carry its own tracker so it sees only its own packages.
-
-Then snapshot the store in `before_update` and diff in `on_change`:
+`on_change` gets the packages and units the module added or removed, diffed against its declarations on the last run
+that ran the step for that kind:
 
 ```python
 @override
-def before_update(self, store: Store) -> None:
-    self._tracker.snapshot_packages(store, self.name)
-
-@override
-def on_change(self, store: Store) -> None:
-    self._tracker.diff_packages(store, self.name)
-
-    if self._tracker.package_changed("mise", kinds=("pacman",)):
+def on_change(self, changes: engine.Changes) -> None:
+    if changes.package_changed("mise", kinds=("pacman",)):
         ...
 
-    if self._tracker.package_changed("visual-studio-code", kinds=("brew_cask",)):
-        ...
-
-    if self._tracker.package_changed(f"{self._username}:org.mozilla.firefox", kinds=("flatpak_user",)):
+    if changes.package_changed(f"{self._username}:org.mozilla.firefox", kinds=("flatpak_user",)):
         ...
 ```
 
-`self._tracker.added_pkgs` and `self._tracker.removed_pkgs` map each kind (`"pacman"`, `"aur"`, `"custom"`,
-`"flatpak"`, `"flatpak_user"`, `"brew_formula"`, `"brew_cask"`, `"brew_tap"`, `"snap"`, `"snap_classic"`) to a set of
-names. User-scoped kinds are
-recorded as `"<user>:<pkg>"`. A module enabled for the first time sees everything as added.
+These are changes to what the module declares, not to what is installed: a package another module also declares, or
+one the user installed by hand, still counts as added for the module that starts declaring it. User-scoped kinds are
+recorded as `"<user>:<name>"`. A module enabled for the first time sees everything as added.
 
-`ChangeTracker` can also track `"systemd"` and `"systemd_user"` units.
+A kind only counts as changed on a run whose step for it ran, so `--only files` never reports a package change it did
+not make; the next full run reports it.

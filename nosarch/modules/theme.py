@@ -1,8 +1,8 @@
 import os
 from typing import override
 
-import decman
-from decman import Directory, Symlink
+import engine
+from engine import Directory, Symlink
 from themes.nosarch_blue_dark.nosarch_blue_dark import THEME  ### Change this import statement to change active theme
 from user_config import UserConfigReader
 
@@ -11,7 +11,7 @@ def get_current_theme() -> dict[str, str]:
     return THEME
 
 
-class ThemingModule(decman.Module):
+class ThemingModule(engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="theming")
         self._user_config: UserConfigReader = user_config_reader

@@ -65,7 +65,7 @@ _SESSION_ENV_KEYS="DBUS_SESSION_BUS_ADDRESS|DISPLAY|HYPRLAND_INSTANCE_SIGNATURE|
 #
 # Root has no session of its own, so `systemctl --user` talks to root's manager,
 # hyprctl cannot find a compositor socket, and zenity has no display. Root
-# callers (decman, udev rules) would otherwise skip hyprshutdown for text prompts.
+# callers (nosarch/apply.py, udev rules) would otherwise skip hyprshutdown for text prompts.
 _reexec_in_graphical_session() {
     session=$(_graphical_session)
 

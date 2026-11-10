@@ -1,21 +1,20 @@
 from typing import override
 
-import decman
+import engine
 import modules.theme
 import utils.apply
-import utils.change_tracker
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
 import utils.hardware.gpu_vendor
 import utils.paths
-from decman import File
-from decman.plugins import aur, pacman, systemd
+from engine import File
+from engine.steps import aur, pacman, systemd
 from user_config import UserConfigReader
 
 _gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
 
-class DesktopModule(decman.Module):
+class DesktopModule(engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="desktop")
 
@@ -26,7 +25,6 @@ class DesktopModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/desktop-root", self._username
         )
-        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
     def file_variables(self) -> dict[str, str]:
@@ -41,8 +39,7 @@ class DesktopModule(decman.Module):
 
         # ~/.config files that need a change applied after they are written
         files.update(
-            self._userhome_dotfiles.tracked_files(
-                self._tracker,
+            self._userhome_dotfiles.files(
                 "/.config/environment.d/defaults.conf",
                 "/.config/hypr/app-windows/1password.lua",
                 "/.config/hypr/app-windows/bitwarden.lua",
@@ -124,8 +121,7 @@ class DesktopModule(decman.Module):
         # ~/.local/ files
         files.update(self._userhome_dotfiles.files("/.local/share/applications/nosarch-appimage-installer.desktop"))
         files.update(
-            self._userhome_dotfiles.tracked_files(
-                self._tracker,
+            self._userhome_dotfiles.files(
                 "/.local/share/nautilus-python/extensions/localsend-share.py",
                 "/.local/share/nautilus-python/extensions/open-in-terminal.py",
             )
@@ -139,11 +135,7 @@ class DesktopModule(decman.Module):
         )
 
         # /usr files
-        files.update(
-            self._dotfiles.tracked_files(
-                self._tracker, "/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"
-            )
-        )
+        files.update(self._dotfiles.files("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"))
         files.update(self._dotfiles.files("/usr/share/wayland-sessions/nosarch/nosarch-hyprland.desktop"))
 
         ## NosArch scripts
@@ -176,14 +168,10 @@ class DesktopModule(decman.Module):
             return nvidia_env_vars
 
         if _gpu_vendor == "nvidia_gsp" or _gpu_vendor == "nvidia_non_gsp":
-            files.update(
-                self._dotfiles.tracked_files(
-                    self._tracker, "/etc/mkinitcpio.conf.d/nvidia.conf", "/etc/modprobe.d/nvidia.conf"
-                )
-            )
+            files.update(self._dotfiles.files("/etc/mkinitcpio.conf.d/nvidia.conf", "/etc/modprobe.d/nvidia.conf"))
             files.update(
                 {
-                    f"/home/{self._username}/.config/uwsm/env-nvidia": self._tracker.file(
+                    f"/home/{self._username}/.config/uwsm/env-nvidia": File(
                         content=get_nvidia_uwsm_user_config(), owner=f"{self._username}"
                     )
                 }
@@ -192,65 +180,63 @@ class DesktopModule(decman.Module):
         return files
 
     @override
-    def on_change(self, store: decman.Store) -> None:
+    def on_change(self, changes: engine.Changes) -> None:
         home: str = f"/home/{self._username}"
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/systemd/user"):
+        if changes.files_changed_in_dirs(f"{home}/.config/systemd/user"):
             utils.apply.reload_user_systemd(self._username)
             utils.apply.try_restart_eyesight_timer(self._username)
 
-        if self._tracker.files_changed("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"):
+        if changes.files_changed("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"):
             utils.apply.rebuild_gsettings()
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/hypr"):
+        if changes.files_changed_in_dirs(f"{home}/.config/hypr"):
             utils.apply.reload_hyprland()
 
-        if self._tracker.files_changed(f"{home}/.config/waybar/config.jsonc"):
+        if changes.files_changed(f"{home}/.config/waybar/config.jsonc"):
             utils.apply.reload_waybar()
 
-        if self._tracker.files_changed(f"{home}/.config/swaync/config.json"):
+        if changes.files_changed(f"{home}/.config/swaync/config.json"):
             utils.apply.reload_swaync_config()
 
-        if self._tracker.files_changed(f"{home}/.config/swaync/style.css"):
+        if changes.files_changed(f"{home}/.config/swaync/style.css"):
             utils.apply.reload_swaync_style()
 
         # Both files are read once, when the portal starts.
-        if self._tracker.files_changed(
-            f"{home}/.config/hypr/xdph.conf", f"{home}/.config/xdg-desktop-portal/portals.conf"
-        ):
+        if changes.files_changed(f"{home}/.config/hypr/xdph.conf", f"{home}/.config/xdg-desktop-portal/portals.conf"):
             utils.apply.restart_desktop_portal()
 
         # These have no reload command. Restart the user service.
-        if self._tracker.files_changed(f"{home}/.config/hypr/hypridle.conf"):
+        if changes.files_changed(f"{home}/.config/hypr/hypridle.conf"):
             utils.apply.restart_hypridle()
 
-        if self._tracker.files_changed(f"{home}/.config/hypr/hyprpaper.conf"):
+        if changes.files_changed(f"{home}/.config/hypr/hyprpaper.conf"):
             utils.apply.restart_hyprpaper()
 
-        if self._tracker.files_changed(f"{home}/.config/hypr/hyprsunset.conf"):
+        if changes.files_changed(f"{home}/.config/hypr/hyprsunset.conf"):
             utils.apply.restart_hyprsunset()
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/walker"):
+        if changes.files_changed_in_dirs(f"{home}/.config/walker"):
             utils.apply.restart_walker()
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/swayosd"):
+        if changes.files_changed_in_dirs(f"{home}/.config/swayosd"):
             utils.apply.restart_swayosd()
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.local/share/nautilus-python"):
+        if changes.files_changed_in_dirs(f"{home}/.local/share/nautilus-python"):
             utils.apply.quit_nautilus()
 
-        if self._tracker.files_changed_in_dirs("/etc/mkinitcpio.conf.d"):
+        if changes.files_changed_in_dirs("/etc/mkinitcpio.conf.d"):
             utils.apply.rebuild_initramfs()
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/environment.d"):
+        if changes.files_changed_in_dirs(f"{home}/.config/environment.d"):
             # Read by `systemd-environment-d-generator` when the user manager starts.
             utils.apply.request_logout("environment.d variables")
 
-        if self._tracker.files_changed_in_dirs(f"{home}/.config/uwsm"):
+        if changes.files_changed_in_dirs(f"{home}/.config/uwsm"):
             # Sourced by the compositor at session start.
             utils.apply.request_logout("uwsm session environment")
 
-        if self._tracker.files_changed("/etc/modprobe.d/nvidia.conf"):
+        if changes.files_changed("/etc/modprobe.d/nvidia.conf"):
             # Module options are read when the module is loaded, so only a new boot picks them up.
             utils.apply.request_reboot("Nvidia module options")
 
@@ -405,8 +391,6 @@ class DesktopModule(decman.Module):
 
         merged_set: set[str] = desktop_set.union(apps_set)
         return merged_set
-
-    decman.aur.ignored_packages |= {"xdg-terminal-exec"}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def desktop_services(self) -> set[str]:

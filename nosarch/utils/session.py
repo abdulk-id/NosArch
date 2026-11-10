@@ -1,6 +1,6 @@
 import functools
 
-import decman
+import engine
 
 # The graphical session's environment lives in its systemd user manager, because Hyprland's
 # autostart config runs `systemctl --user import-environment`. Reading it back is exact.
@@ -22,9 +22,9 @@ _SESSION_ENV_KEYS: tuple[str, ...] = (
 def _graphical_session() -> tuple[int, str] | None:
     """UID and username of the active graphical session, or None when there is none."""
 
-    # `pty=False`: these outputs are parsed, and on a terminal systemd colorizes them, which puts
-    # escape codes in the middle of the fields.
-    sessions: str = decman.prg(["loginctl", "list-sessions", "--no-legend"], check=False, pty=False)
+    # Captured output is not a terminal, so systemd does not colorize it. Escape codes would land in
+    # the middle of the fields.
+    sessions: str = engine.run(["loginctl", "list-sessions", "--no-legend"], check=False, capture=True)
 
     for line in sessions.splitlines():
         # SESSION UID USER SEAT SEAT_ID TTY REMOTE CLASS, and remote sessions add more columns.
@@ -32,8 +32,8 @@ def _graphical_session() -> tuple[int, str] | None:
         if len(fields) < 3:
             continue
 
-        properties: str = decman.prg(
-            ["loginctl", "show-session", fields[0], "--property=State", "--property=Type"], check=False, pty=False
+        properties: str = engine.run(
+            ["loginctl", "show-session", fields[0], "--property=State", "--property=Type"], check=False, capture=True
         )
 
         state, session_type = "", ""
@@ -61,7 +61,7 @@ def run_in_session(cmd: list[str]) -> bool:
 
     Returns False when there is no graphical session to run in, or when its environment could not
     be read. Never raises: applying a change to a live session is best-effort and must not fail a
-    decman run.
+    run.
     """
 
     session: tuple[int, str] | None = _graphical_session()
@@ -72,8 +72,8 @@ def run_in_session(cmd: list[str]) -> bool:
 
     # `-M` goes through the system manager, so root reaches the user's manager without the
     # session's bus.
-    show_environment: str = decman.prg(
-        ["systemctl", "--user", "-M", f"{username}@", "show-environment"], check=False, pty=False
+    show_environment: str = engine.run(
+        ["systemctl", "--user", "-M", f"{username}@", "show-environment"], check=False, capture=True
     )
 
     environment: dict[str, str] = {"XDG_RUNTIME_DIR": f"/run/user/{uid}"}
@@ -85,7 +85,5 @@ def run_in_session(cmd: list[str]) -> bool:
     if "WAYLAND_DISPLAY" not in environment:
         return False
 
-    _ = decman.prg(
-        cmd, user=username, env_overrides=environment, pass_environment=False, mimic_login=True, check=False, pty=False
-    )
+    _ = engine.run(cmd, user=username, env=environment, pass_environment=False, check=False, capture=True)
     return True

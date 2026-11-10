@@ -2,10 +2,8 @@ import os
 import sys
 from typing import override
 
-import decman
+import engine
 import utils.apply
-import utils.change_tracker
-import utils.custom_packages
 import utils.dotfile.luks_uuid
 import utils.dotfile.wireless_regdom
 import utils.hardware.chassis_type
@@ -13,16 +11,15 @@ import utils.hardware.cpu_vendor
 import utils.hardware.firmware_vendors
 import utils.hardware.thunderbolt
 import utils.paths
-import utils.session_changes
 import utils.snapshots
 import utils.swapfile
-from decman import File, Store
-from decman.core.output import print_info
-from decman.plugins import aur, pacman, systemd
+from engine import File
+from engine.output import print_info
+from engine.steps import aur, pacman, systemd
 from user_config import UserConfigReader
 
 
-class SystemModule(decman.Module):
+class SystemModule(engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="system")
 
@@ -34,7 +31,6 @@ class SystemModule(decman.Module):
         self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
             "../dotfiles/system-root", self._username
         )
-        self._tracker: utils.change_tracker.ChangeTracker = utils.change_tracker.ChangeTracker()
 
     @override
     def file_variables(self) -> dict[str, str]:
@@ -52,8 +48,7 @@ class SystemModule(decman.Module):
 
         # /etc files
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/etc/default/limine",
                 "/etc/modules-load.d/zram.conf",
                 "/etc/sddm.conf.d/10-theme.conf",
@@ -83,10 +78,10 @@ class SystemModule(decman.Module):
                 "/etc/pacman.conf",
             )
         )
-        files.update(self._dotfiles.tracked_files(self._tracker, "/etc/profile.d/nosarch.sh", permissions=0o644))
+        files.update(self._dotfiles.files("/etc/profile.d/nosarch.sh", permissions=0o644))
 
         if self._swapfile_enabled:
-            files.update(self._dotfiles.tracked_files(self._tracker, "/etc/systemd/system/swap-swapfile.swap"))
+            files.update(self._dotfiles.files("/etc/systemd/system/swap-swapfile.swap"))
 
         wireless_regdom: str | None = utils.dotfile.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
@@ -100,8 +95,7 @@ class SystemModule(decman.Module):
 
         # /usr files
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/usr/lib/systemd/user/nosarch-battery-monitor.service",
                 "/usr/lib/systemd/user/nosarch-battery-monitor.timer",
             )
@@ -109,8 +103,7 @@ class SystemModule(decman.Module):
 
         ## Plymouth theme files
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/usr/share/plymouth/themes/nosarch/bullet.png",
                 "/usr/share/plymouth/themes/nosarch/entry.png",
                 "/usr/share/plymouth/themes/nosarch/lock.png",
@@ -121,26 +114,23 @@ class SystemModule(decman.Module):
             )
         )
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/usr/share/plymouth/themes/nosarch/nosarch.plymouth",
                 "/usr/share/plymouth/themes/nosarch/nosarch.script",
             )
         )
 
         ## SDDM greeter
-        files.update(self._dotfiles.tracked_files(self._tracker, "/usr/share/sddm/hyprland.lua"))
+        files.update(self._dotfiles.files("/usr/share/sddm/hyprland.lua"))
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/usr/share/sddm/themes/nosarch/metadata.desktop",
                 "/usr/share/sddm/themes/nosarch/theme.conf",
                 "/usr/share/sddm/themes/nosarch/Main.qml",
             )
         )
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/usr/share/sddm/themes/nosarch/bullet.png",
                 "/usr/share/sddm/themes/nosarch/entry-failed.png",
                 "/usr/share/sddm/themes/nosarch/entry.png",
@@ -153,8 +143,7 @@ class SystemModule(decman.Module):
 
         ## NosArch scripts
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/usr/local/bin/nosarch/nosarch",
                 "/usr/local/bin/nosarch/nosarch-battery",
                 "/usr/local/bin/nosarch/nosarch-package",
@@ -169,8 +158,7 @@ class SystemModule(decman.Module):
         # rather than in a packaging module because they are not gated on a packaging switch: an AppImage needs no
         # package manager, and cleanup has to survive a method's module being disabled.
         files.update(
-            self._dotfiles.tracked_files(
-                self._tracker,
+            self._dotfiles.files(
                 "/usr/local/bin/util/package/appimage.sh",
                 "/usr/local/bin/util/package/cleanup.sh",
                 "/usr/local/bin/util/package/common.sh",
@@ -179,16 +167,13 @@ class SystemModule(decman.Module):
 
         # ~/ files
         files.update(
-            self._userhome_dotfiles.tracked_files(
-                self._tracker, "/.config/yay/config.json", "/.bash_profile", "/.bashrc", "/.gitconfig"
-            )
+            self._userhome_dotfiles.files("/.config/yay/config.json", "/.bash_profile", "/.bashrc", "/.gitconfig")
         )
 
         return files
 
     @override
-    def before_update(self, store: Store) -> None:
-        utils.session_changes.reset(store)
+    def before_update(self) -> None:
         self._release_display_manager_alias()
 
         # Before the pacman step, whose package backup hook snapshots into it.
@@ -199,55 +184,55 @@ class SystemModule(decman.Module):
             utils.swapfile.create()
 
     @override
-    def on_change(self, store: Store) -> None:
-        if self._tracker.files_changed_in_dirs("/etc/systemd/system", "/usr/lib/systemd"):
+    def on_change(self, changes: engine.Changes) -> None:
+        if changes.files_changed_in_dirs("/etc/systemd/system", "/usr/lib/systemd"):
             utils.apply.reload_systemd()
 
-        if self._tracker.files_changed_in_dirs("/etc/NetworkManager"):
+        if changes.files_changed_in_dirs("/etc/NetworkManager"):
             utils.apply.reload_network_manager()
 
-        if self._tracker.files_changed_in_dirs("/etc/sysctl.d"):
+        if changes.files_changed_in_dirs("/etc/sysctl.d"):
             utils.apply.apply_sysctl()
 
-        if self._tracker.files_changed_in_dirs("/etc/systemd/journald.conf.d"):
+        if changes.files_changed_in_dirs("/etc/systemd/journald.conf.d"):
             utils.apply.restart_journald()
 
-        if self._tracker.files_changed_in_dirs(
+        if changes.files_changed_in_dirs(
             "/etc/systemd/system.conf.d", "/etc/systemd/user.conf.d"
-        ) or self._tracker.files_changed("/etc/systemd/system.conf"):
+        ) or changes.files_changed("/etc/systemd/system.conf"):
             utils.apply.reexec_systemd()
 
-        if self._tracker.files_changed_in_dirs("/etc/tmpfiles.d"):
+        if changes.files_changed_in_dirs("/etc/tmpfiles.d"):
             utils.apply.clean_tmpfiles()
 
-        if self._tracker.files_changed_in_dirs("/etc/udev/rules.d"):
+        if changes.files_changed_in_dirs("/etc/udev/rules.d"):
             utils.apply.reload_udev()
 
-        if self._tracker.files_changed_in_dirs("/etc/ufw"):
+        if changes.files_changed_in_dirs("/etc/ufw"):
             utils.apply.restart_ufw()
 
-        if self._tracker.files_changed_in_dirs(
+        if changes.files_changed_in_dirs(
             "/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes"
-        ) or self._tracker.files_changed("/etc/mkinitcpio.conf", "/etc/default/limine"):
+        ) or changes.files_changed("/etc/mkinitcpio.conf", "/etc/default/limine"):
             utils.apply.rebuild_initramfs()
 
-        if self._tracker.files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
+        if changes.files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
             # Applying these live means swapoff on an active zram device holding
             # compressed pages, which can OOM the machine under memory pressure.
             utils.apply.request_reboot("ZRAM configuration")
 
-        if self._tracker.files_changed_in_dirs("/etc/systemd/logind.conf.d"):
+        if changes.files_changed_in_dirs("/etc/systemd/logind.conf.d"):
             # systemd-logind has no ExecReload, and restarting it disturbs active sessions.
             utils.apply.request_reboot("logind configuration")
 
-        if self._tracker.files_changed_in_dirs("/etc/sddm.conf.d", "/usr/share/sddm") or self._tracker.files_changed(
+        if changes.files_changed_in_dirs("/etc/sddm.conf.d", "/usr/share/sddm") or changes.files_changed(
             "/etc/pam.d/sddm"
         ):
             # SDDM reads this when the greeter starts. Restarting the display manager here ends the session.
             utils.apply.request_reboot("SDDM configuration")
 
     @override
-    def after_update(self, store: Store) -> None:
+    def after_update(self) -> None:
         self._update_limine_conf_settings()
 
     @pacman.packages  # pyright: ignore[reportUnknownMemberType]
@@ -283,6 +268,13 @@ class SystemModule(decman.Module):
             "xfsprogs",
             "zram-generator",
         }
+
+        # makechrootpkg and mkarchroot, which the engine builds foreign packages with.
+        if self._user_config.advanced.build_aur_in_clean_chroot:
+            system_set.add("devtools")
+
+        if self._user_config.advanced.enable_nosarch_works:
+            system_set |= {"desktop-file-utils", "lynis", "namcap", "pacman-contrib", "python-pytest", "shellcheck"}
 
         if self._user_config.system.enable_lts_kernel:
             system_set.add("linux-lts")
@@ -333,15 +325,11 @@ class SystemModule(decman.Module):
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
     def system_aur_packages(self) -> set[str]:
-        return {
-            "decman",  # Decman itself
-            "limine-mkinitcpio-hook",
-            "limine-snapper-sync",
-        }
+        return {"limine-mkinitcpio-hook", "limine-snapper-sync"}
 
     @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
-    def custom_pkgs(self) -> set[aur.CustomPackage]:
-        return {utils.custom_packages.package("paru-nosarch")}
+    def custom_pkgs(self) -> set[str]:
+        return {"paru-nosarch"}
 
     @systemd.units  # pyright: ignore[reportUnknownMemberType]
     def system_services(self) -> set[str]:
@@ -378,12 +366,14 @@ class SystemModule(decman.Module):
         if not self._swapfile_enabled:
             return ""
 
+        # A dry run is not root and skips hooks, so it can neither create the swapfile nor read its offset (the file is
+        # root-only), and the offset is not known yet.
+        if "--dry-run" in sys.argv:
+            return "resume=/dev/mapper/cryptroot resume_offset=<read at apply time>"
+
+        # `before_update` creates the swapfile before the files step.
         if not utils.swapfile.exists():
-            # `before_update` creates the swapfile before the files step, so this is a dry run on a machine
-            # that does not have one yet. Hooks are skipped on a dry run, so nothing may create it here.
-            if "--dry-run" in sys.argv:
-                return "resume=/dev/mapper/cryptroot resume_offset=<set after the swapfile is created>"
-            raise RuntimeError(f"{utils.swapfile.SWAPFILE_PATH} does not exist. Run decman without --no-hooks.")
+            raise RuntimeError(f"{utils.swapfile.SWAPFILE_PATH} does not exist. Run without --no-hooks.")
 
         return f"resume=/dev/mapper/cryptroot resume_offset={utils.swapfile.get_resume_offset()}"
 
@@ -401,7 +391,7 @@ class SystemModule(decman.Module):
         # before it disables old ones, and systemctl enable leaves an existing alias in place. Disabling the
         # current greeter removes the alias and leaves that greeter running.
         print_info(f"Disabling {target_unit} so SDDM can own display-manager.service.")
-        _ = decman.prg(["systemctl", "disable", target_unit])
+        _ = engine.run(["systemctl", "disable", target_unit])
 
     # `after_update` hook actions ---
     def _update_limine_conf_settings(self) -> None:

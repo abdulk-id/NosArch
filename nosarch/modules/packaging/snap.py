@@ -1,14 +1,17 @@
+import shutil
+from pathlib import Path
 from typing import override
 
-import decman
+import engine
+import engine.output
 import utils.paths
-from decman import File, Symlink
-from decman.plugins import aur, systemd
+from engine import File, Symlink
+from engine.steps import aur, systemd
 
 
-class SnapModule(decman.Module):
+class SnapModule(engine.Module):
     """
-    Installs snapd and prepares what the `snap` plugin drives.
+    Installs snapd and prepares what the `snap` step drives.
 
     snapd comes from the AUR. `snapd.socket` launches the daemon when a snap command asks for it, and
     `snapd.apparmor.service` loads the AppArmor profiles that confine snaps.
@@ -17,8 +20,9 @@ class SnapModule(decman.Module):
     in place before a classic snap can install, and teardown when it is switched off.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, username: str) -> None:
         super().__init__(name="snap")
+        self._username: str = username
 
     @override
     def files(self) -> dict[str, File]:
@@ -30,9 +34,10 @@ class SnapModule(decman.Module):
     def symlinks(self) -> dict[str, str | Symlink]:
         # Classic-confined snaps resolve their files under /snap, which snapd does not ship.
         #
-        # Decman creates the link without checking that the target exists, so this is fine even on the run that
+        # The files step creates the link without checking that the target exists, so this is fine even on the run that
         # installs snapd: /var/lib/snapd/snap only appears once snapd does, and nothing reads /snap until the snap
-        # step, which runs after. Disabling the module drops the declaration and decman removes the link.
+        # step, which runs after. Disabling the module drops the declaration and the files step removes the
+        # link.
         return {"/snap": "/var/lib/snapd/snap"}
 
     @aur.packages  # pyright: ignore[reportUnknownMemberType]
@@ -44,17 +49,9 @@ class SnapModule(decman.Module):
         return {"snapd.socket", "snapd.apparmor.service"}
 
     # Runs before the AUR step, so snapd would still be installed.
-    @staticmethod
-    def on_disable() -> None:
-        import os  # noqa: F811
-        import shutil
-        import sys
-        from pathlib import Path
-
-        import decman
-        import decman.core.output
-
-        userhome: Path = Path("/home") / os.environ.get("SUDO_USER", "root")
+    @override
+    def on_disable(self) -> None:
+        userhome: Path = Path("/home") / self._username
 
         paths: list[Path] = [
             Path("/var/lib/snapd"),  # The system install
@@ -66,22 +63,19 @@ class SnapModule(decman.Module):
         if not present:
             return
 
-        decman.core.output.print_warning("Snap is disabled, but its data is still on disk.")
-        decman.core.output.print_list("These paths can be deleted:", [str(p) for p in present], 1)
-        decman.core.output.print_warning(
+        engine.output.print_warning("Snap is disabled, but its data is still on disk.")
+        engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
+        engine.output.print_warning(
             "Deleting them also deletes every Snap app's settings and data. This cannot be undone."
         )
 
-        if not sys.stdin.isatty():
-            # Nothing was asked, so leave the data.
-            return
-
-        if not decman.core.output.prompt_confirm("Delete all Snap data?", default=False):
+        # Without a terminal nothing is asked, so the data stays.
+        if not engine.output.prompt_confirm("Delete all Snap data?", default=False):
             return
 
         # Snapd holds squashfs mounts of its own. Stopping the socket tears the daemon down so the directories
         # underneath are not in use. There is no `snap remove --all`, so the snaps go with the directories.
-        _ = decman.prg(["systemctl", "stop", "snapd.socket"], check=False)
+        _ = engine.run(["systemctl", "stop", "snapd.socket"], check=False)
 
         for path in present:
             if path.is_symlink() or path.is_file():
@@ -89,4 +83,4 @@ class SnapModule(decman.Module):
             elif path.is_dir():
                 shutil.rmtree(path, ignore_errors=True)
 
-        decman.core.output.print_info("Deleted Snap data.")
+        engine.output.print_info("Deleted Snap data.")

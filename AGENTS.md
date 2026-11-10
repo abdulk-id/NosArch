@@ -1,6 +1,8 @@
 # NosArch
 
-NosArch is an Arch Linux dotfile and system configuration repo managed by Decman.
+NosArch is an Arch Linux dotfile and system configuration repo, deployed by its own engine. See `docs/README.md` for the
+project overview and structure, `docs/operations/` for maintainer procedures, and `docs/internal/` for design
+decisions and traps.
 
 ## Documentation
 
@@ -19,8 +21,9 @@ Most code changes do not need an internal documentation change.
 
 ## Testing
 
-- Testing the definition code requires a dry-run as root, which you cannot do yourself. Ask the user to dry-run and
-  report back.
+- Test definition code with `nosarch/apply.py --dry-run` (or `mise run dry-run-quick`). It needs no root, so run it
+  yourself. A real apply needs root, so ask the user to run `nosarch/apply.py` when a change has to be applied.
+- Run `mise run test-all` after changing the engine (`nosarch/engine/`).
 
 ## Formatting
 

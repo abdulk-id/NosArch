@@ -18,7 +18,12 @@
 
 - Use strict typing for NosArch code. Annotate function parameters, return values, and variables.
     - External integration code, such as Nautilus extensions, is exempt when host API types are unavailable.
-- Import Decman as `import decman` and use its namespaces explicitly, such as `decman.Module`.
+- Import the engine as `import engine` and use its namespaces explicitly, such as `engine.Module`. Declaration
+  decorators come from the steps: `from engine.steps import pacman`.
+- Place declaration decorators such as `@pacman.packages` directly above the method they register.
+- Extend `Setup` collections with `|=` or `+=`. Do not reassign them.
+
+---
 
 ## Shell Script style
 

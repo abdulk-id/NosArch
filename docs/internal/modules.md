@@ -1,6 +1,7 @@
 # Modules
 
-Definition code is split into modules under `nosarch/modules/`. `nosarch/source.py` registers them.
+Definition code lives in `nosarch/definition/`. Modules are under `nosarch/definition/modules/`, and
+`nosarch/definition/source.py` registers them.
 
 ## The modules
 
@@ -8,7 +9,7 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 | ------------- | --------------------- | ---------------- | ---------------------------- | ------------------------------ |
 | System        | `SystemModule`        | `system`         | always                       | `dotfiles/system-root`         |
 | Desktop       | `DesktopModule`       | `desktop`        | always                       | `dotfiles/desktop-root`        |
-| Theming       | `ThemingModule`       | `theming`        | always                       | `nosarch/themes/`              |
+| Theming       | `ThemingModule`       | `theming`        | always                       | `nosarch/definition/themes/`   |
 | Basic setup   | `BasicSetupModule`    | `basic_setup`    | `setups.basic.enabled`       | `dotfiles/basic-setup-root`    |
 | AI            | `AISetupModule`       | `ai_setup`       | `setups.ai.enabled`          | `dotfiles/ai-setup-root`       |
 | Creative      | `CreativeSetupModule` | `creative_setup` | `setups.creative.enabled`    | `dotfiles/creative-setup-root` |
@@ -20,15 +21,17 @@ Definition code is split into modules under `nosarch/modules/`. `nosarch/source.
 | User packages | `UserDefinedModule`   | `user_defined`   | always                       | none                           |
 | Apply         | `ApplyModule`         | `apply`          | always, registered last      | none                           |
 
-The four setup modules live in `nosarch/modules/setups/`, the three packaging modules in
-`nosarch/modules/packaging/`, and the rest are one file each in `nosarch/modules/`. `BasicSetupModule` is a setup that
-predates the split, so it sits in `nosarch/modules/basic_setup.py` rather than in `setups/`.
+The four setup modules live in `nosarch/definition/modules/setups/`, the three packaging modules in
+`nosarch/definition/modules/packaging/`, and the rest are one file each in `nosarch/definition/modules/`.
+`BasicSetupModule` is a setup that predates the split, so it sits in `nosarch/definition/modules/basic_setup.py` rather
+than in `setups/`.
 
-`Enabled by` is the `enabled` yes/no setting on that section of the config classes in `nosarch/user_config.py`.
+`Enabled by` is the `enabled` yes/no setting on that section of the config classes in
+`nosarch/definition/user_config.py`.
 `config.schema.json` is generated from those classes. The module is enabled when that setting is true.
 
-The `UserDefinedModule` (`nosarch/modules/user_defined.py`) installs packages the user listed in the config file, so
-the engine does not remove them.
+The `UserDefinedModule` (`nosarch/definition/modules/user_defined.py`) installs packages the user listed in the config
+file, so the engine does not remove them.
 
 ## Registration
 

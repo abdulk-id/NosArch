@@ -13,7 +13,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT / "nosarch"))
 sys.path.insert(0, str(_REPO_ROOT))
 
-from user_config import UserConfigReader, flag, read_into  # noqa: E402
+from definition.user_config import UserConfigReader, flag, read_into  # noqa: E402
 
 from utils.config_schema_generator import config_schema_text, object_schema, schema_file_path  # noqa: E402
 
@@ -25,7 +25,7 @@ class ConfigSchemaSyncTest(unittest.TestCase):
         self.assertEqual(
             committed,
             generated,
-            "config.schema.json is generated from nosarch/user_config.py. "
+            "config.schema.json is generated from nosarch/definition/user_config.py. "
             "Run `python utils/config_schema_generator.py` to refresh it.",
         )
 

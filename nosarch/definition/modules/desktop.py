@@ -1,15 +1,15 @@
 from typing import override
 
+import definition.modules.theme
 import engine
-import modules.theme
 import utils.apply
 import utils.dotfile.mimeapps_list
 import utils.hardware.chassis_type
 import utils.hardware.gpu_vendor
 import utils.paths
+from definition.user_config import UserConfigReader
 from engine import File
 from engine.steps import aur, pacman, systemd
-from user_config import UserConfigReader
 
 _gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
 
@@ -28,7 +28,7 @@ class DesktopModule(engine.Module):
 
     @override
     def file_variables(self) -> dict[str, str]:
-        return modules.theme.get_current_theme()
+        return definition.modules.theme.get_current_theme()
 
     @override
     def files(self) -> dict[str, File]:

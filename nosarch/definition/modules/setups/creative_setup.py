@@ -3,9 +3,9 @@ from typing import override
 import engine
 import utils.apply
 import utils.paths
+from definition.user_config import UserConfigReader
 from engine import File
 from engine.steps import pacman
-from user_config import UserConfigReader
 
 
 class CreativeSetupModule(engine.Module):

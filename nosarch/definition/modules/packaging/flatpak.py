@@ -35,7 +35,7 @@ class FlatpakModule(engine.Module):
             "/usr/local/bin/util/package/flatpak.sh", "/etc/pacman.d/hooks/10-flatpak-flathub.hook"
         )
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def flatpak_runtime(self) -> set[str]:
         return {"flatpak"}
 

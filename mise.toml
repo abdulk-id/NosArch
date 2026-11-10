@@ -7,7 +7,7 @@ pre-commit = "latest"
 description = "Set up the development environment"
 run = ["mise install", "pre-commit install"]
 
-# Formatting ===
+# Formatting ---
 [tasks.lint]
 description = "Report Ruff violations"
 run = "ruff check ."
@@ -27,31 +27,23 @@ description = "Run all tests"
 run = ["mise test-config", "mise test-engine", "mise test-engine-root"]
 
 [tasks.test-config]
-description = "Test config.schema.json match the config data classes"
+description = "Test config.schema.json matches the config data classes"
 run = "python3 tests/test_config_schema.py"
 
 [tasks.test-engine]
-description = "Test the engine without root: run order, hooks, files, units, users and the command runner"
+description = "Test the engine without root (run order, hooks, files, units, users and the command runner)"
 run = "python3 -B -m pytest tests/engine -q"
 
 [tasks.test-engine-root]
-description = "Test what needs root (owners, running as a user) in a user namespace that fakes it"
+description = "Test the engine with root (owners, running as a user) in a user namespace that fakes it"
 run = "unshare --user --map-auto --map-root-user python3 -B -m pytest tests/engine -q -m needs_root"
 
 # Apply tasks ---
-# A real run asks for root itself. Dry runs need none.
 [tasks.apply]
-description = "Apply the configuration, then offer to log out or reboot if a change needs one"
+description = "Apply the NosArch definition"
+raw_args = true
 run = "nosarch/apply.py"
 
-[tasks.apply-files]
-description = "Apply only the file changes, then offer to log out or reboot if one needs it"
-run = "nosarch/apply.py --only files"
-
-[tasks.dry-run-files]
-description = "Show which files a run would change"
-run = "nosarch/apply.py --only files --dry-run"
-
-[tasks.dry-run-quick]
+[tasks.dryrun]
 description = "Show everything a run would change"
 run = "nosarch/apply.py --dry-run"

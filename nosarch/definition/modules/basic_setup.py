@@ -25,7 +25,7 @@ class BasicSetupModule(engine.Module):
             "/.config/obsidian/user-flags.conf", "/.local/share/applications/dua-cli.desktop"
         )
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def pkgs(self) -> set[str]:
         pkgs_set: set[str] = {
             "dua-cli",  # Disk usage analyzer
@@ -50,7 +50,7 @@ class BasicSetupModule(engine.Module):
 
         return pkgs_set
 
-    @aur.packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.packages
     def aur_pkgs(self) -> set[str]:
         aur_pkgs_set: set[str] = {"spotify", "spotify-adblock"}
 
@@ -63,7 +63,7 @@ class BasicSetupModule(engine.Module):
 
         return aur_pkgs_set
 
-    @systemd.units  # pyright: ignore[reportUnknownMemberType]
+    @systemd.units
     def systemd_services(self) -> set[str]:
         systemd_services: set[str] = set()
 

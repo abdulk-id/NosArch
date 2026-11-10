@@ -235,7 +235,7 @@ class SystemModule(engine.Module):
     def after_update(self) -> None:
         self._update_limine_conf_settings()
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def system_packages(self) -> set[str]:
         system_set: set[str] = {
             "base",
@@ -323,15 +323,15 @@ class SystemModule(engine.Module):
         merged_set: set[str] = system_set.union(security_set, connectivity_set, utility_set)
         return merged_set
 
-    @aur.packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.packages
     def system_aur_packages(self) -> set[str]:
         return {"limine-mkinitcpio-hook", "limine-snapper-sync"}
 
-    @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.custom_packages
     def custom_pkgs(self) -> set[str]:
         return {"paru-nosarch"}
 
-    @systemd.units  # pyright: ignore[reportUnknownMemberType]
+    @systemd.units
     def system_services(self) -> set[str]:
         systemd_set: set[str] = {
             "apparmor.service",

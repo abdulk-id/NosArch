@@ -45,7 +45,7 @@ class AISetupModule(engine.Module):
         if changes.files_changed_in_dirs(f"/home/{self._username}/.config/hypr"):
             utils.apply.reload_hyprland()
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def pkgs(self) -> set[str]:
         pkgs: set[str] = set()
 
@@ -61,7 +61,7 @@ class AISetupModule(engine.Module):
 
         return pkgs
 
-    @aur.packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.packages
     def aur_pkgs(self) -> set[str]:
         aur_pkgs: set[str] = set()
 
@@ -75,7 +75,7 @@ class AISetupModule(engine.Module):
 
         return aur_pkgs
 
-    @aur.custom_packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.custom_packages
     def custom_pkgs(self) -> set[str]:
         custom_pkgs: set[str] = set()
 

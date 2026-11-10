@@ -28,7 +28,7 @@ def setup() -> engine.Setup:
     nosarch.aur.build_user = "aurbuilduser"
     nosarch.aur.clean_chroot = user_config.advanced.build_aur_in_clean_chroot
     nosarch.aur.custom_pkgbuild_dir = utils.custom_packages.package_dir
-    nosarch.aur.ignored |= {"xdg-terminal-exec", "fullgit-git", "fullgit-git-debug"}
+    nosarch.aur.ignored |= {"xdg-terminal-exec"}
 
     if user_config.packaging.flatpak.enabled:
         nosarch.steps.append("flatpak")

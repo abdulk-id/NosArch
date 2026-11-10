@@ -23,7 +23,7 @@ def _arguments() -> argparse.Namespace:
         prog="nosarch/apply.py",
         description="Deploys the NosArch configuration. Re-runs itself with sudo unless it is a dry run.",
     )
-    parser.add_argument("--dry-run", action="store_true", help="show what would change, without root or changes")
+    parser.add_argument("--dry-run", action="store_true", help="show what would change without applying changes")
     parser.add_argument("--only", nargs="+", default=[], metavar="STEP", help="run only these steps")
     parser.add_argument("--skip", nargs="+", default=[], metavar="STEP", help="skip these steps")
     parser.add_argument("--no-hooks", action="store_true", help="run no module hooks")
@@ -32,7 +32,7 @@ def _arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _reexec_as_root() -> None:
+def _rerun_as_root() -> None:
     engine.output.print_info("Applying needs root, re-running with sudo.")
     script: str = os.path.abspath(sys.argv[0])
     os.execvp("sudo", ["sudo", sys.executable, "-B", script, *sys.argv[1:]])
@@ -50,6 +50,7 @@ def _selected_steps(setup: engine.setup.Setup, args: argparse.Namespace) -> list
 def _diff_declarations(ctx: engine.setup.Context, kinds: tuple[str, ...]) -> None:
     for module in ctx.setup.modules:
         previous: dict[str, list[str]] = ctx.state.declared.get(module.name, {})
+
         for kind in kinds:
             before: set[str] = set(previous.get(kind, []))
             after: set[str] = engine.module.identities(kind, ctx.declarations[module.name][kind])
@@ -171,23 +172,26 @@ def main(build_setup: Callable[[], engine.setup.Setup]) -> None:
     engine.output.debug_output = args.debug
 
     if not args.dry_run and not engine.command.is_root():
-        _reexec_as_root()
+        _rerun_as_root()
 
     try:
         run(build_setup(), args)
     except KeyboardInterrupt:
         engine.output.print_error("Interrupted.")
+
         sys.exit(130)
     except engine.command.CommandFailedError as error:
         engine.output.print_error(str(error))
         if error.output:
             print(error.output, file=sys.stderr)
+
         sys.exit(1)
     except ValueError as error:
         engine.output.print_error("ValueError raised from the source.")
         engine.output.print_error(str(error))
         if args.debug:
             traceback.print_exc()
+
         sys.exit(1)
     except (
         engine.aur.AurError,
@@ -200,4 +204,5 @@ def main(build_setup: Callable[[], engine.setup.Setup]) -> None:
         engine.output.print_error(str(error))
         if args.debug:
             traceback.print_exc()
+
         sys.exit(1)

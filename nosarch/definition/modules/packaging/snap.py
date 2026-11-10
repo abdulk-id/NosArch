@@ -40,11 +40,11 @@ class SnapModule(engine.Module):
         # link.
         return {"/snap": "/var/lib/snapd/snap"}
 
-    @aur.packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.packages
     def snapd(self) -> set[str]:
         return {"snapd"}
 
-    @systemd.units  # pyright: ignore[reportUnknownMemberType]
+    @systemd.units
     def snap_services(self) -> set[str]:
         return {"snapd.socket", "snapd.apparmor.service"}
 

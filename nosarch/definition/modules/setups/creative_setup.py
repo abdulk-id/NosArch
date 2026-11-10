@@ -28,6 +28,6 @@ class CreativeSetupModule(engine.Module):
         if changes.files_changed_in_dirs(f"/home/{self._username}/.config/hypr"):
             utils.apply.reload_hyprland()
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def pkgs(self) -> set[str]:
         return {"obs-studio"}

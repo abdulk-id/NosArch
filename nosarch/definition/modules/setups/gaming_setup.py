@@ -50,7 +50,7 @@ class GamingSetupModule(engine.Module):
         if changes.files_changed("/etc/modules-load.d/windows-compat.conf"):
             utils.apply.request_reboot("NT synchronization module")
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def pkgs(self) -> set[str]:
         game_launchers: set[str] = {"lutris", "steam"}
 
@@ -62,7 +62,7 @@ class GamingSetupModule(engine.Module):
 
         return game_launchers.union(gaming_utilities, {"discord"})
 
-    @aur.packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.packages
     def aur_pkgs(self) -> set[str]:
         return {
             "xpadneo-dkms"  # Xbox controller driver

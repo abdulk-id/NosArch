@@ -52,9 +52,11 @@ def run(
     if user is not None:
         entry: pwd.struct_passwd = passwd_entry(user)
         environment |= {"HOME": entry.pw_dir, "USER": entry.pw_name, "LOGNAME": entry.pw_name, "SHELL": entry.pw_shell}
+
         if entry.pw_uid != os.geteuid():
             if not is_root():
                 raise PermissionError(f"Running '{shlex.join(cmd)}' as {user} needs root.")
+
             uid, gid = entry.pw_uid, entry.pw_gid
             groups = os.getgrouplist(user, entry.pw_gid)
 
@@ -80,12 +82,14 @@ def run(
     except OSError as error:
         if check:
             raise CommandFailedError(cmd, 127, error.strerror or str(error)) from error
+
         engine.output.print_warning(f"Could not run '{shlex.join(cmd)}': {error.strerror or error}")
         return ""
 
     if completed.returncode != 0:
         if check:
             raise CommandFailedError(cmd, completed.returncode, completed.stdout if capture else None)
+
         engine.output.print_warning(f"Command '{shlex.join(cmd)}' returned with an exit code {completed.returncode}.")
 
     return completed.stdout if capture and completed.stdout is not None else ""

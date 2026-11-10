@@ -6,18 +6,18 @@ import textwrap
 debug_output: bool = False
 
 
-def _paint(code: str, text: str) -> str:
+def _colored_print(code: str, text: str) -> str:
     if sys.stdout.isatty() and "NO_COLOR" not in os.environ:
         return f"\033[{code}m{text}\033[0m"
     return text
 
 
 def _tag() -> str:
-    return _paint("1;34", "[NosArch]")
+    return _colored_print("1;34", "[NosArch]")
 
 
 def print_summary(message: str) -> None:
-    print(f"{_tag()} {_paint('1', message)}", flush=True)
+    print(f"{_tag()} {_colored_print('1', message)}", flush=True)
 
 
 def print_info(message: str) -> None:
@@ -26,15 +26,15 @@ def print_info(message: str) -> None:
 
 def print_debug(message: str) -> None:
     if debug_output:
-        print(f"{_tag()} {_paint('90', message)}", flush=True)
+        print(f"{_tag()} {_colored_print('90', message)}", flush=True)
 
 
 def print_warning(message: str) -> None:
-    print(f"{_tag()} {_paint('93', 'WARNING')} {message}", file=sys.stderr, flush=True)
+    print(f"{_tag()} {_colored_print('93', 'WARNING')} {message}", file=sys.stderr, flush=True)
 
 
 def print_error(message: str) -> None:
-    print(f"{_tag()} {_paint('91', 'ERROR')} {message}", file=sys.stderr, flush=True)
+    print(f"{_tag()} {_colored_print('91', 'ERROR')} {message}", file=sys.stderr, flush=True)
 
 
 def print_list(message: str, items: list[str] | set[str], one_per_line: bool = False) -> None:
@@ -61,7 +61,7 @@ def prompt_confirm(message: str, default: bool) -> bool:
     suffix: str = "[Y/n]" if default else "[y/N]"
     while True:
         try:
-            answer: str = input(f"{_tag()} {_paint('92', 'PROMPT')} {message} {suffix} ").strip().lower()
+            answer: str = input(f"{_tag()} {_colored_print('92', 'PROMPT')} {message} {suffix} ").strip().lower()
         except EOFError:
             return default
 
@@ -84,7 +84,7 @@ def prompt_choice(message: str, choices: list[str]) -> str:
 
     while True:
         try:
-            answer: str = input(f"{_tag()} {_paint('92', 'PROMPT')} [1-{len(choices)}] (default 1): ").strip()
+            answer: str = input(f"{_tag()} {_colored_print('92', 'PROMPT')} [1-{len(choices)}] (default 1): ").strip()
         except EOFError:
             return choices[0]
 

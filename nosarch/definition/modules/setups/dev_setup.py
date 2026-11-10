@@ -138,7 +138,7 @@ class DevSetupModule(engine.Module):
 
         return files
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def pkgs(self) -> set[str]:
         pkgs: set[str] = {
             "bash-completion",
@@ -167,7 +167,7 @@ class DevSetupModule(engine.Module):
 
         return pkgs
 
-    @aur.packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.packages
     def aur_pkgs(self) -> set[str]:
         aur_pkgs: set[str] = set()
 
@@ -182,6 +182,6 @@ class DevSetupModule(engine.Module):
 
         return aur_pkgs
 
-    @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
+    @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:
         return {f"{self._username}": {"podman.socket"}}

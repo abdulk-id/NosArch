@@ -240,7 +240,7 @@ class DesktopModule(engine.Module):
             # Module options are read when the module is loaded, so only a new boot picks them up.
             utils.apply.request_reboot("Nvidia module options")
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def pkgs(self) -> set[str]:
         desktop_set: set[str] = {
             "fcitx5",
@@ -359,7 +359,7 @@ class DesktopModule(engine.Module):
         )
         return merged_set
 
-    @aur.packages  # pyright: ignore[reportUnknownMemberType]
+    @aur.packages
     def aur_pkgs(self) -> set[str]:
         # Packages that are no longer used by NosArch. Config files of these packages are still present in the repo.
         # unused_aur_pkgs: set[str] = {"vicinae-bin"}
@@ -392,11 +392,11 @@ class DesktopModule(engine.Module):
         merged_set: set[str] = desktop_set.union(apps_set)
         return merged_set
 
-    @systemd.units  # pyright: ignore[reportUnknownMemberType]
+    @systemd.units
     def desktop_services(self) -> set[str]:
         return {"cups.socket"}
 
-    @systemd.user_units  # pyright: ignore[reportUnknownMemberType]
+    @systemd.user_units
     def desktop_user_services(self) -> dict[str, set[str]]:
         desktop_user_services: set[str] = {
             "elephant.service",

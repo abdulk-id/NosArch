@@ -29,7 +29,3 @@ NosArch is an Arch Linux dotfile and system configuration repo, deployed by its 
     ```sh
     ~/NosArch/nosarch/apply.py --dry-run
     ```
-
-`nosarch/apply.py` offers to log out or reboot at the end, for the changes that only take effect on a new login.
-Everything that can be applied live is applied first. Declining the offer is fine: those changes apply the next time
-you log out or reboot.

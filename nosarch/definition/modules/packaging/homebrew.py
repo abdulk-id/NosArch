@@ -48,7 +48,7 @@ class HomebrewModule(engine.Module):
             )
         }
 
-    @pacman.packages  # pyright: ignore[reportUnknownMemberType]
+    @pacman.packages
     def brew_prereqs(self) -> set[str]:
         # Homebrew's build prerequisites
         return {"curl", "file", "gcc", "git", "procps-ng"}

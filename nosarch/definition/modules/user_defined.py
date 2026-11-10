@@ -1,6 +1,6 @@
 import engine
+from definition.user_config import UserConfigReader
 from engine.steps import aur, flatpak, homebrew, pacman, snap
-from user_config import UserConfigReader
 
 
 class UserDefinedModule(engine.Module):

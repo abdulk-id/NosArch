@@ -2,9 +2,11 @@ import os
 from typing import override
 
 import engine
+
+# Change this import to change the active theme.
+from definition.themes.nosarch_blue_dark.nosarch_blue_dark import THEME
+from definition.user_config import UserConfigReader
 from engine import Directory, Symlink
-from themes.nosarch_blue_dark.nosarch_blue_dark import THEME  ### Change this import statement to change active theme
-from user_config import UserConfigReader
 
 
 def get_current_theme() -> dict[str, str]:
@@ -21,7 +23,7 @@ class ThemingModule(engine.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{self._username}/.local/share/nosarch/current-theme/wallpapers": Directory(
-                source_directory=f"./themes/{THEME['%FILENAME%']}/wallpapers", owner=f"{self._username}"
+                source_directory=f"./definition/themes/{THEME['%FILENAME%']}/wallpapers", owner=f"{self._username}"
             )
         }
 
@@ -41,7 +43,9 @@ class ThemingModule(engine.Module):
 
     def _choose_first_wallpaper(self) -> str:
         wallpapers: list[str] = [
-            entry.name for entry in os.scandir(f"./themes/{THEME['%FILENAME%']}/wallpapers/") if entry.is_file()
+            entry.name
+            for entry in os.scandir(f"./definition/themes/{THEME['%FILENAME%']}/wallpapers/")
+            if entry.is_file()
         ]
 
         return wallpapers[0]

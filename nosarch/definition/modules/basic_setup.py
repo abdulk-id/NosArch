@@ -2,9 +2,9 @@ from typing import override
 
 import engine
 import utils.paths
+from definition.user_config import UserConfigReader
 from engine import File
 from engine.steps import aur, pacman, systemd
-from user_config import UserConfigReader
 
 
 class BasicSetupModule(engine.Module):

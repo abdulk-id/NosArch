@@ -13,10 +13,10 @@ import utils.hardware.thunderbolt
 import utils.paths
 import utils.snapshots
 import utils.swapfile
+from definition.user_config import UserConfigReader
 from engine import File
 from engine.output import print_info
 from engine.steps import aur, pacman, systemd
-from user_config import UserConfigReader
 
 
 class SystemModule(engine.Module):

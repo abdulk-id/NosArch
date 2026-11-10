@@ -1,4 +1,4 @@
-"""Write `config.schema.json` from the data classes in `nosarch/user_config.py`.
+"""Write `config.schema.json` from the data classes in `nosarch/definition/user_config.py`.
 
 Run this file after changing a setting:
 
@@ -18,7 +18,7 @@ _NOSARCH = Path(__file__).resolve().parents[1] / "nosarch"
 if str(_NOSARCH) not in sys.path:
     sys.path.insert(0, str(_NOSARCH))
 
-from user_config import Option, UserConfigReader, field_json_name  # noqa: E402
+from definition.user_config import Option, UserConfigReader, field_json_name  # noqa: E402
 
 _SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 _SCHEMA_ID = "https://raw.githubusercontent.com/abdulk-id/NosArch/master/config.schema.json"

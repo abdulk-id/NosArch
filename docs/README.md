@@ -10,25 +10,25 @@ It is recommended to work on NosArch from a machine running NosArch so changes c
 
 ### How it works
 
-`nosarch/apply.py` runs NosArch's own deployment engine (`nosarch/engine/`). `nosarch/source.py` builds its `Setup`: the
-modules in `nosarch/modules/`, which declare which dotfiles, packages, and systemd units each one deploys. On a run,
-the engine installs what modules declare and removes what no module declares anymore. Custom packages are regular
-pacman packages built from PKGBUILDs in [NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages) so the engine
-manages them the same way.
+`nosarch/apply.py` runs NosArch's own deployment engine (`nosarch/engine/`). `nosarch/definition/source.py` builds its
+`Setup`: the modules in `nosarch/definition/modules/`, which declare which dotfiles, packages, and systemd units each
+one deploys. On a run, the engine installs what modules declare and removes what no module declares anymore. Custom
+packages are regular pacman packages built from PKGBUILDs in
+[NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages) so the engine manages them the same way.
 
 A dry run (`nosarch/apply.py --dry-run`) needs no root. A real run asks for it with sudo.
 
 ### Project structure
 
 - Entrypoint: `nosarch/apply.py`.
-- Configuration of a run: `nosarch/source.py`.
 - The engine: `nosarch/engine/`, with one step per kind of declaration in `nosarch/engine/steps/`.
-- Definition code: `nosarch/modules/`.
-- Themes: `nosarch/themes/`.
+- Definition code: `nosarch/definition/`. `source.py` builds a run from the modules in `modules/`.
+- Themes: `nosarch/definition/themes/`.
+- Config classes: `nosarch/definition/user_config.py`.
 - Helpers used by the definition code: `nosarch/utils/`.
 - Dotfiles: `dotfiles/`, with a separate mirrored root per module.
-- JSON schema for the NosArch config: `config.schema.json`, generated from the classes in `nosarch/user_config.py`
-  by `utils/config_schema_generator.py`.
+- JSON schema for the NosArch config: `config.schema.json`, generated from the classes in
+  `nosarch/definition/user_config.py` by `utils/config_schema_generator.py`.
 - Tests: `tests/`.
 
 ### Internal docs

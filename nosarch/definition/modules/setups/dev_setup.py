@@ -4,9 +4,9 @@ import engine
 import utils.apply
 import utils.dotfile.dev_lang_config
 import utils.paths
+from definition.user_config import UserConfigReader
 from engine import File
 from engine.steps import aur, pacman, systemd
-from user_config import UserConfigReader
 
 
 class DevSetupModule(engine.Module):

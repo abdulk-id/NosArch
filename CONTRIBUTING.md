@@ -8,7 +8,8 @@ Write commit messages in the following format: `Area: Action summary`
 
 Areas:
 
-- `Engine`: Changes to the deployment engine in `nosarch/engine/` and to `nosarch/source.py`.
+- `Engine`: Changes to the deployment engine in `nosarch/engine/`.
+- `Source`: Changes to `nosarch/definition/source.py`.
 - `<Module-Name>`: Changes in the definition code of a module.
 - `Repo`: Repository changes such as documentation, repo config files (`.gitignore` etc.), `opencode.jsonc` etc.
-- `Scripts`: Changes targeting user-facing shell scripts in multiple modules.
+- `CLI`: Changes targeting user-facing CLI and shell-scripts in multiple modules.

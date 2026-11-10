@@ -4,9 +4,9 @@ import engine
 import utils.apply
 import utils.custom_packages
 import utils.paths
+from definition.user_config import UserConfigReader
 from engine import File
 from engine.steps import aur, pacman
-from user_config import UserConfigReader
 
 
 class AISetupModule(engine.Module):

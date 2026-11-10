@@ -1,20 +1,21 @@
 import engine
 import engine.output
 import utils.custom_packages
-from modules.apply import ApplyModule
-from modules.basic_setup import BasicSetupModule
-from modules.desktop import DesktopModule
-from modules.packaging.flatpak import FlatpakModule
-from modules.packaging.homebrew import HomebrewModule
-from modules.packaging.snap import SnapModule
-from modules.setups.ai_setup import AISetupModule
-from modules.setups.creative_setup import CreativeSetupModule
-from modules.setups.dev_setup import DevSetupModule
-from modules.setups.gaming_setup import GamingSetupModule
-from modules.system import SystemModule
-from modules.theme import ThemingModule
-from modules.user_defined import UserDefinedModule
-from user_config import UserConfigReader
+
+from definition.modules.apply import ApplyModule
+from definition.modules.basic_setup import BasicSetupModule
+from definition.modules.desktop import DesktopModule
+from definition.modules.packaging.flatpak import FlatpakModule
+from definition.modules.packaging.homebrew import HomebrewModule
+from definition.modules.packaging.snap import SnapModule
+from definition.modules.setups.ai_setup import AISetupModule
+from definition.modules.setups.creative_setup import CreativeSetupModule
+from definition.modules.setups.dev_setup import DevSetupModule
+from definition.modules.setups.gaming_setup import GamingSetupModule
+from definition.modules.system import SystemModule
+from definition.modules.theme import ThemingModule
+from definition.modules.user_defined import UserDefinedModule
+from definition.user_config import UserConfigReader
 
 
 def setup() -> engine.Setup:

@@ -1,9 +1,9 @@
 from collections.abc import Callable
 
-import engine.setup
-from engine.steps import aur, files, flatpak, homebrew, pacman, snap, systemd, users
+import nosarch.engine.setup
+from nosarch.engine.steps import aur, files, flatpak, homebrew, pacman, snap, systemd, users
 
-STEPS: dict[str, Callable[[engine.setup.Context], None]] = {
+STEPS: dict[str, Callable[[nosarch.engine.setup.Context], None]] = {
     "users": users.run,
     "files": files.run,
     "pacman": pacman.run,

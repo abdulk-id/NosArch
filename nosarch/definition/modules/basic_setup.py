@@ -1,13 +1,13 @@
 from typing import override
 
-import engine
-import utils.paths
-from definition.user_config import UserConfigReader
-from engine import File
-from engine.steps import aur, pacman, systemd
+import nosarch.engine
+import nosarch.utils.paths
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine import File
+from nosarch.engine.steps import aur, pacman, systemd
 
 
-class BasicSetupModule(engine.Module):
+class BasicSetupModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="basic_setup")
 
@@ -15,8 +15,8 @@ class BasicSetupModule(engine.Module):
         self._username: str = self._user_config.user.username
         self._vms_enabled: bool = self._user_config.setups.basic.enable_virtualization
 
-        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/basic-setup-root", self._username
+        self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
+            "dotfiles/basic-setup-root", self._username
         )
 
     @override

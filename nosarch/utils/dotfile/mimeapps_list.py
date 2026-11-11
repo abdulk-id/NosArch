@@ -1,4 +1,4 @@
-from definition.user_config import UserConfigReader
+from nosarch.definition.user_config import UserConfigReader
 
 desktop_mimes: dict[str, str] = {
     "inode/directory": "org.gnome.Nautilus.desktop",

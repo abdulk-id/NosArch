@@ -1,19 +1,19 @@
 import os
 from typing import override
 
-import engine
+import nosarch.engine
 
 # Change this import to change the active theme.
-from definition.themes.nosarch_blue_dark.nosarch_blue_dark import THEME
-from definition.user_config import UserConfigReader
-from engine import Directory, Symlink
+from nosarch.definition.themes.nosarch_blue_dark.nosarch_blue_dark import THEME
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine import Directory, Symlink
 
 
 def get_current_theme() -> dict[str, str]:
     return THEME
 
 
-class ThemingModule(engine.Module):
+class ThemingModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="theming")
         self._user_config: UserConfigReader = user_config_reader

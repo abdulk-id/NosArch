@@ -1,31 +1,57 @@
-target-version = "py312"
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
 
+[project]
+name = "nosarch"
+version = "0.0.0"
+description = "Arch Linux system configuration, deployed from this checkout by its own engine."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["nosarch", "nosarch.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-p no:cacheprovider"
+markers = [
+    "needs_root: needs to chown or switch user, so it only runs as (fake) root. `mise run test-engine-root` runs these.",
+]
+
+[tool.ruff]
+target-version = "py312"
 line-length = 120
 indent-width = 4
 # Pre-commit passes changed files to Ruff explicitly, so exclusions must apply to them too.
 force-exclude = true
 extend-exclude = ["*.md"]
 
-[lint]
+[tool.ruff.lint]
 # E4, E7, E9: pycodestyle errors the formatter cannot fix. E501 is absent as wrapping is the formatter's job.
 # F: pyflakes, such as unused imports and undefined names.
 # I: isort, the rules behind Zed's `source.organizeImports.ruff`.
 # TID: flake8-tidy-imports, configured below.
 select = ["E4", "E7", "E9", "F", "I", "TID"]
 
-[lint.isort]
+[tool.ruff.lint.isort]
 # Without this, isort adds magic trailing commas that `skip-magic-trailing-comma` then removes.
 split-on-trailing-comma = false
+known-first-party = ["nosarch"]
 
-[lint.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports]
 # CODE_STYLE.md asks for module-qualified imports, never parent-relative ones.
 ban-relative-imports = "parents"
 
-[lint.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # PyGObject needs `gi.require_version()` to run before `gi.repository` is imported.
 "dotfiles/desktop-root/home/username/dot_local/share/nautilus-python/extensions/*.py" = ["E402"]
 
-[format]
+[tool.ruff.format]
 indent-style = "space"
 quote-style = "double"
 # A trailing comma no longer keeps a call or collection expanded, so short wrapped calls

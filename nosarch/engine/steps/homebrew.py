@@ -1,10 +1,10 @@
 import os
 import re
 
-import engine.command
-import engine.module
-import engine.output
-import engine.setup
+import nosarch.engine.command
+import nosarch.engine.module
+import nosarch.engine.output
+import nosarch.engine.setup
 
 BREW: str = "/home/linuxbrew/.linuxbrew/bin/brew"
 
@@ -14,34 +14,34 @@ _ENV: dict[str, str] = {"HOMEBREW_NO_ENV_HINTS": "1"}
 
 _NAME: re.Pattern[str] = re.compile(r"^[A-Za-z0-9][A-Za-z0-9+_.@/-]*$")
 
-formulae = engine.module.declares("brew_formula")
-casks = engine.module.declares("brew_cask")
-taps = engine.module.declares("brew_tap")
+formulae = nosarch.engine.module.declares("brew_formula")
+casks = nosarch.engine.module.declares("brew_cask")
+taps = nosarch.engine.module.declares("brew_tap")
 
 
 def _brew(user: str, *args: str, capture: bool = False) -> str:
-    return engine.command.run([BREW, *args], user=user, env=_ENV, capture=capture)
+    return nosarch.engine.command.run([BREW, *args], user=user, env=_ENV, capture=capture)
 
 
 def _names(user: str, *args: str) -> set[str]:
     return {line.strip() for line in _brew(user, *args, capture=True).splitlines() if _NAME.match(line.strip())}
 
 
-def run(ctx: engine.setup.Context) -> None:
-    engine.output.print_summary("Checking Homebrew packages.")
+def run(ctx: nosarch.engine.setup.Context) -> None:
+    nosarch.engine.output.print_summary("Checking Homebrew packages.")
 
     user: str | None = ctx.setup.homebrew_user
     if user is None:
         raise RuntimeError("Homebrew needs `Setup.homebrew_user`, since brew cannot run as root.")
 
     if not os.path.isfile(BREW):
-        engine.output.print_warning("Homebrew is not installed yet, so its packages cannot be checked.")
+        nosarch.engine.output.print_warning("Homebrew is not installed yet, so its packages cannot be checked.")
         if not ctx.dry_run:
             raise RuntimeError(f"{BREW} is missing.")
         return
 
-    if not engine.command.can_run_as(user):
-        engine.output.print_warning(f"Homebrew packages can only be checked as root or as {user}.")
+    if not nosarch.engine.command.can_run_as(user):
+        nosarch.engine.output.print_warning(f"Homebrew packages can only be checked as root or as {user}.")
         return
 
     dry: bool = ctx.dry_run
@@ -50,8 +50,8 @@ def run(ctx: engine.setup.Context) -> None:
     current_taps: set[str] = _names(user, "tap")
     to_tap: set[str] = wanted_taps - current_taps
     to_untap: set[str] = current_taps - wanted_taps - _PROTECTED_TAPS
-    engine.output.print_list("Homebrew taps to add:", to_tap)
-    engine.output.print_list("Homebrew taps to remove:", to_untap)
+    nosarch.engine.output.print_list("Homebrew taps to add:", to_tap)
+    nosarch.engine.output.print_list("Homebrew taps to remove:", to_untap)
     if not dry:
         for tap in sorted(to_tap):
             _brew(user, "tap", tap)
@@ -63,18 +63,18 @@ def run(ctx: engine.setup.Context) -> None:
     on_request: set[str] = _names(user, "leaves", "--installed-on-request")
     to_remove: set[str] = on_request - wanted_formulae
     to_install: set[str] = wanted_formulae - installed_formulae
-    engine.output.print_list("Homebrew formulae to remove:", to_remove)
+    nosarch.engine.output.print_list("Homebrew formulae to remove:", to_remove)
     if to_remove and not dry:
         _brew(user, "uninstall", "--formula", *sorted(to_remove))
         _brew(user, "autoremove")
 
     if dry:
-        engine.output.print_info("Would upgrade Homebrew packages.")
+        nosarch.engine.output.print_info("Would upgrade Homebrew packages.")
     else:
-        engine.output.print_summary("Upgrading Homebrew packages.")
+        nosarch.engine.output.print_summary("Upgrading Homebrew packages.")
         _brew(user, "upgrade", "--greedy", "--yes")
 
-    engine.output.print_list("Homebrew formulae to install:", to_install)
+    nosarch.engine.output.print_list("Homebrew formulae to install:", to_install)
     if to_install and not dry:
         _brew(user, "install", "--formula", *sorted(to_install))
 
@@ -82,8 +82,8 @@ def run(ctx: engine.setup.Context) -> None:
     installed_casks: set[str] = _names(user, "list", "--cask", "-1")
     cask_remove: set[str] = installed_casks - wanted_casks
     cask_install: set[str] = wanted_casks - installed_casks
-    engine.output.print_list("Homebrew casks to remove:", cask_remove)
-    engine.output.print_list("Homebrew casks to install:", cask_install)
+    nosarch.engine.output.print_list("Homebrew casks to remove:", cask_remove)
+    nosarch.engine.output.print_list("Homebrew casks to install:", cask_install)
     if not dry:
         if cask_remove:
             _brew(user, "uninstall", "--cask", *sorted(cask_remove))

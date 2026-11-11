@@ -10,11 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_REPO_ROOT / "nosarch"))
-sys.path.insert(0, str(_REPO_ROOT))
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from definition.user_config import UserConfigReader, flag, read_into  # noqa: E402
-
+from nosarch.definition.user_config import UserConfigReader, flag, read_into  # noqa: E402
 from utils.config_schema_generator import config_schema_text, object_schema, schema_file_path  # noqa: E402
 
 

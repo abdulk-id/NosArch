@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-import engine
 import harness
 import pytest
+
+import nosarch.engine
 
 
 def _raise(message: str) -> Callable[[], None]:
@@ -16,8 +17,8 @@ def _raise(message: str) -> Callable[[], None]:
     return raiser
 
 
-def _a_file(box: harness.Box, name: str) -> dict[str, engine.File]:
-    return {box.path(name): engine.File(content=f"{name}\n")}
+def _a_file(box: harness.Box, name: str) -> dict[str, nosarch.engine.File]:
+    return {box.path(name): nosarch.engine.File(content=f"{name}\n")}
 
 
 def test_on_enable_fires_once_after_the_steps_and_only_for_a_new_module(box: harness.Box) -> None:

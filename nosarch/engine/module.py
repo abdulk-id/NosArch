@@ -1,8 +1,8 @@
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-import engine.changes
-import engine.fs
+import nosarch.engine.changes
+import nosarch.engine.fs
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
@@ -13,7 +13,7 @@ _ATTRIBUTE: str = "__nosarch_declares__"
 
 
 def declares(kind: str) -> Callable[[_F], _F]:
-    if kind not in engine.changes.KINDS:
+    if kind not in nosarch.engine.changes.KINDS:
         raise ValueError(f"Unknown declaration kind '{kind}'.")
 
     def decorator(fn: _F) -> _F:
@@ -43,7 +43,7 @@ class Module:
     def on_enable(self) -> None:
         """Runs once, after the steps, the first time the module is enabled."""
 
-    def on_change(self, changes: engine.changes.Changes) -> None:
+    def on_change(self, changes: nosarch.engine.changes.Changes) -> None:
         """Runs after the steps when something this module declares changed."""
 
     def after_update(self) -> None:
@@ -52,13 +52,13 @@ class Module:
     def on_disable(self) -> None:
         """Runs when the module stops being enabled, before the steps remove what it installed."""
 
-    def files(self) -> dict[str, engine.fs.File]:
+    def files(self) -> dict[str, nosarch.engine.fs.File]:
         return {}
 
-    def directories(self) -> dict[str, engine.fs.Directory]:
+    def directories(self) -> dict[str, nosarch.engine.fs.Directory]:
         return {}
 
-    def symlinks(self) -> dict[str, str | engine.fs.Symlink]:
+    def symlinks(self) -> dict[str, str | nosarch.engine.fs.Symlink]:
         return {}
 
     def file_variables(self) -> dict[str, str]:
@@ -67,7 +67,7 @@ class Module:
 
 def declarations(module: Module) -> dict[str, Any]:
     result: dict[str, Any] = {
-        kind: {} if kind in USER_KINDS or kind in DETAIL_KINDS else set() for kind in engine.changes.KINDS
+        kind: {} if kind in USER_KINDS or kind in DETAIL_KINDS else set() for kind in nosarch.engine.changes.KINDS
     }
     for attribute_name in dir(type(module)):
         attribute: Any = getattr(type(module), attribute_name, None)

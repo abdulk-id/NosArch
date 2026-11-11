@@ -10,17 +10,18 @@ It is recommended to work on NosArch from a machine running NosArch so changes c
 
 ### How it works
 
-`nosarch/apply.py` runs NosArch's own deployment engine (`nosarch/engine/`). `nosarch/definition/source.py` builds its
-`Setup`: the modules in `nosarch/definition/modules/`, which declare which dotfiles, packages, and systemd units each
-one deploys. On a run, the engine installs what modules declare and removes what no module declares anymore. Custom
-packages are regular pacman packages built from PKGBUILDs in
+`python -m nosarch`, from the repository root, runs NosArch's own deployment engine (`nosarch/engine/`).
+`nosarch/definition/source.py` builds its `Setup`: the modules in `nosarch/definition/modules/`, which declare which
+dotfiles, packages, and systemd units each one deploys. On a run, the engine installs what modules declare and removes
+what no module declares anymore. Custom packages are regular pacman packages built from PKGBUILDs in
 [NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages) so the engine manages them the same way.
 
-A dry run (`nosarch/apply.py --dry-run`) needs no root. A real run asks for it with sudo.
+A dry run (`python -m nosarch --dry-run`) needs no root. A real run asks for it with sudo. `nosarch/apply.py` is the
+same entry.
 
 ### Project structure
 
-- Entrypoint: `nosarch/apply.py`.
+- Entrypoint: `python -m nosarch` (`nosarch/__main__.py`). `nosarch/apply.py` runs that same module.
 - The engine: `nosarch/engine/`, with one step per kind of declaration in `nosarch/engine/steps/`.
 - Definition code: `nosarch/definition/`. `source.py` builds a run from the modules in `modules/`.
 - Themes: `nosarch/definition/themes/`.

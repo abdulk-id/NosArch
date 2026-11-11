@@ -1,6 +1,6 @@
 import functools
 
-import engine
+import nosarch.engine
 
 # The graphical session's environment lives in its systemd user manager, because Hyprland's
 # autostart config runs `systemctl --user import-environment`. Reading it back is exact.
@@ -24,7 +24,7 @@ def _graphical_session() -> tuple[int, str] | None:
 
     # Captured output is not a terminal, so systemd does not colorize it. Escape codes would land in
     # the middle of the fields.
-    sessions: str = engine.run(["loginctl", "list-sessions", "--no-legend"], check=False, capture=True)
+    sessions: str = nosarch.engine.run(["loginctl", "list-sessions", "--no-legend"], check=False, capture=True)
 
     for line in sessions.splitlines():
         # SESSION UID USER SEAT SEAT_ID TTY REMOTE CLASS, and remote sessions add more columns.
@@ -32,7 +32,7 @@ def _graphical_session() -> tuple[int, str] | None:
         if len(fields) < 3:
             continue
 
-        properties: str = engine.run(
+        properties: str = nosarch.engine.run(
             ["loginctl", "show-session", fields[0], "--property=State", "--property=Type"], check=False, capture=True
         )
 
@@ -72,7 +72,7 @@ def run_in_session(cmd: list[str]) -> bool:
 
     # `-M` goes through the system manager, so root reaches the user's manager without the
     # session's bus.
-    show_environment: str = engine.run(
+    show_environment: str = nosarch.engine.run(
         ["systemctl", "--user", "-M", f"{username}@", "show-environment"], check=False, capture=True
     )
 
@@ -85,5 +85,5 @@ def run_in_session(cmd: list[str]) -> bool:
     if "WAYLAND_DISPLAY" not in environment:
         return False
 
-    _ = engine.run(cmd, user=username, env=environment, pass_environment=False, check=False, capture=True)
+    _ = nosarch.engine.run(cmd, user=username, env=environment, pass_environment=False, check=False, capture=True)
     return True

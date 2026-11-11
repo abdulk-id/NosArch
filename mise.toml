@@ -42,8 +42,8 @@ run = "unshare --user --map-auto --map-root-user python3 -B -m pytest tests/engi
 [tasks.apply]
 description = "Apply the NosArch definition"
 raw_args = true
-run = "nosarch/apply.py"
+run = "python3 -B -m nosarch"
 
 [tasks.dryrun]
 description = "Show everything a run would change"
-run = "nosarch/apply.py --dry-run"
+run = "python3 -B -m nosarch --dry-run"

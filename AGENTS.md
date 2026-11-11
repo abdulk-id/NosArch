@@ -21,8 +21,9 @@ Most code changes do not need an internal documentation change.
 
 ## Testing
 
-- Test definition code with `nosarch/apply.py --dry-run` (or `mise run dry-run-quick`). It needs no root, so run it
-  yourself. A real apply needs root, so ask the user to run `nosarch/apply.py` when a change has to be applied.
+- Test definition code with `python -m nosarch --dry-run` from the repository root (or `mise run dryrun`). It needs no
+  root, so run it yourself. A real apply needs root, so ask the user to run `python -m nosarch` when a change has to be
+  applied.
 - Run `mise run test-all` after changing the engine (`nosarch/engine/`).
 
 ## Formatting

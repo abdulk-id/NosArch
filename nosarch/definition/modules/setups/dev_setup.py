@@ -1,15 +1,15 @@
 from typing import override
 
-import engine
-import utils.apply
-import utils.dotfile.dev_lang_config
-import utils.paths
-from definition.user_config import UserConfigReader
-from engine import File
-from engine.steps import aur, pacman, systemd
+import nosarch.engine
+import nosarch.utils.apply
+import nosarch.utils.dotfile.dev_lang_config
+import nosarch.utils.paths
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine import File
+from nosarch.engine.steps import aur, pacman, systemd
 
 
-class DevSetupModule(engine.Module):
+class DevSetupModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="dev_setup")
 
@@ -17,31 +17,31 @@ class DevSetupModule(engine.Module):
         self._username: str = self._user_config.user.username
         self._editors: list[str] = self._user_config.setups.dev.editors
 
-        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/dev-setup-root")
-        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/dev-setup-root", self._username
+        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("dotfiles/dev-setup-root")
+        self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
+            "dotfiles/dev-setup-root", self._username
         )
 
     @override
-    def on_change(self, changes: engine.Changes) -> None:
+    def on_change(self, changes: nosarch.engine.Changes) -> None:
         home: str = f"/home/{self._username}"
 
         if changes.files_changed_in_dirs(f"{home}/.config/hypr"):
-            utils.apply.reload_hyprland()
+            nosarch.utils.apply.reload_hyprland()
 
         if changes.files_changed_in_dirs(f"{home}/.config/environment.d"):
             # Read by `systemd-environment-d-generator` when the user manager starts.
-            utils.apply.request_logout("development environment variables")
+            nosarch.utils.apply.request_logout("development environment variables")
 
-        _ = engine.run(["mise", "install"], user=self._username)
-        _ = engine.run(["mise", "prune"], user=self._username)
+        _ = nosarch.engine.run(["mise", "install"], user=self._username)
+        _ = nosarch.engine.run(["mise", "prune"], user=self._username)
 
     @override
     def on_disable(self) -> None:
         # `on_disable` hooks run before every step (after `before_update` hooks), so mise would still be present.
         # needed to remove all mise installed tools
         # TODO: If this runs after mise has been removed, this command will fail.
-        _ = engine.run(["mise", "implode"], user=self._username)
+        _ = nosarch.engine.run(["mise", "implode"], user=self._username)
 
     @override
     def file_variables(self) -> dict[str, str]:
@@ -73,7 +73,7 @@ class DevSetupModule(engine.Module):
         files.update(
             {
                 f"/home/{self._username}/.config/mise/config.toml": File(
-                    content=utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{self._username}"
+                    content=nosarch.utils.dotfile.dev_lang_config.get_mise_config_contents(), owner=f"{self._username}"
                 )
             }
         )
@@ -98,7 +98,9 @@ class DevSetupModule(engine.Module):
             files.update(
                 {
                     f"/home/{self._username}/.config/nvim/.neoconf.json": File(
-                        source_file="../dotfiles/dev-setup-root/home/username/dot_config/nvim/.neoconf.json",
+                        source_file=nosarch.utils.paths.in_checkout(
+                            "dotfiles/dev-setup-root/home/username/dot_config/nvim/.neoconf.json"
+                        ),
                         owner=f"{self._username}",
                     )  # This file is handled separately because using `self._userhome_dotfiles.files()` requires that
                     # hidden files start with the `dot_` prefix. This file is part of lazyvim and should not be

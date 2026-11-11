@@ -1,9 +1,9 @@
-import engine
-from definition.user_config import UserConfigReader
-from engine.steps import aur, flatpak, homebrew, pacman, snap
+import nosarch.engine
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine.steps import aur, flatpak, homebrew, pacman, snap
 
 
-class UserDefinedModule(engine.Module):
+class UserDefinedModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="user_defined")
         self._user_config: UserConfigReader = user_config_reader

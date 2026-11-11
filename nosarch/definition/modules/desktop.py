@@ -1,34 +1,34 @@
 from typing import override
 
-import definition.modules.theme
-import engine
-import utils.apply
-import utils.dotfile.mimeapps_list
-import utils.hardware.chassis_type
-import utils.hardware.gpu_vendor
-import utils.paths
-from definition.user_config import UserConfigReader
-from engine import File
-from engine.steps import aur, pacman, systemd
+import nosarch.definition.modules.theme
+import nosarch.engine
+import nosarch.utils.apply
+import nosarch.utils.dotfile.mimeapps_list
+import nosarch.utils.hardware.chassis_type
+import nosarch.utils.hardware.gpu_vendor
+import nosarch.utils.paths
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine import File
+from nosarch.engine.steps import aur, pacman, systemd
 
-_gpu_vendor: str = utils.hardware.gpu_vendor.get_gpu_vendor()
+_gpu_vendor: str = nosarch.utils.hardware.gpu_vendor.get_gpu_vendor()
 
 
-class DesktopModule(engine.Module):
+class DesktopModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="desktop")
 
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.user.username
 
-        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/desktop-root")
-        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/desktop-root", self._username
+        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("dotfiles/desktop-root")
+        self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
+            "dotfiles/desktop-root", self._username
         )
 
     @override
     def file_variables(self) -> dict[str, str]:
-        return definition.modules.theme.get_current_theme()
+        return nosarch.definition.modules.theme.get_current_theme()
 
     @override
     def files(self) -> dict[str, File]:
@@ -129,7 +129,7 @@ class DesktopModule(engine.Module):
         files.update(
             {
                 f"/home/{self._username}/.local/share/applications/mimeapps.list": File(
-                    content=utils.dotfile.mimeapps_list.get_mimeapps_content(), owner=f"{self._username}"
+                    content=nosarch.utils.dotfile.mimeapps_list.get_mimeapps_content(), owner=f"{self._username}"
                 )
             }
         )
@@ -180,65 +180,65 @@ class DesktopModule(engine.Module):
         return files
 
     @override
-    def on_change(self, changes: engine.Changes) -> None:
+    def on_change(self, changes: nosarch.engine.Changes) -> None:
         home: str = f"/home/{self._username}"
 
         if changes.files_changed_in_dirs(f"{home}/.config/systemd/user"):
-            utils.apply.reload_user_systemd(self._username)
-            utils.apply.try_restart_eyesight_timer(self._username)
+            nosarch.utils.apply.reload_user_systemd(self._username)
+            nosarch.utils.apply.try_restart_eyesight_timer(self._username)
 
         if changes.files_changed("/usr/share/glib-2.0/schemas/90-nosarch-localsearch.gschema.override"):
-            utils.apply.rebuild_gsettings()
+            nosarch.utils.apply.rebuild_gsettings()
 
         if changes.files_changed_in_dirs(f"{home}/.config/hypr"):
-            utils.apply.reload_hyprland()
+            nosarch.utils.apply.reload_hyprland()
 
         if changes.files_changed(f"{home}/.config/waybar/config.jsonc"):
-            utils.apply.reload_waybar()
+            nosarch.utils.apply.reload_waybar()
 
         if changes.files_changed(f"{home}/.config/swaync/config.json"):
-            utils.apply.reload_swaync_config()
+            nosarch.utils.apply.reload_swaync_config()
 
         if changes.files_changed(f"{home}/.config/swaync/style.css"):
-            utils.apply.reload_swaync_style()
+            nosarch.utils.apply.reload_swaync_style()
 
         # Both files are read once, when the portal starts.
         if changes.files_changed(f"{home}/.config/hypr/xdph.conf", f"{home}/.config/xdg-desktop-portal/portals.conf"):
-            utils.apply.restart_desktop_portal()
+            nosarch.utils.apply.restart_desktop_portal()
 
         # These have no reload command. Restart the user service.
         if changes.files_changed(f"{home}/.config/hypr/hypridle.conf"):
-            utils.apply.restart_hypridle()
+            nosarch.utils.apply.restart_hypridle()
 
         if changes.files_changed(f"{home}/.config/hypr/hyprpaper.conf"):
-            utils.apply.restart_hyprpaper()
+            nosarch.utils.apply.restart_hyprpaper()
 
         if changes.files_changed(f"{home}/.config/hypr/hyprsunset.conf"):
-            utils.apply.restart_hyprsunset()
+            nosarch.utils.apply.restart_hyprsunset()
 
         if changes.files_changed_in_dirs(f"{home}/.config/walker"):
-            utils.apply.restart_walker()
+            nosarch.utils.apply.restart_walker()
 
         if changes.files_changed_in_dirs(f"{home}/.config/swayosd"):
-            utils.apply.restart_swayosd()
+            nosarch.utils.apply.restart_swayosd()
 
         if changes.files_changed_in_dirs(f"{home}/.local/share/nautilus-python"):
-            utils.apply.quit_nautilus()
+            nosarch.utils.apply.quit_nautilus()
 
         if changes.files_changed_in_dirs("/etc/mkinitcpio.conf.d"):
-            utils.apply.rebuild_initramfs()
+            nosarch.utils.apply.rebuild_initramfs()
 
         if changes.files_changed_in_dirs(f"{home}/.config/environment.d"):
             # Read by `systemd-environment-d-generator` when the user manager starts.
-            utils.apply.request_logout("environment.d variables")
+            nosarch.utils.apply.request_logout("environment.d variables")
 
         if changes.files_changed_in_dirs(f"{home}/.config/uwsm"):
             # Sourced by the compositor at session start.
-            utils.apply.request_logout("uwsm session environment")
+            nosarch.utils.apply.request_logout("uwsm session environment")
 
         if changes.files_changed("/etc/modprobe.d/nvidia.conf"):
             # Module options are read when the module is loaded, so only a new boot picks them up.
-            utils.apply.request_reboot("Nvidia module options")
+            nosarch.utils.apply.request_reboot("Nvidia module options")
 
     @pacman.packages
     def pkgs(self) -> set[str]:
@@ -283,7 +283,7 @@ class DesktopModule(engine.Module):
             "xdg-desktop-portal-hyprland",
         }
 
-        if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
+        if nosarch.utils.hardware.chassis_type.is_laptop() or nosarch.utils.hardware.chassis_type.has_battery():
             desktop_set.add("brightnessctl")
 
         config_set: set[str] = {"bluetui"}
@@ -415,7 +415,7 @@ class DesktopModule(engine.Module):
             "nosarch-eyesight-reminder.timer",
         }
 
-        if utils.hardware.chassis_type.has_battery():
+        if nosarch.utils.hardware.chassis_type.has_battery():
             desktop_user_services.add("nosarch-battery-monitor.timer")
 
         return {f"{self._username}": desktop_user_services}

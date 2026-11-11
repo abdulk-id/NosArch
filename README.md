@@ -16,16 +16,16 @@ NosArch is an Arch Linux dotfile and system configuration repo, deployed by its 
     ```
 
 3. Configure NosArch in `~/.nosarch_config.json`. Use [`config.schema.json`](config.schema.json) for validating the config JSON.
-4. Apply the configuration:
+4. Apply the configuration. From the repository root:
 
     ```sh
-    ~/NosArch/nosarch/apply.py
+    python -m nosarch
     ```
 
-    Or, from the repository, `mise run apply`. It asks for your password with sudo.
+    `nosarch/apply.py` is the same entry and works from any directory. `mise run apply` does this too. It asks for your password with sudo.
 
     To see what changes would be made without applying them, which needs no root:
 
     ```sh
-    ~/NosArch/nosarch/apply.py --dry-run
+    python -m nosarch --dry-run
     ```

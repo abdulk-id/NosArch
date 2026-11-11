@@ -14,11 +14,11 @@ from dataclasses import MISSING, fields, is_dataclass
 from pathlib import Path
 from typing import Any, get_origin, get_type_hints
 
-_NOSARCH = Path(__file__).resolve().parents[1] / "nosarch"
-if str(_NOSARCH) not in sys.path:
-    sys.path.insert(0, str(_NOSARCH))
+_REPO = Path(__file__).resolve().parents[1]
+if str(_REPO) not in sys.path:
+    sys.path.insert(0, str(_REPO))
 
-from definition.user_config import Option, UserConfigReader, field_json_name  # noqa: E402
+from nosarch.definition.user_config import Option, UserConfigReader, field_json_name  # noqa: E402
 
 _SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 _SCHEMA_ID = "https://raw.githubusercontent.com/abdulk-id/NosArch/master/config.schema.json"

@@ -1,9 +1,9 @@
 import grp
 import pwd
 
-import engine.command
-import engine.output
-import engine.setup
+import nosarch.engine.command
+import nosarch.engine.output
+import nosarch.engine.setup
 
 
 def _supplementary_groups() -> dict[str, set[str]]:
@@ -22,7 +22,7 @@ def _group_exists(name: str) -> bool:
     return True
 
 
-def _create(ctx: engine.setup.Context, user: engine.setup.User) -> None:
+def _create(ctx: nosarch.engine.setup.Context, user: nosarch.engine.setup.User) -> None:
     cmd: list[str] = ["useradd"]
     if user.group:
         if _group_exists(user.group) or user.group != user.username:
@@ -41,13 +41,13 @@ def _create(ctx: engine.setup.Context, user: engine.setup.User) -> None:
         cmd.append("--system")
     cmd.append(user.username)
 
-    engine.output.print_info(f"Creating user {user.username}.")
+    nosarch.engine.output.print_info(f"Creating user {user.username}.")
     if not ctx.dry_run:
-        engine.command.run(cmd)
+        nosarch.engine.command.run(cmd)
         ctx.state.created_users.append(user.username)
 
 
-def _sync(ctx: engine.setup.Context, user: engine.setup.User, final: bool) -> None:
+def _sync(ctx: nosarch.engine.setup.Context, user: nosarch.engine.setup.User, final: bool) -> None:
     entry: pwd.struct_passwd = pwd.getpwnam(user.username)
     cmd: list[str] = ["usermod"]
 
@@ -66,20 +66,20 @@ def _sync(ctx: engine.setup.Context, user: engine.setup.User, final: bool) -> No
 
     primary: str = grp.getgrgid(entry.pw_gid).gr_name
     if wanted - {primary} != current - {primary}:
-        engine.output.print_list(f"Setting groups of {user.username}:", sorted(wanted))
+        nosarch.engine.output.print_list(f"Setting groups of {user.username}:", sorted(wanted))
         cmd += ["--groups", ",".join(sorted(wanted))]
 
     if missing and final:
-        engine.output.print_warning(f"Groups for {user.username} do not exist: {', '.join(sorted(missing))}.")
+        nosarch.engine.output.print_warning(f"Groups for {user.username} do not exist: {', '.join(sorted(missing))}.")
 
     if len(cmd) > 1:
-        engine.output.print_info(f"Updating user {user.username}.")
+        nosarch.engine.output.print_info(f"Updating user {user.username}.")
         if not ctx.dry_run:
-            engine.command.run([*cmd, user.username])
+            nosarch.engine.command.run([*cmd, user.username])
 
 
-def run(ctx: engine.setup.Context) -> None:
-    engine.output.print_summary("Checking users.")
+def run(ctx: nosarch.engine.setup.Context) -> None:
+    nosarch.engine.output.print_summary("Checking users.")
 
     declared: set[str] = {user.username for user in ctx.setup.users}
 
@@ -92,13 +92,13 @@ def run(ctx: engine.setup.Context) -> None:
         _sync(ctx, user, final=False)
 
     for username in sorted(set(ctx.state.created_users) - declared):
-        engine.output.print_info(f"Deleting user {username}.")
+        nosarch.engine.output.print_info(f"Deleting user {username}.")
         if not ctx.dry_run:
-            engine.command.run(["userdel", username], check=False)
+            nosarch.engine.command.run(["userdel", username], check=False)
             ctx.state.created_users.remove(username)
 
 
-def finish(ctx: engine.setup.Context) -> None:
+def finish(ctx: nosarch.engine.setup.Context) -> None:
     for user in ctx.setup.users:
         try:
             pwd.getpwnam(user.username)

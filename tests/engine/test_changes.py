@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import engine
 import harness
 import pytest
+
+import nosarch.engine
 
 
 def _units(box: harness.Box, runs: list[set[str]]) -> list[list[str]]:
@@ -57,7 +58,7 @@ def test_on_change_is_told_which_units_were_added_and_removed(box: harness.Box) 
     module: harness.Rec = box.rec("m", units={"b.service", "c.service"})
     box.apply(module, steps=("systemd",))
 
-    changes: engine.Changes = module.changes[0]
+    changes: nosarch.engine.Changes = module.changes[0]
     assert changes.added_pkgs["systemd"] == {"c.service"}
     assert changes.removed_pkgs["systemd"] == {"a.service"}
     assert changes.package_changed("a.service", kinds=("systemd",))
@@ -83,7 +84,7 @@ def test_only_what_the_step_acted_on_counts_as_changed(box: harness.Box) -> None
 
 # --- The Changes API --------------------------------------------------------------------------------------------------
 def test_files_changed_matches_exact_paths() -> None:
-    changes: engine.Changes = engine.Changes()
+    changes: nosarch.engine.Changes = nosarch.engine.Changes()
     changes.changed_files.add("/etc/a.conf")
 
     assert changes.files_changed("/etc/a.conf")
@@ -92,7 +93,7 @@ def test_files_changed_matches_exact_paths() -> None:
 
 
 def test_files_changed_in_dirs_compares_path_components() -> None:
-    changes: engine.Changes = engine.Changes()
+    changes: nosarch.engine.Changes = nosarch.engine.Changes()
     changes.changed_files.add("/etc/systemd/system.conf.d/a.conf")
 
     assert changes.files_changed_in_dirs("/etc/systemd")
@@ -101,15 +102,15 @@ def test_files_changed_in_dirs_compares_path_components() -> None:
 
 
 def test_changes_survive_a_round_trip_through_json() -> None:
-    changes: engine.Changes = engine.Changes()
+    changes: nosarch.engine.Changes = nosarch.engine.Changes()
     changes.changed_files.add("/etc/a.conf")
     changes.added_pkgs["pacman"].add("git")
     changes.removed_pkgs["systemd"].add("a.service")
 
-    again: engine.Changes = engine.Changes.from_json(changes.to_json())
+    again: nosarch.engine.Changes = nosarch.engine.Changes.from_json(changes.to_json())
 
     assert again.changed_files == {"/etc/a.conf"}
     assert again.added_pkgs["pacman"] == {"git"}
     assert again.removed_pkgs["systemd"] == {"a.service"}
-    assert not engine.Changes()
+    assert not nosarch.engine.Changes()
     assert again

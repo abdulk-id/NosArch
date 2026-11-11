@@ -8,11 +8,12 @@ import stat
 from collections.abc import Callable
 from pathlib import Path
 
-import engine
-import engine.fs
-import engine.state
 import harness
 import pytest
+
+import nosarch.engine
+import nosarch.engine.fs
+import nosarch.engine.state
 
 
 def _raise(message: str) -> Callable[[], None]:
@@ -22,8 +23,8 @@ def _raise(message: str) -> Callable[[], None]:
     return raiser
 
 
-def _a_file(box: harness.Box, name: str) -> dict[str, engine.File]:
-    return {box.path(name): engine.File(content=f"{name}\n")}
+def _a_file(box: harness.Box, name: str) -> dict[str, nosarch.engine.File]:
+    return {box.path(name): nosarch.engine.File(content=f"{name}\n")}
 
 
 # --- Order ------------------------------------------------------------------------------------------------------------
@@ -153,13 +154,13 @@ def test_a_dry_run_runs_nothing_but_still_asks_for_declarations(
     box: harness.Box, capsys: pytest.CaptureFixture[str]
 ) -> None:
     box.apply(box.rec("m", files=_a_file(box, "a"), units={"a.service"}), steps=("files", "systemd"))
-    saved: str = Path(engine.state.STATE_FILE).read_text()
+    saved: str = Path(nosarch.engine.state.STATE_FILE).read_text()
     asked: list[str] = []
 
     class Counting(harness.Rec):
-        def files(self) -> dict[str, engine.File]:
+        def files(self) -> dict[str, nosarch.engine.File]:
             asked.append("files")
-            return {box.path("a"): engine.File(content="changed\n")}
+            return {box.path("a"): nosarch.engine.File(content="changed\n")}
 
     box.apply(
         Counting("m", box.log, units={"a.service", "b.service"}),
@@ -173,7 +174,7 @@ def test_a_dry_run_runs_nothing_but_still_asks_for_declarations(
     assert box.read("a") == "a\n"
     assert not box.exists("n")
     assert asked == ["files"]
-    assert Path(engine.state.STATE_FILE).read_text() == saved
+    assert Path(nosarch.engine.state.STATE_FILE).read_text() == saved
     printed: str = capsys.readouterr().out
     assert "Enabling systemd units:" in printed
     assert "b.service" in printed
@@ -181,9 +182,9 @@ def test_a_dry_run_runs_nothing_but_still_asks_for_declarations(
 
 # --- Failures ---------------------------------------------------------------------------------------------------------
 def test_a_failing_step_skips_every_later_step_and_hook(box: harness.Box) -> None:
-    missing: dict[str, engine.File] = {box.path("a"): engine.File(source_file=box.path("missing"))}
+    missing: dict[str, nosarch.engine.File] = {box.path("a"): nosarch.engine.File(source_file=box.path("missing"))}
 
-    with pytest.raises(engine.fs.InstallError):
+    with pytest.raises(nosarch.engine.fs.InstallError):
         box.apply(box.rec("a", files=missing, units={"a.service"}), steps=("files", "systemd"))
 
     assert box.hooks == ["before_update:a"]
@@ -254,47 +255,47 @@ def test_a_raising_after_update_skips_the_later_after_updates(box: harness.Box) 
 # --- State ------------------------------------------------------------------------------------------------------------
 def test_state_is_saved_after_success_and_after_failure_and_not_after_a_dry_run(box: harness.Box) -> None:
     a: str = box.path("a")
-    box.apply(box.rec("m", files={a: engine.File(content="a\n")}))
-    saved: str = Path(engine.state.STATE_FILE).read_text()
+    box.apply(box.rec("m", files={a: nosarch.engine.File(content="a\n")}))
+    saved: str = Path(nosarch.engine.state.STATE_FILE).read_text()
 
-    with pytest.raises(engine.fs.InstallError):
-        box.apply(box.rec("m", files={a: engine.File(source_file=box.path("missing"))}))
-    after_failure: str = Path(engine.state.STATE_FILE).read_text()
-    box.apply(box.rec("m", files={a: engine.File(content="a\n")}), dry_run=True)
+    with pytest.raises(nosarch.engine.fs.InstallError):
+        box.apply(box.rec("m", files={a: nosarch.engine.File(source_file=box.path("missing"))}))
+    after_failure: str = Path(nosarch.engine.state.STATE_FILE).read_text()
+    box.apply(box.rec("m", files={a: nosarch.engine.File(content="a\n")}), dry_run=True)
 
     assert json.loads(saved)["enabled_modules"] == ["m"]
     assert json.loads(saved)["files"] == {"m": [a]}
     assert json.loads(after_failure)["files"] == {"m": [a]}
-    assert Path(engine.state.STATE_FILE).read_text() == after_failure
+    assert Path(nosarch.engine.state.STATE_FILE).read_text() == after_failure
 
 
 def test_state_is_readable_by_everyone(box: harness.Box) -> None:
     box.apply(box.rec("a", files=_a_file(box, "a")))
 
-    assert stat.S_IMODE(os.stat(engine.state.STATE_FILE).st_mode) == 0o644
+    assert stat.S_IMODE(os.stat(nosarch.engine.state.STATE_FILE).st_mode) == 0o644
 
 
 def test_a_corrupt_state_file_stops_the_run_before_anything_changes(box: harness.Box) -> None:
-    Path(engine.state.STATE_FILE).parent.mkdir(parents=True)
-    Path(engine.state.STATE_FILE).write_text("{not json")
+    Path(nosarch.engine.state.STATE_FILE).parent.mkdir(parents=True)
+    Path(nosarch.engine.state.STATE_FILE).write_text("{not json")
 
     with pytest.raises(json.JSONDecodeError):
         box.apply(box.rec("m", files=_a_file(box, "a")))
 
     assert not box.exists("a")
     assert box.hooks == []
-    assert Path(engine.state.STATE_FILE).read_text() == "{not json"
+    assert Path(nosarch.engine.state.STATE_FILE).read_text() == "{not json"
 
 
 def test_changes_survive_a_run_that_stops_before_the_hooks(box: harness.Box) -> None:
     a: str = box.path("a.conf")
-    box.apply(box.rec("a", files={a: engine.File(content="x")}))
+    box.apply(box.rec("a", files={a: nosarch.engine.File(content="x")}))
 
     with pytest.raises(RuntimeError):
-        box.apply(box.rec("a", files={a: engine.File(content="y")}, actions={"on_change": _raise("stopped")}))
+        box.apply(box.rec("a", files={a: nosarch.engine.File(content="y")}, actions={"on_change": _raise("stopped")}))
 
     # The file is in place now, so only the saved change can tell the hook about it.
-    heard: harness.Rec = box.rec("a", files={a: engine.File(content="y")})
+    heard: harness.Rec = box.rec("a", files={a: nosarch.engine.File(content="y")})
     box.apply(heard)
 
     assert heard.changes[0].files_changed(a)

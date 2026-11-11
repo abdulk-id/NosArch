@@ -4,23 +4,24 @@ import sys
 import traceback
 from collections.abc import Callable
 
-import engine.aur
-import engine.changes
-import engine.command
-import engine.fs
-import engine.module
-import engine.output
-import engine.session
-import engine.setup
-import engine.state
-import engine.steps
-import engine.steps.files
-import engine.steps.users
+import nosarch.engine.aur
+import nosarch.engine.changes
+import nosarch.engine.command
+import nosarch.engine.fs
+import nosarch.engine.module
+import nosarch.engine.output
+import nosarch.engine.session
+import nosarch.engine.setup
+import nosarch.engine.state
+import nosarch.engine.steps
+import nosarch.engine.steps.files
+import nosarch.engine.steps.users
+import nosarch.repo
 
 
 def _arguments() -> argparse.Namespace:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        prog="nosarch/apply.py",
+        prog="python -m nosarch",
         description="Deploys the NosArch configuration. Re-runs itself with sudo unless it is a dry run.",
     )
     parser.add_argument("--dry-run", action="store_true", help="show what would change without applying changes")
@@ -33,28 +34,29 @@ def _arguments() -> argparse.Namespace:
 
 
 def _rerun_as_root() -> None:
-    engine.output.print_info("Applying needs root, re-running with sudo.")
-    script: str = os.path.abspath(sys.argv[0])
+    nosarch.engine.output.print_info("Applying needs root, re-running with sudo.")
+    # The shim puts the checkout on the path, so sudo does not depend on the working directory or PYTHONPATH.
+    script: str = os.path.join(nosarch.repo.root(), "nosarch", "apply.py")
     os.execvp("sudo", ["sudo", sys.executable, "-B", script, *sys.argv[1:]])
 
 
-def _selected_steps(setup: engine.setup.Setup, args: argparse.Namespace) -> list[str]:
+def _selected_steps(setup: nosarch.engine.setup.Setup, args: argparse.Namespace) -> list[str]:
     for name in [*args.only, *args.skip, *setup.steps]:
-        if name not in engine.steps.STEPS:
-            raise ValueError(f"Unknown step '{name}'. Steps are: {', '.join(engine.steps.STEPS)}.")
+        if name not in nosarch.engine.steps.STEPS:
+            raise ValueError(f"Unknown step '{name}'. Steps are: {', '.join(nosarch.engine.steps.STEPS)}.")
 
     selected: list[str] = [step for step in setup.steps if not args.only or step in args.only]
     return [step for step in selected if step not in args.skip]
 
 
-def _diff_declarations(ctx: engine.setup.Context, kinds: tuple[str, ...]) -> None:
+def _diff_declarations(ctx: nosarch.engine.setup.Context, kinds: tuple[str, ...]) -> None:
     for module in ctx.setup.modules:
         previous: dict[str, list[str]] = ctx.state.declared.get(module.name, {})
 
         for kind in kinds:
             before: set[str] = set(previous.get(kind, []))
-            after: set[str] = engine.module.identities(kind, ctx.declarations[module.name][kind])
-            changes: engine.changes.Changes = ctx.changes_for(module.name)
+            after: set[str] = nosarch.engine.module.identities(kind, ctx.declarations[module.name][kind])
+            changes: nosarch.engine.changes.Changes = ctx.changes_for(module.name)
             changes.added_pkgs[kind] |= after - before
             changes.removed_pkgs[kind] |= before - after
             if not ctx.dry_run:
@@ -62,22 +64,22 @@ def _diff_declarations(ctx: engine.setup.Context, kinds: tuple[str, ...]) -> Non
 
 
 def _unseen_changes(
-    ctx: engine.setup.Context, carried: dict[str, engine.changes.Changes], module: str
-) -> engine.changes.Changes:
-    merged: engine.changes.Changes = engine.changes.Changes()
-    merged.merge(carried.get(module, engine.changes.Changes()))
-    merged.merge(ctx.changes.get(module, engine.changes.Changes()))
+    ctx: nosarch.engine.setup.Context, carried: dict[str, nosarch.engine.changes.Changes], module: str
+) -> nosarch.engine.changes.Changes:
+    merged: nosarch.engine.changes.Changes = nosarch.engine.changes.Changes()
+    merged.merge(carried.get(module, nosarch.engine.changes.Changes()))
+    merged.merge(ctx.changes.get(module, nosarch.engine.changes.Changes()))
     return merged
 
 
-def _run_step(ctx: engine.setup.Context, step: str, carried: dict[str, engine.changes.Changes]) -> None:
-    engine.steps.STEPS[step](ctx)
-    _diff_declarations(ctx, engine.steps.KINDS.get(step, ()))
+def _run_step(ctx: nosarch.engine.setup.Context, step: str, carried: dict[str, nosarch.engine.changes.Changes]) -> None:
+    nosarch.engine.steps.STEPS[step](ctx)
+    _diff_declarations(ctx, nosarch.engine.steps.KINDS.get(step, ()))
     if ctx.dry_run:
         return
 
     for module in ctx.setup.modules:
-        unseen: engine.changes.Changes = _unseen_changes(ctx, carried, module.name)
+        unseen: nosarch.engine.changes.Changes = _unseen_changes(ctx, carried, module.name)
         if unseen:
             ctx.state.pending[module.name] = unseen.to_json()
         else:
@@ -85,40 +87,42 @@ def _run_step(ctx: engine.setup.Context, step: str, carried: dict[str, engine.ch
     ctx.state.save()
 
 
-def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
+def run(setup: nosarch.engine.setup.Setup, args: argparse.Namespace) -> None:
     dry: bool = args.dry_run
     hooks: bool = not args.no_hooks and not dry
     setup.aur.upgrade_devel = args.aur_upgrade_devel
 
-    state: engine.state.State = engine.state.load() or engine.state.State()
-    ctx: engine.setup.Context = engine.setup.Context(setup=setup, state=state, dry_run=dry)
+    state: nosarch.engine.state.State = nosarch.engine.state.load() or nosarch.engine.state.State()
+    ctx: nosarch.engine.setup.Context = nosarch.engine.setup.Context(setup=setup, state=state, dry_run=dry)
     steps: list[str] = _selected_steps(setup, args)
 
     enabled: set[str] = {module.name for module in setup.modules}
-    known: dict[str, engine.module.Module] = {module.name: module for module in setup.disabled_modules}
-    new: list[engine.module.Module] = [module for module in setup.modules if module.name not in state.enabled_modules]
+    known: dict[str, nosarch.engine.module.Module] = {module.name: module for module in setup.disabled_modules}
+    new: list[nosarch.engine.module.Module] = [
+        module for module in setup.modules if module.name not in state.enabled_modules
+    ]
     disabled: list[str] = [name for name in state.enabled_modules if name not in enabled]
-    carried: dict[str, engine.changes.Changes] = {
+    carried: dict[str, nosarch.engine.changes.Changes] = {
         module.name: state.pending_changes(module.name) for module in setup.modules
     }
 
     for module in setup.modules:
-        ctx.declarations[module.name] = engine.module.declarations(module)
+        ctx.declarations[module.name] = nosarch.engine.module.declarations(module)
 
     if "users" in steps:
         _run_step(ctx, "users", carried)
 
     if hooks:
-        engine.output.print_summary("Running before_update hooks.")
+        nosarch.engine.output.print_summary("Running before_update hooks.")
         for module in setup.modules:
             module.before_update()
 
         for name in disabled:
-            engine.output.print_summary(f"Running on_disable for {name}.")
+            nosarch.engine.output.print_summary(f"Running on_disable for {name}.")
             if name in known:
                 known[name].on_disable()
             else:
-                engine.output.print_warning(f"Module {name} no longer exists, so its on_disable cannot run.")
+                nosarch.engine.output.print_warning(f"Module {name} no longer exists, so its on_disable cannot run.")
             state.enabled_modules.remove(name)
             state.declared.pop(name, None)
             state.pending.pop(name, None)
@@ -129,79 +133,81 @@ def run(setup: engine.setup.Setup, args: argparse.Namespace) -> None:
             _run_step(ctx, step, carried)
 
     if "users" in steps and not dry:
-        engine.steps.users.finish(ctx)
+        nosarch.engine.steps.users.finish(ctx)
 
     if dry:
-        engine.output.print_list("Modules that would be enabled:", [module.name for module in new])
-        engine.output.print_list("Modules that would be disabled, running on_disable:", disabled)
+        nosarch.engine.output.print_list("Modules that would be enabled:", [module.name for module in new])
+        nosarch.engine.output.print_list("Modules that would be disabled, running on_disable:", disabled)
         for module in setup.modules:
-            unseen: engine.changes.Changes = _unseen_changes(ctx, carried, module.name)
+            unseen: nosarch.engine.changes.Changes = _unseen_changes(ctx, carried, module.name)
             if unseen:
-                engine.output.print_list(f"on_change of {module.name} would see:", unseen.summary(), one_per_line=True)
-        engine.output.print_summary("Dry run finished. Nothing was changed.")
+                nosarch.engine.output.print_list(
+                    f"on_change of {module.name} would see:", unseen.summary(), one_per_line=True
+                )
+        nosarch.engine.output.print_summary("Dry run finished. Nothing was changed.")
         return
 
     if hooks:
         for module in new:
-            engine.output.print_summary(f"Running on_enable for {module.name}.")
+            nosarch.engine.output.print_summary(f"Running on_enable for {module.name}.")
             module.on_enable()
             state.enabled_modules.append(module.name)
             state.save()
 
         for module in setup.modules:
-            unseen: engine.changes.Changes = state.pending_changes(module.name)
+            unseen: nosarch.engine.changes.Changes = state.pending_changes(module.name)
             if not unseen:
                 continue
-            engine.output.print_summary(f"Running on_change for {module.name}.")
-            engine.output.print_debug(f"It sees: {'; '.join(unseen.summary())}")
+            nosarch.engine.output.print_summary(f"Running on_change for {module.name}.")
+            nosarch.engine.output.print_debug(f"It sees: {'; '.join(unseen.summary())}")
             module.on_change(unseen)
             state.pending.pop(module.name, None)
             state.save()
 
-        engine.output.print_summary("Running after_update hooks.")
+        nosarch.engine.output.print_summary("Running after_update hooks.")
         for module in setup.modules:
             module.after_update()
 
     state.save()
-    engine.output.print_summary("Done.")
-    engine.session.offer(prompt=sys.stdin.isatty())
+    nosarch.engine.output.print_summary("Done.")
+    nosarch.engine.session.offer(prompt=sys.stdin.isatty())
 
 
-def main(build_setup: Callable[[], engine.setup.Setup]) -> None:
+def main(build_setup: Callable[[], nosarch.engine.setup.Setup]) -> None:
     args: argparse.Namespace = _arguments()
-    engine.output.debug_output = args.debug
+    nosarch.engine.output.debug_output = args.debug
 
-    if not args.dry_run and not engine.command.is_root():
+    if not args.dry_run and not nosarch.engine.command.is_root():
         _rerun_as_root()
 
     try:
         run(build_setup(), args)
     except KeyboardInterrupt:
-        engine.output.print_error("Interrupted.")
+        nosarch.engine.output.print_error("Interrupted.")
 
         sys.exit(130)
-    except engine.command.CommandFailedError as error:
-        engine.output.print_error(str(error))
+    except nosarch.engine.command.CommandFailedError as error:
+        nosarch.engine.output.print_error(str(error))
         if error.output:
             print(error.output, file=sys.stderr)
 
         sys.exit(1)
     except ValueError as error:
-        engine.output.print_error("ValueError raised from the source.")
-        engine.output.print_error(str(error))
+        nosarch.engine.output.print_error("ValueError raised from the source.")
+        nosarch.engine.output.print_error(str(error))
         if args.debug:
             traceback.print_exc()
 
         sys.exit(1)
     except (
-        engine.aur.AurError,
-        engine.command.AccountNotFoundError,
-        engine.fs.InstallError,
-        engine.steps.files.DuplicateTargetError,
+        nosarch.engine.aur.AurError,
+        nosarch.engine.command.AccountNotFoundError,
+        nosarch.engine.fs.InstallError,
+        nosarch.engine.steps.files.DuplicateTargetError,
         PermissionError,
         RuntimeError,
     ) as error:
-        engine.output.print_error(str(error))
+        nosarch.engine.output.print_error(str(error))
         if args.debug:
             traceback.print_exc()
 

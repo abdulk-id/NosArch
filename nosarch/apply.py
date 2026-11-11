@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Deploys the NosArch configuration. A dry run needs no root, a real run asks for it with sudo. See `--help`."""
+"""Deploy the NosArch checkout. Same as `python -m nosarch` from the repository root."""
 
-import os
 import sys
+from pathlib import Path
 
-# Run as root, Python would leave root-owned bytecode caches in the repository.
+# A real run is root. Root-owned bytecode in the checkout would not be removable by the user.
 sys.dont_write_bytecode = True
 
-# Definition code refers to dotfiles relative to this directory. `nosarch/` is on the path so `engine` and
-# `definition` import by package name.
-_HERE: str = os.path.dirname(os.path.abspath(__file__))
-os.chdir(_HERE)
-if _HERE not in sys.path:
-    sys.path.insert(0, _HERE)
+# Executing this file puts `nosarch/` on the path. The package lives in the repository root.
+_REPO = Path(__file__).resolve().parents[1]
+if str(_REPO) not in sys.path:
+    sys.path.insert(0, str(_REPO))
 
-import definition.source  # noqa: E402
-import engine.app  # noqa: E402
+from nosarch.__main__ import main  # noqa: E402
 
-engine.app.main(definition.source.setup)
+main()

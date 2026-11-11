@@ -3,18 +3,18 @@ import shutil
 from pathlib import Path
 from typing import override
 
-import engine
-import engine.output
-import utils.paths
-from engine import File
-from engine.steps import pacman
+import nosarch.engine
+import nosarch.engine.output
+import nosarch.utils.paths
+from nosarch.engine import File
+from nosarch.engine.steps import pacman
 
 # The .flatpakrepo file is Flathub's remote description. Kept in step with the pacman hook
 # at /etc/pacman.d/hooks/10-flatpak-flathub.hook, which runs the same command.
 _FLATHUB_REPO = "https://dl.flathub.org/repo/flathub.flatpakrepo"
 
 
-class FlatpakModule(engine.Module):
+class FlatpakModule(nosarch.engine.Module):
     """
     Installs the Flatpak runtime and prepares what the `flatpak` step drives.
 
@@ -31,7 +31,7 @@ class FlatpakModule(engine.Module):
     def files(self) -> dict[str, File]:
         # nosarch-package sources the library when it exists and skips Flatpak when it does not, which is how the CLI
         # follows this module being enabled or disabled. The hook adds Flathub on the run that installs flatpak.
-        return utils.paths.Dotfiles("../dotfiles/system-root").files(
+        return nosarch.utils.paths.Dotfiles("dotfiles/system-root").files(
             "/usr/local/bin/util/package/flatpak.sh", "/etc/pacman.d/hooks/10-flatpak-flathub.hook"
         )
 
@@ -46,7 +46,7 @@ class FlatpakModule(engine.Module):
         if shutil.which("flatpak") is None:
             return
 
-        _ = engine.run(["flatpak", "remote-add", "--if-not-exists", "--system", "flathub", _FLATHUB_REPO])
+        _ = nosarch.engine.run(["flatpak", "remote-add", "--if-not-exists", "--system", "flathub", _FLATHUB_REPO])
 
     # Runs before the pacman step, so the runtime is still installed and can uninstall the apps itself.
     @override
@@ -54,8 +54,8 @@ class FlatpakModule(engine.Module):
         # Uninstall with Flatpak first so it drops its own runtimes and export entries before the directories go.
         # `check=False` because anything this fails to remove is still deleted by path below.
         if shutil.which("flatpak") is not None:
-            _ = engine.run(["flatpak", "uninstall", "--all", "--system"], check=False)
-            _ = engine.run(["flatpak", "uninstall", "--all", "--user"], user=self._username, check=False)
+            _ = nosarch.engine.run(["flatpak", "uninstall", "--all", "--system"], check=False)
+            _ = nosarch.engine.run(["flatpak", "uninstall", "--all", "--user"], user=self._username, check=False)
 
         # Manually clean up everything that Flatpak did not remove ---
         home: Path = Path("/home") / self._username
@@ -88,17 +88,17 @@ class FlatpakModule(engine.Module):
         if not present and not dangling:
             return
 
-        engine.output.print_warning("Flatpak is disabled, but its data is still on disk:")
-        engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
-        engine.output.print_list(
+        nosarch.engine.output.print_warning("Flatpak is disabled, but its data is still on disk:")
+        nosarch.engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
+        nosarch.engine.output.print_list(
             "These desktop entries point into the paths above:", [str(p) for p in dangling], one_per_line=True
         )
-        engine.output.print_warning(
+        nosarch.engine.output.print_warning(
             "Deleting them also deletes every Flatpak app's settings and data. This cannot be undone."
         )
 
         # Without a terminal nothing is asked, so the data stays.
-        if not engine.output.prompt_confirm("Delete all Flatpak data?", default=False):
+        if not nosarch.engine.output.prompt_confirm("Delete all Flatpak data?", default=False):
             return
 
         for path in present:
@@ -114,4 +114,4 @@ class FlatpakModule(engine.Module):
             if entry.is_symlink() and not entry.exists():
                 entry.unlink(missing_ok=True)
 
-        engine.output.print_info("Deleted Flatpak data.")
+        nosarch.engine.output.print_info("Deleted Flatpak data.")

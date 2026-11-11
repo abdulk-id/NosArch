@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass, field
 
-import engine.command
+import nosarch.engine.command
 
 _FIELD: re.Pattern[str] = re.compile(r"^(\S[^:]*?)\s*: (.*)$")
 
@@ -18,7 +18,7 @@ class LocalPackage:
 
 
 def _query(*args: str) -> str:
-    return engine.command.run(["pacman", *args], env=_ENV, capture=True, check=False)
+    return nosarch.engine.command.run(["pacman", *args], env=_ENV, capture=True, check=False)
 
 
 def local_packages() -> dict[str, LocalPackage]:

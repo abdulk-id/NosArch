@@ -32,13 +32,14 @@ and they don't have fixed names.
 
 ## Declaring
 
-Use the helpers in `utils/paths.py` rather than constructing `File` by hand. They derive the source path from the
-target path, which keeps the two in step and removes common typos.
+Use the helpers in `nosarch/utils/paths.py` rather than constructing `File` by hand. They derive the source path from
+the target path, which keeps the two in step and removes common typos. A relative root is a path inside the checkout,
+resolved from the repository location rather than the process working directory.
 
 ```python
-self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
-self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-    "../dotfiles/system-root", _username
+self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("dotfiles/system-root")
+self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
+    "dotfiles/system-root", _username
 )
 ```
 

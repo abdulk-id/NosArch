@@ -31,7 +31,7 @@ as the AUR's and replaced by it.
 
 ## How the PKGBUILDs get here
 
-`utils.custom_packages` downloads a tarball of the branch into `/var/lib/nosarch/packages`, on the first run and
+`nosarch.utils.custom_packages` downloads a tarball of the branch into `/var/lib/nosarch/packages`, on the first run and
 whenever the branch has moved on. The engine asks it for a package's directory only when it needs the PKGBUILD: to
 check for an upgrade, or to build. A dry run reads whatever is cached and never fetches, because the cache is
 root-owned.
@@ -51,7 +51,7 @@ build, who should not be able to change a PKGBUILD between those two steps.
 ## `nosarch-package update` does not update these
 
 `nosarch-package update` runs `paru -Syu`, which does not touch custom packages. They are built from PKGBUILDs by
-`nosarch/apply.py`, so a version bump in NosArch-Packages only reaches the system on the next apply.
+`python -m nosarch`, so a version bump in NosArch-Packages only reaches the system on the next apply.
 
 This is worth knowing because the symptom is silent: the update reports success and the packages are still the old
 version. Fixing it means building the packages and installing them from a pacman repo rather than as foreign packages,

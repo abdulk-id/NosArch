@@ -1,16 +1,17 @@
-"""`engine.app.main`: the arguments it takes, when it asks for root, and the exit codes errors turn into."""
+"""`nosarch.engine.app.main`: the arguments it takes, when it asks for root, and the exit codes errors turn into."""
 
 from __future__ import annotations
 
 import sys
 from collections.abc import Callable
 
-import engine
-import engine.app
-import engine.command
-import engine.fs
 import harness
 import pytest
+
+import nosarch.engine
+import nosarch.engine.app
+import nosarch.engine.command
+import nosarch.engine.fs
 
 
 class _Reexec(Exception):
@@ -22,17 +23,17 @@ def as_user(monkeypatch: pytest.MonkeyPatch) -> None:
     def reexec() -> None:
         raise _Reexec
 
-    monkeypatch.setattr(engine.command, "is_root", lambda: False)
-    monkeypatch.setattr(engine.app, "_reexec_as_root", reexec)
+    monkeypatch.setattr(nosarch.engine.command, "is_root", lambda: False)
+    monkeypatch.setattr(nosarch.engine.app, "_rerun_as_root", reexec)
 
 
-def _main(monkeypatch: pytest.MonkeyPatch, setup: Callable[[], engine.Setup], *arguments: str) -> None:
+def _main(monkeypatch: pytest.MonkeyPatch, setup: Callable[[], nosarch.engine.Setup], *arguments: str) -> None:
     monkeypatch.setattr(sys, "argv", ["apply.py", *arguments])
-    engine.app.main(setup)
+    nosarch.engine.app.main(setup)
 
 
 def test_a_dry_run_needs_no_root(box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
-    _main(monkeypatch, lambda: engine.Setup(steps=["files"]), "--dry-run")
+    _main(monkeypatch, lambda: nosarch.engine.Setup(steps=["files"]), "--dry-run")
 
     assert box.state() is None
 
@@ -41,7 +42,7 @@ def test_a_real_run_asks_for_root_first(box: harness.Box, monkeypatch: pytest.Mo
     built: list[bool] = []
 
     with pytest.raises(_Reexec):
-        _main(monkeypatch, lambda: built.append(True) or engine.Setup(steps=["files"]))
+        _main(monkeypatch, lambda: built.append(True) or nosarch.engine.Setup(steps=["files"]))
 
     assert built == []
 
@@ -49,7 +50,7 @@ def test_a_real_run_asks_for_root_first(box: harness.Box, monkeypatch: pytest.Mo
 def test_a_command_that_fails_exits_1_and_shows_its_output(
     box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_user: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(engine.command, "is_root", lambda: True)
+    monkeypatch.setattr(nosarch.engine.command, "is_root", lambda: True)
     box.commands.fail("systemctl", "enable")
 
     with pytest.raises(SystemExit) as exit_:
@@ -59,8 +60,8 @@ def test_a_command_that_fails_exits_1_and_shows_its_output(
     assert "Command 'systemctl enable a.service' returned with a non-zero exit code 1" in capsys.readouterr().err
 
 
-def _setup(box: harness.Box, **declarations: object) -> engine.Setup:
-    setup: engine.Setup = engine.Setup(steps=["files", "systemd"])
+def _setup(box: harness.Box, **declarations: object) -> nosarch.engine.Setup:
+    setup: nosarch.engine.Setup = nosarch.engine.Setup(steps=["files", "systemd"])
     setup.add(box.rec("m", **declarations))
     return setup
 
@@ -68,8 +69,8 @@ def _setup(box: harness.Box, **declarations: object) -> engine.Setup:
 def test_a_file_that_cannot_be_installed_exits_1(
     box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_user: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(engine.command, "is_root", lambda: True)
-    files: dict[str, engine.File] = {box.path("a"): engine.File(source_file=box.path("missing"))}
+    monkeypatch.setattr(nosarch.engine.command, "is_root", lambda: True)
+    files: dict[str, nosarch.engine.File] = {box.path("a"): nosarch.engine.File(source_file=box.path("missing"))}
 
     with pytest.raises(SystemExit) as exit_:
         _main(monkeypatch, lambda: _setup(box, files=files), "--only", "files")
@@ -81,7 +82,7 @@ def test_a_file_that_cannot_be_installed_exits_1(
 def test_an_unknown_step_exits_1(
     box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_user: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(engine.command, "is_root", lambda: True)
+    monkeypatch.setattr(nosarch.engine.command, "is_root", lambda: True)
 
     with pytest.raises(SystemExit) as exit_:
         _main(monkeypatch, lambda: _setup(box), "--skip", "nosuchstep")
@@ -93,11 +94,11 @@ def test_an_unknown_step_exits_1(
 def test_a_definition_that_raises_a_value_error_exits_1(
     box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_user: None, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(engine.command, "is_root", lambda: True)
+    monkeypatch.setattr(nosarch.engine.command, "is_root", lambda: True)
 
-    def broken() -> engine.Setup:
-        engine.File()
-        return engine.Setup()
+    def broken() -> nosarch.engine.Setup:
+        nosarch.engine.File()
+        return nosarch.engine.Setup()
 
     with pytest.raises(SystemExit) as exit_:
         _main(monkeypatch, broken)
@@ -111,7 +112,7 @@ def _interrupt() -> None:
 
 
 def test_ctrl_c_exits_130(box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
-    monkeypatch.setattr(engine.command, "is_root", lambda: True)
+    monkeypatch.setattr(nosarch.engine.command, "is_root", lambda: True)
 
     with pytest.raises(SystemExit) as exit_:
         _main(monkeypatch, lambda: _setup(box, actions={"before_update": _interrupt}))
@@ -120,7 +121,7 @@ def test_ctrl_c_exits_130(box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_
 
 
 def test_no_hooks_runs_no_hook(box: harness.Box, monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
-    monkeypatch.setattr(engine.command, "is_root", lambda: True)
+    monkeypatch.setattr(nosarch.engine.command, "is_root", lambda: True)
 
     _main(monkeypatch, lambda: _setup(box), "--no-hooks")
 

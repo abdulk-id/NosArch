@@ -1,4 +1,18 @@
-from engine import File
+import os
+
+import nosarch.repo
+from nosarch.engine import File
+
+
+def in_checkout(*parts: str) -> str:
+    """A path in the checkout, independent of the process working directory."""
+    return os.path.join(nosarch.repo.root(), *parts)
+
+
+def _source_root(source_root: str) -> str:
+    if os.path.isabs(source_root):
+        return source_root
+    return in_checkout(source_root)
 
 
 def _dot_source_path(rel_path: str) -> str:
@@ -8,7 +22,8 @@ def _dot_source_path(rel_path: str) -> str:
 
 class Dotfiles:
     def __init__(self, source_root: str) -> None:
-        self._source_root: str = source_root
+        # A relative root is inside the checkout, for example `dotfiles/system-root`.
+        self._source_root: str = _source_root(source_root)
 
     def files(
         self, *target_paths: str, bin_file: bool = False, owner: str = "root", permissions: int = 0o644
@@ -23,7 +38,7 @@ class Dotfiles:
 
 class UserhomeDotfiles:
     def __init__(self, source_root: str, username: str) -> None:
-        self._source_root: str = source_root
+        self._source_root: str = _source_root(source_root)
         self._username: str = username
 
     def files(self, *rel_paths: str, bin_file: bool = False, permissions: int = 0o644) -> dict[str, File]:

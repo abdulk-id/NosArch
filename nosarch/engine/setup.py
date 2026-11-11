@@ -2,9 +2,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-import engine.changes
-import engine.module
-import engine.state
+import nosarch.engine.changes
+import nosarch.engine.module
+import nosarch.engine.state
 
 
 @dataclass(frozen=True)
@@ -34,14 +34,14 @@ class AurSettings:
 class Setup:
     """Everything the definition code declares."""
 
-    modules: list[engine.module.Module] = field(default_factory=list)
-    disabled_modules: list[engine.module.Module] = field(default_factory=list)
+    modules: list[nosarch.engine.module.Module] = field(default_factory=list)
+    disabled_modules: list[nosarch.engine.module.Module] = field(default_factory=list)
     users: list[User] = field(default_factory=list)
     steps: list[str] = field(default_factory=lambda: ["users", "files", "pacman", "aur", "systemd"])
     aur: AurSettings = field(default_factory=AurSettings)
     homebrew_user: str | None = None
 
-    def add(self, module: engine.module.Module, enabled: bool = True) -> None:
+    def add(self, module: nosarch.engine.module.Module, enabled: bool = True) -> None:
         if enabled:
             self.modules.append(module)
         else:
@@ -51,13 +51,13 @@ class Setup:
 @dataclass
 class Context:
     setup: Setup
-    state: engine.state.State
+    state: nosarch.engine.state.State
     dry_run: bool
     declarations: dict[str, dict[str, Any]] = field(default_factory=dict)
-    changes: dict[str, engine.changes.Changes] = field(default_factory=dict)
+    changes: dict[str, nosarch.engine.changes.Changes] = field(default_factory=dict)
 
-    def changes_for(self, module: str) -> engine.changes.Changes:
-        return self.changes.setdefault(module, engine.changes.Changes())
+    def changes_for(self, module: str) -> nosarch.engine.changes.Changes:
+        return self.changes.setdefault(module, nosarch.engine.changes.Changes())
 
     def declared(self, kind: str) -> Any:
-        return engine.module.collect(kind, self.declarations)
+        return nosarch.engine.module.collect(kind, self.declarations)

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import utils.hardware.cpu_vendor
+import nosarch.utils.hardware.cpu_vendor
 
 PCI_DEVICES: Path = Path("/sys/bus/pci/devices")
 USB_DEVICES: Path = Path("/sys/bus/usb/devices")
@@ -124,7 +124,7 @@ def get_firmware_packages() -> set[str]:
 
     packages: set[str] = set(ALWAYS_INSTALLED_FIRMWARE)
 
-    if utils.hardware.cpu_vendor.is_cpu_amd():
+    if nosarch.utils.hardware.cpu_vendor.is_cpu_amd():
         # Non-GPU AMD device firmware (PSP, XHCI, sensor fusion hub)
         packages.add("linux-firmware-amd")
 

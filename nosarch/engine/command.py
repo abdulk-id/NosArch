@@ -4,7 +4,7 @@ import shlex
 import shutil
 import subprocess
 
-import engine.output
+import nosarch.engine.output
 
 
 class CommandFailedError(Exception):
@@ -64,7 +64,7 @@ def run(
         environment |= env
 
     executable: str = shutil.which(cmd[0], path=environment.get("PATH")) or cmd[0]
-    engine.output.print_debug(f"Running '{shlex.join(cmd)}'{f' as {user}' if user else ''}.")
+    nosarch.engine.output.print_debug(f"Running '{shlex.join(cmd)}'{f' as {user}' if user else ''}.")
 
     try:
         completed: subprocess.CompletedProcess[str] = subprocess.run(
@@ -83,14 +83,16 @@ def run(
         if check:
             raise CommandFailedError(cmd, 127, error.strerror or str(error)) from error
 
-        engine.output.print_warning(f"Could not run '{shlex.join(cmd)}': {error.strerror or error}")
+        nosarch.engine.output.print_warning(f"Could not run '{shlex.join(cmd)}': {error.strerror or error}")
         return ""
 
     if completed.returncode != 0:
         if check:
             raise CommandFailedError(cmd, completed.returncode, completed.stdout if capture else None)
 
-        engine.output.print_warning(f"Command '{shlex.join(cmd)}' returned with an exit code {completed.returncode}.")
+        nosarch.engine.output.print_warning(
+            f"Command '{shlex.join(cmd)}' returned with an exit code {completed.returncode}."
+        )
 
     return completed.stdout if capture and completed.stdout is not None else ""
 

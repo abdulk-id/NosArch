@@ -1,6 +1,6 @@
-import engine
-import engine.output
-import utils.session
+import nosarch.engine
+import nosarch.engine.output
+import nosarch.utils.session
 
 # Requests recorded during `on_change`. `ApplyModule.after_update` runs them, and that module is
 # registered last, so every hook has already recorded what it needs. A repeated request is one entry.
@@ -174,11 +174,11 @@ def rebuild_initramfs() -> None:
 
 
 def request_logout(description: str) -> None:
-    engine.request_logout(description)
+    nosarch.engine.request_logout(description)
 
 
 def request_reboot(description: str) -> None:
-    engine.request_reboot(description)
+    nosarch.engine.request_reboot(description)
 
 
 def _clear() -> None:
@@ -195,47 +195,47 @@ def _run(cmd: list[str]) -> None:
     """
 
     try:
-        _ = engine.run(cmd, check=False)
+        _ = nosarch.engine.run(cmd, check=False)
     except Exception as error:
-        engine.output.print_warning(str(error))
+        nosarch.engine.output.print_warning(str(error))
 
 
 def _run_root(name: str, username: str | None) -> None:
     if name == "daemon_reload":
-        engine.output.print_info("Reloading systemd.")
+        nosarch.engine.output.print_info("Reloading systemd.")
         _run(["systemctl", "daemon-reload"])
     elif name == "daemon_reexec":
-        engine.output.print_info("Restarting systemd.")
+        nosarch.engine.output.print_info("Restarting systemd.")
         _run(["systemctl", "daemon-reexec"])
     elif name == "user_daemon_reload" and username is not None:
-        engine.output.print_info("Reloading systemd user units.")
+        nosarch.engine.output.print_info("Reloading systemd user units.")
         # The user manager is not running when applying from a TTY.
         _run(["systemctl", "--user", "-M", f"{username}@", "daemon-reload"])
     elif name == "eyesight_timer" and username is not None:
         # `try-restart`, so a timer the user turned off stays off.
         _run(["systemctl", "--user", "-M", f"{username}@", "try-restart", "nosarch-eyesight-reminder.timer"])
     elif name == "sysctl":
-        engine.output.print_info("Applying kernel parameters.")
+        nosarch.engine.output.print_info("Applying kernel parameters.")
         _run(["sysctl", "--system", "--quiet"])
     elif name == "networkmanager":
-        engine.output.print_info("Reloading NetworkManager.")
+        nosarch.engine.output.print_info("Reloading NetworkManager.")
         _run(["systemctl", "reload", "NetworkManager"])
     elif name == "journald":
-        engine.output.print_info("Restarting systemd-journald.")
+        nosarch.engine.output.print_info("Restarting systemd-journald.")
         _run(["systemctl", "restart", "systemd-journald"])
     elif name == "tmpfiles":
-        engine.output.print_info("Cleaning tmp files.")
+        nosarch.engine.output.print_info("Cleaning tmp files.")
         _run(["systemd-tmpfiles", "--create", "--clean"])
     elif name == "udev":
-        engine.output.print_info("Reloading udev.")
+        nosarch.engine.output.print_info("Reloading udev.")
         _run(["udevadm", "control", "--reload"])
         _run(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
     elif name == "ufw":
-        engine.output.print_info("Restarting firewall (ufw).")
+        nosarch.engine.output.print_info("Restarting firewall (ufw).")
         _run(["systemctl", "restart", "ufw"])
     elif name == "gsettings":
         # GSettings reads compiled cache, not .override files, so the cache has to be rebuilt.
-        engine.output.print_info("Rebuilding GSettings cache.")
+        nosarch.engine.output.print_info("Rebuilding GSettings cache.")
         _run(["glib-compile-schemas", "/usr/share/glib-2.0/schemas"])
 
 
@@ -244,21 +244,21 @@ def _run_session(commands: list[tuple[str, list[str]]]) -> None:
         return
 
     try:
-        graphical = utils.session.has_graphical_session()
+        graphical = nosarch.utils.session.has_graphical_session()
     except Exception as error:
-        engine.output.print_warning(str(error))
+        nosarch.engine.output.print_warning(str(error))
         graphical = False
 
     if graphical:
         for description, command in commands:
-            engine.output.print_info(description)
+            nosarch.engine.output.print_info(description)
             try:
-                _ = utils.session.run_in_session(command)
+                _ = nosarch.utils.session.run_in_session(command)
             except Exception as error:
-                engine.output.print_warning(str(error))
+                nosarch.engine.output.print_warning(str(error))
         return
 
-    engine.output.print_list(
+    nosarch.engine.output.print_list(
         "No graphical session found. These changes will apply on the next login:",
         [description for description, _ in commands],
         one_per_line=True,
@@ -279,5 +279,5 @@ def flush() -> None:
     _run_session([(description, command) for name, description, command in _SESSION if name in pending])
 
     if "initramfs" in pending:
-        engine.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
+        nosarch.engine.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
         _run(["limine-mkinitcpio"])

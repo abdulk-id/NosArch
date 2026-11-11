@@ -19,13 +19,11 @@ NosArch is an Arch Linux dotfile and system configuration repo, deployed by its 
 4. Apply the configuration:
 
     ```sh
-    ~/NosArch/nosarch/apply.py
+    python -m nosarch  # needs sudo
     ```
 
-    Or, from the repository, `mise run apply`. It asks for your password with sudo.
-
-    To see what changes would be made without applying them, which needs no root:
+    To see what changes would be made without applying them:
 
     ```sh
-    ~/NosArch/nosarch/apply.py --dry-run
+    python -m nosarch --dry-run
     ```

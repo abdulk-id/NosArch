@@ -1,4 +1,4 @@
-"""The command runner, `engine.command.run`, against real processes. Nothing else in the suite runs a command."""
+"""The command runner, `nosarch.engine.command.run`, against real processes. Nothing else in the suite runs a command."""
 
 from __future__ import annotations
 
@@ -7,10 +7,11 @@ import os
 import pwd
 from pathlib import Path
 
-import engine.command
 import harness
 import pytest
-from engine.command import CommandFailedError, sh, succeeds
+
+import nosarch.engine.command
+from nosarch.engine.command import CommandFailedError, sh, succeeds
 
 
 def test_capture_returns_stdout_only(capfd: pytest.CaptureFixture[str]) -> None:
@@ -83,7 +84,7 @@ def test_a_command_run_as_a_user_gets_that_users_login_environment() -> None:
 
 
 def test_a_user_that_does_not_exist_is_reported_by_name() -> None:
-    with pytest.raises(engine.command.AccountNotFoundError, match="The user 'nosuchuser' doesn't exist"):
+    with pytest.raises(nosarch.engine.command.AccountNotFoundError, match="The user 'nosuchuser' doesn't exist"):
         harness.real_run(["true"], user="nosuchuser")
 
 
@@ -94,7 +95,7 @@ def test_running_as_someone_else_needs_root() -> None:
 
 
 def test_can_run_as_is_true_for_yourself() -> None:
-    assert engine.command.can_run_as(getpass.getuser())
+    assert nosarch.engine.command.can_run_as(getpass.getuser())
 
 
 def test_sh_runs_its_string_through_bin_sh(tmp_path: Path) -> None:

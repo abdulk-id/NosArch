@@ -2,7 +2,7 @@ import grp
 import os
 import pwd
 
-import engine.command
+import nosarch.engine.command
 
 
 class InstallError(Exception):
@@ -14,14 +14,14 @@ def _ids(owner: str | None, group: str | None) -> tuple[int | None, int | None]:
     gid: int | None = None
 
     if owner is not None:
-        entry: pwd.struct_passwd = engine.command.passwd_entry(owner)
+        entry: pwd.struct_passwd = nosarch.engine.command.passwd_entry(owner)
         uid, gid = entry.pw_uid, entry.pw_gid
 
     if group is not None:
         try:
             gid = grp.getgrnam(group).gr_gid
         except KeyError as error:
-            raise engine.command.AccountNotFoundError(f"The group '{group}' doesn't exist.") from error
+            raise nosarch.engine.command.AccountNotFoundError(f"The group '{group}' doesn't exist.") from error
 
     return uid, gid
 

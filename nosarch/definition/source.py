@@ -1,55 +1,54 @@
-import engine
-import engine.output
-import utils.custom_packages
+import nosarch.engine
+import nosarch.engine.output
+import nosarch.utils.custom_packages
+from nosarch.definition.modules.apply import ApplyModule
+from nosarch.definition.modules.basic_setup import BasicSetupModule
+from nosarch.definition.modules.desktop import DesktopModule
+from nosarch.definition.modules.packaging.flatpak import FlatpakModule
+from nosarch.definition.modules.packaging.homebrew import HomebrewModule
+from nosarch.definition.modules.packaging.snap import SnapModule
+from nosarch.definition.modules.setups.ai_setup import AISetupModule
+from nosarch.definition.modules.setups.creative_setup import CreativeSetupModule
+from nosarch.definition.modules.setups.dev_setup import DevSetupModule
+from nosarch.definition.modules.setups.gaming_setup import GamingSetupModule
+from nosarch.definition.modules.system import SystemModule
+from nosarch.definition.modules.theme import ThemingModule
+from nosarch.definition.modules.user_defined import UserDefinedModule
+from nosarch.definition.user_config import UserConfigReader
 
-from definition.modules.apply import ApplyModule
-from definition.modules.basic_setup import BasicSetupModule
-from definition.modules.desktop import DesktopModule
-from definition.modules.packaging.flatpak import FlatpakModule
-from definition.modules.packaging.homebrew import HomebrewModule
-from definition.modules.packaging.snap import SnapModule
-from definition.modules.setups.ai_setup import AISetupModule
-from definition.modules.setups.creative_setup import CreativeSetupModule
-from definition.modules.setups.dev_setup import DevSetupModule
-from definition.modules.setups.gaming_setup import GamingSetupModule
-from definition.modules.system import SystemModule
-from definition.modules.theme import ThemingModule
-from definition.modules.user_defined import UserDefinedModule
-from definition.user_config import UserConfigReader
 
-
-def setup() -> engine.Setup:
+def setup() -> nosarch.engine.Setup:
     user_config: UserConfigReader = UserConfigReader.load()
     username: str = user_config.user.username
 
-    nosarch: engine.Setup = engine.Setup()
+    system: nosarch.engine.Setup = nosarch.engine.Setup()
 
     # Packaging ===
-    nosarch.aur.build_user = "aurbuilduser"
-    nosarch.aur.clean_chroot = user_config.advanced.build_aur_in_clean_chroot
-    nosarch.aur.custom_pkgbuild_dir = utils.custom_packages.package_dir
-    nosarch.aur.ignored |= {"xdg-terminal-exec"}
+    system.aur.build_user = "aurbuilduser"
+    system.aur.clean_chroot = user_config.advanced.build_aur_in_clean_chroot
+    system.aur.custom_pkgbuild_dir = nosarch.utils.custom_packages.package_dir
+    system.aur.ignored |= {"xdg-terminal-exec"}
 
     if user_config.packaging.flatpak.enabled:
-        nosarch.steps.append("flatpak")
+        system.steps.append("flatpak")
     elif user_config.packaging.flatpak.install_packages or user_config.packaging.flatpak.install_user_packages:
-        engine.output.print_warning("[PACKAGING] Flatpak is disabled. Ignoring user packages")
+        nosarch.engine.output.print_warning("[PACKAGING] Flatpak is disabled. Ignoring user packages")
 
     if user_config.packaging.homebrew.enabled:
-        nosarch.homebrew_user = username  # brew cannot run as root
-        nosarch.steps.append("homebrew")
+        system.homebrew_user = username  # brew cannot run as root
+        system.steps.append("homebrew")
     elif user_config.packaging.homebrew.install_formulae or user_config.packaging.homebrew.install_casks:
-        engine.output.print_warning("[PACKAGING] Homebrew is disabled. Ignoring user packages")
+        nosarch.engine.output.print_warning("[PACKAGING] Homebrew is disabled. Ignoring user packages")
 
     if user_config.packaging.snap.enabled:
-        nosarch.steps.append("snap")
+        system.steps.append("snap")
     elif user_config.packaging.snap.install_snaps or user_config.packaging.snap.install_classic_snaps:
-        engine.output.print_warning("[PACKAGING] Snap is disabled. Ignoring user packages")
+        nosarch.engine.output.print_warning("[PACKAGING] Snap is disabled. Ignoring user packages")
     # ===
 
     # Users and groups ===
-    nosarch.users.append(
-        engine.User(
+    system.users.append(
+        nosarch.engine.User(
             username=username,
             group=username,
             home=f"/home/{username}",
@@ -60,23 +59,23 @@ def setup() -> engine.Setup:
             + (("input",) if user_config.setups.gaming.enabled else ()),
         )
     )
-    nosarch.users.append(engine.User(username="aurbuilduser", home="/var/lib/aurbuilduser", system=True))
+    system.users.append(nosarch.engine.User(username="aurbuilduser", home="/var/lib/aurbuilduser", system=True))
     # ===
 
     # Modules ===
     # Disabled modules are added too, so their on_disable can run on the run that disables them.
-    nosarch.add(SystemModule(user_config))
-    nosarch.add(DesktopModule(user_config))
-    nosarch.add(ThemingModule(user_config))
+    system.add(SystemModule(user_config))
+    system.add(DesktopModule(user_config))
+    system.add(ThemingModule(user_config))
 
-    nosarch.add(HomebrewModule(username), enabled=user_config.packaging.homebrew.enabled)
-    nosarch.add(FlatpakModule(username), enabled=user_config.packaging.flatpak.enabled)
-    nosarch.add(SnapModule(username), enabled=user_config.packaging.snap.enabled)
+    system.add(HomebrewModule(username), enabled=user_config.packaging.homebrew.enabled)
+    system.add(FlatpakModule(username), enabled=user_config.packaging.flatpak.enabled)
+    system.add(SnapModule(username), enabled=user_config.packaging.snap.enabled)
 
     # The setups extend the desktop. It is always registered for now; the check is for when NosArch allows headless
     # installs.
-    desktop_enabled: bool = any(module.name == "desktop" for module in nosarch.modules)
-    setups: list[tuple[str, bool, engine.Module]] = [
+    desktop_enabled: bool = any(module.name == "desktop" for module in system.modules)
+    setups: list[tuple[str, bool, nosarch.engine.Module]] = [
         ("Basic", user_config.setups.basic.enabled, BasicSetupModule(user_config)),
         ("AI", user_config.setups.ai.enabled, AISetupModule(user_config)),
         ("Creative", user_config.setups.creative.enabled, CreativeSetupModule(user_config)),
@@ -86,13 +85,13 @@ def setup() -> engine.Setup:
     for label, enabled, module in setups:
         if enabled and not desktop_enabled:
             raise ValueError(f"[SETUPS] {label} setup requires Desktop module to be enabled.")
-        nosarch.add(module, enabled=enabled)
+        system.add(module, enabled=enabled)
 
-    nosarch.add(UserDefinedModule(user_config))
+    system.add(UserDefinedModule(user_config))
 
     # Last on purpose. Its after_update runs the queued apply commands after every other after_update. Do not register
     # a module after this.
-    nosarch.add(ApplyModule())
+    system.add(ApplyModule())
     # ===
 
-    return nosarch
+    return system

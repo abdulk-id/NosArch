@@ -2,14 +2,14 @@ import shutil
 from pathlib import Path
 from typing import override
 
-import engine
-import engine.output
-import utils.paths
-from engine import File, Symlink
-from engine.steps import aur, systemd
+import nosarch.engine
+import nosarch.engine.output
+import nosarch.utils.paths
+from nosarch.engine import File, Symlink
+from nosarch.engine.steps import aur, systemd
 
 
-class SnapModule(engine.Module):
+class SnapModule(nosarch.engine.Module):
     """
     Installs snapd and prepares what the `snap` step drives.
 
@@ -28,7 +28,7 @@ class SnapModule(engine.Module):
     def files(self) -> dict[str, File]:
         # nosarch-package sources this when it exists and skips Snap when it does not, which is how the CLI follows
         # this module being enabled or disabled.
-        return utils.paths.Dotfiles("../dotfiles/system-root").files("/usr/local/bin/util/package/snap.sh")
+        return nosarch.utils.paths.Dotfiles("system-root").files("/usr/local/bin/util/package/snap.sh")
 
     @override
     def symlinks(self) -> dict[str, str | Symlink]:
@@ -63,19 +63,19 @@ class SnapModule(engine.Module):
         if not present:
             return
 
-        engine.output.print_warning("Snap is disabled, but its data is still on disk.")
-        engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
-        engine.output.print_warning(
+        nosarch.engine.output.print_warning("Snap is disabled, but its data is still on disk.")
+        nosarch.engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
+        nosarch.engine.output.print_warning(
             "Deleting them also deletes every Snap app's settings and data. This cannot be undone."
         )
 
         # Without a terminal nothing is asked, so the data stays.
-        if not engine.output.prompt_confirm("Delete all Snap data?", default=False):
+        if not nosarch.engine.output.prompt_confirm("Delete all Snap data?", default=False):
             return
 
         # Snapd holds squashfs mounts of its own. Stopping the socket tears the daemon down so the directories
         # underneath are not in use. There is no `snap remove --all`, so the snaps go with the directories.
-        _ = engine.run(["systemctl", "stop", "snapd.socket"], check=False)
+        _ = nosarch.engine.run(["systemctl", "stop", "snapd.socket"], check=False)
 
         for path in present:
             if path.is_symlink() or path.is_file():
@@ -83,4 +83,4 @@ class SnapModule(engine.Module):
             elif path.is_dir():
                 shutil.rmtree(path, ignore_errors=True)
 
-        engine.output.print_info("Deleted Snap data.")
+        nosarch.engine.output.print_info("Deleted Snap data.")

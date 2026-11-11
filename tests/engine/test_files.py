@@ -5,16 +5,17 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import engine
-import engine.fs
-import engine.steps.files
 import harness
 import pytest
+
+import nosarch.engine
+import nosarch.engine.fs
+import nosarch.engine.steps.files
 
 
 # --- Writing ----------------------------------------------------------------------------------------------------------
 def test_new_file_is_created_and_reported(box: harness.Box) -> None:
-    module: harness.Rec = box.rec("m", files={box.path("etc/a.conf"): engine.File(content="a\n")})
+    module: harness.Rec = box.rec("m", files={box.path("etc/a.conf"): nosarch.engine.File(content="a\n")})
     box.apply(module)
 
     assert box.read("etc/a.conf") == "a\n"
@@ -25,13 +26,13 @@ def test_new_file_is_created_and_reported(box: harness.Box) -> None:
 
 def test_source_file_is_copied(box: harness.Box) -> None:
     source: str = box.write("src/a.txt", "from source\n")
-    box.apply(box.rec("m", files={box.path("etc/a.conf"): engine.File(source_file=source)}))
+    box.apply(box.rec("m", files={box.path("etc/a.conf"): nosarch.engine.File(source_file=source)}))
 
     assert box.read("etc/a.conf") == "from source\n"
 
 
 def test_empty_content_creates_an_empty_file(box: harness.Box) -> None:
-    module: harness.Rec = box.rec("m", files={box.path("etc/empty"): engine.File(content="")})
+    module: harness.Rec = box.rec("m", files={box.path("etc/empty"): nosarch.engine.File(content="")})
     box.apply(module)
 
     assert (box.root / "etc/empty").stat().st_size == 0
@@ -40,14 +41,14 @@ def test_empty_content_creates_an_empty_file(box: harness.Box) -> None:
 
 def test_a_file_needs_a_source_or_content_but_not_both() -> None:
     with pytest.raises(ValueError, match="exactly one"):
-        engine.File()
+        nosarch.engine.File()
     with pytest.raises(ValueError, match="exactly one"):
-        engine.File(source_file="a", content="b")
+        nosarch.engine.File(source_file="a", content="b")
 
 
 def test_an_unchanged_file_is_not_rewritten_or_reported(box: harness.Box) -> None:
     def module() -> harness.Rec:
-        return box.rec("m", files={box.path("etc/a.conf"): engine.File(content="a\n")})
+        return box.rec("m", files={box.path("etc/a.conf"): nosarch.engine.File(content="a\n")})
 
     box.apply(module())
     before: os.stat_result = os.stat(box.path("etc/a.conf"))
@@ -60,7 +61,7 @@ def test_an_unchanged_file_is_not_rewritten_or_reported(box: harness.Box) -> Non
 
 @pytest.mark.parametrize("permissions", [0o755, 0o600, 0o4755])
 def test_exact_permissions_are_applied(box: harness.Box, permissions: int) -> None:
-    box.apply(box.rec("m", files={box.path("etc/f"): engine.File(content="x", permissions=permissions)}))
+    box.apply(box.rec("m", files={box.path("etc/f"): nosarch.engine.File(content="x", permissions=permissions)}))
 
     assert box.mode("etc/f") == permissions
 
@@ -68,7 +69,7 @@ def test_exact_permissions_are_applied(box: harness.Box, permissions: int) -> No
 def test_mode_drift_is_healed_and_counts_as_a_change(box: harness.Box) -> None:
     # A hook that reloads a service has to hear about a file that was put back.
     def module() -> harness.Rec:
-        return box.rec("m", files={box.path("etc/a.conf"): engine.File(content="x\n")})
+        return box.rec("m", files={box.path("etc/a.conf"): nosarch.engine.File(content="x\n")})
 
     box.apply(module())
     os.chmod(box.path("etc/a.conf"), 0o600)
@@ -82,7 +83,7 @@ def test_mode_drift_is_healed_and_counts_as_a_change(box: harness.Box) -> None:
 
 def test_missing_parent_directories_are_created_and_not_tracked(box: harness.Box) -> None:
     target: str = box.path("etc/p/q/r.conf")
-    box.apply(box.rec("m", files={target: engine.File(content="r\n")}))
+    box.apply(box.rec("m", files={target: nosarch.engine.File(content="r\n")}))
 
     assert box.mode("etc/p/q") == 0o755
     assert box.state().files == {"m": [target]}  # pyright: ignore[reportOptionalMemberAccess]
@@ -95,10 +96,10 @@ def test_missing_parent_directories_are_created_and_not_tracked(box: harness.Box
 
 def test_a_changed_file_is_replaced_atomically(box: harness.Box) -> None:
     # A reader of the target never sees half a file, and a hard link keeps the old content.
-    box.apply(box.rec("m", files={box.path("etc/a.conf"): engine.File(content="one\n")}))
+    box.apply(box.rec("m", files={box.path("etc/a.conf"): nosarch.engine.File(content="one\n")}))
     os.link(box.path("etc/a.conf"), box.path("etc/hardlink"))
 
-    box.apply(box.rec("m", files={box.path("etc/a.conf"): engine.File(content="two\n")}))
+    box.apply(box.rec("m", files={box.path("etc/a.conf"): nosarch.engine.File(content="two\n")}))
 
     assert box.read("etc/a.conf") == "two\n"
     assert box.read("etc/hardlink") == "one\n"
@@ -108,7 +109,7 @@ def test_a_file_declared_on_a_symlink_replaces_the_link(box: harness.Box) -> Non
     box.write("etc/real", "old\n")
     os.symlink(box.path("etc/real"), box.path("etc/link"))
 
-    box.apply(box.rec("m", files={box.path("etc/link"): engine.File(content="new\n")}))
+    box.apply(box.rec("m", files={box.path("etc/link"): nosarch.engine.File(content="new\n")}))
 
     assert not os.path.islink(box.path("etc/link"))
     assert box.read("etc/link") == "new\n"
@@ -119,7 +120,7 @@ def test_a_first_run_overwrites_declared_files_and_leaves_the_rest(box: harness.
     box.write("etc/a", "old\n")
     box.write("etc/unmanaged", "mine\n")
 
-    box.apply(box.rec("m", files={box.path("etc/a"): engine.File(content="new\n")}))
+    box.apply(box.rec("m", files={box.path("etc/a"): nosarch.engine.File(content="new\n")}))
 
     assert box.read("etc/a") == "new\n"
     assert box.read("etc/unmanaged") == "mine\n"
@@ -129,9 +130,11 @@ def test_a_first_run_overwrites_declared_files_and_leaves_the_rest(box: harness.
 def test_variables_belong_to_their_module(box: harness.Box) -> None:
     box.apply(
         box.rec(
-            "a", files={box.path("a"): engine.File(content="%V% %UNSET%\n")}, variables={"%V%": "a", "%UNUSED%": "q"}
+            "a",
+            files={box.path("a"): nosarch.engine.File(content="%V% %UNSET%\n")},
+            variables={"%V%": "a", "%UNUSED%": "q"},
         ),
-        box.rec("b", files={box.path("b"): engine.File(content="%V%\n")}, variables={"%V%": "b"}),
+        box.rec("b", files={box.path("b"): nosarch.engine.File(content="%V%\n")}, variables={"%V%": "b"}),
     )
 
     assert box.read("a") == "a %UNSET%\n"
@@ -141,9 +144,11 @@ def test_variables_belong_to_their_module(box: harness.Box) -> None:
 def test_variable_values_are_inserted_literally(box: harness.Box) -> None:
     box.apply(
         box.rec(
-            "m", files={box.path("a"): engine.File(content="[%V%]\n")}, variables={"%V%": "a.*\\1 \"q\" 'r'\nnext"}
+            "m",
+            files={box.path("a"): nosarch.engine.File(content="[%V%]\n")},
+            variables={"%V%": "a.*\\1 \"q\" 'r'\nnext"},
         ),
-        box.rec("e", files={box.path("e"): engine.File(content="[%V%]\n")}, variables={"%V%": ""}),
+        box.rec("e", files={box.path("e"): nosarch.engine.File(content="[%V%]\n")}, variables={"%V%": ""}),
     )
 
     assert box.read("a") == "[a.*\\1 \"q\" 'r'\nnext]\n"
@@ -154,10 +159,14 @@ def test_variables_are_replaced_one_after_another(box: harness.Box) -> None:
     # A value that contains another key is replaced again, if that key comes later.
     box.apply(
         box.rec(
-            "forward", files={box.path("forward"): engine.File(content="%A%\n")}, variables={"%A%": "%B%", "%B%": "x"}
+            "forward",
+            files={box.path("forward"): nosarch.engine.File(content="%A%\n")},
+            variables={"%A%": "%B%", "%B%": "x"},
         ),
         box.rec(
-            "reverse", files={box.path("reverse"): engine.File(content="%A%\n")}, variables={"%B%": "x", "%A%": "%B%"}
+            "reverse",
+            files={box.path("reverse"): nosarch.engine.File(content="%A%\n")},
+            variables={"%B%": "x", "%A%": "%B%"},
         ),
     )
 
@@ -167,7 +176,7 @@ def test_variables_are_replaced_one_after_another(box: harness.Box) -> None:
 
 def test_a_changed_variable_rewrites_the_file_and_reports_it(box: harness.Box) -> None:
     def module(value: str) -> harness.Rec:
-        return box.rec("m", files={box.path("a"): engine.File(content="%V%\n")}, variables={"%V%": value})
+        return box.rec("m", files={box.path("a"): nosarch.engine.File(content="%V%\n")}, variables={"%V%": value})
 
     box.apply(module("a"))
     box.apply(module("b"))
@@ -188,7 +197,7 @@ def test_variables_are_read_after_every_before_update(box: harness.Box) -> None:
 
     box.apply(
         box.rec("maker", actions={"before_update": make_marker}),
-        Reader("reader", box.log, files={box.path("a"): engine.File(content="%V%\n")}),
+        Reader("reader", box.log, files={box.path("a"): nosarch.engine.File(content="%V%\n")}),
     )
 
     assert box.read("a") == "made-by-hook\n"
@@ -197,8 +206,8 @@ def test_variables_are_read_after_every_before_update(box: harness.Box) -> None:
 def test_text_without_variables_is_copied_byte_for_byte(box: harness.Box) -> None:
     source: str = box.write("src/crlf.txt", b"a\r\nb %Z%\r\n")
     box.apply(
-        box.rec("plain", files={box.path("plain"): engine.File(source_file=source)}),
-        box.rec("vars", files={box.path("vars"): engine.File(source_file=source)}, variables={"%Z%": "z"}),
+        box.rec("plain", files={box.path("plain"): nosarch.engine.File(source_file=source)}),
+        box.rec("vars", files={box.path("vars"): nosarch.engine.File(source_file=source)}, variables={"%Z%": "z"}),
     )
 
     assert (box.root / "plain").read_bytes() == b"a\r\nb %Z%\r\n"
@@ -211,10 +220,10 @@ def test_binary_files_are_never_substituted(box: harness.Box) -> None:
         box.rec(
             "m",
             files={
-                box.path("bin1"): engine.File(source_file=template, bin_file=True),
-                box.path("bin2"): engine.File(content="é %X%", bin_file=True),
-                box.path("bin3"): engine.File(content="é", bin_file=True, encoding="latin-1"),
-                box.path("text"): engine.File(source_file=template),
+                box.path("bin1"): nosarch.engine.File(source_file=template, bin_file=True),
+                box.path("bin2"): nosarch.engine.File(content="é %X%", bin_file=True),
+                box.path("bin3"): nosarch.engine.File(content="é", bin_file=True, encoding="latin-1"),
+                box.path("text"): nosarch.engine.File(source_file=template),
             },
             variables={"%X%": "y"},
         )
@@ -235,7 +244,10 @@ def test_directory_deploys_files_only_dotfiles_included(box: harness.Box) -> Non
 
     box.apply(
         box.rec(
-            "m", directories={box.path("out"): engine.Directory(source_directory=box.path("tree"), permissions=0o600)}
+            "m",
+            directories={
+                box.path("out"): nosarch.engine.Directory(source_directory=box.path("tree"), permissions=0o600)
+            },
         )
     )
 
@@ -253,8 +265,8 @@ def test_directory_text_files_are_substituted_unless_bin_files(box: harness.Box)
         box.rec(
             "m",
             directories={
-                box.path("text"): engine.Directory(source_directory=box.path("tree")),
-                box.path("binary"): engine.Directory(source_directory=box.path("tree"), bin_files=True),
+                box.path("text"): nosarch.engine.Directory(source_directory=box.path("tree")),
+                box.path("binary"): nosarch.engine.Directory(source_directory=box.path("tree"), bin_files=True),
             },
             variables={"%V%": "v"},
         )
@@ -270,7 +282,7 @@ def test_directory_follows_its_source(box: harness.Box) -> None:
     box.write("tree/gone.txt", "gone\n")
 
     def module() -> harness.Rec:
-        return box.rec("m", directories={box.path("out"): engine.Directory(source_directory=box.path("tree"))})
+        return box.rec("m", directories={box.path("out"): nosarch.engine.Directory(source_directory=box.path("tree"))})
 
     box.apply(module())
     box.write("tree/edit.txt", "two\n")
@@ -292,10 +304,10 @@ def test_directory_follows_its_source(box: harness.Box) -> None:
 
 def test_directory_with_a_missing_source_fails_the_run(box: harness.Box) -> None:
     module: harness.Rec = box.rec(
-        "m", directories={box.path("out"): engine.Directory(source_directory=box.path("nosuchdir"))}
+        "m", directories={box.path("out"): nosarch.engine.Directory(source_directory=box.path("nosuchdir"))}
     )
 
-    with pytest.raises(engine.fs.InstallError, match="Source directory doesn't exist"):
+    with pytest.raises(nosarch.engine.fs.InstallError, match="Source directory doesn't exist"):
         box.apply(module)
 
     assert box.hooks == ["before_update:m"]
@@ -307,7 +319,7 @@ def test_directory_copies_a_linked_file_and_ignores_a_linked_directory(box: harn
     os.symlink(box.path("tree/a.txt"), box.path("tree/linkfile"))
     os.symlink(box.path("tree/sub"), box.path("tree/linkdir"))
 
-    box.apply(box.rec("m", directories={box.path("out"): engine.Directory(source_directory=box.path("tree"))}))
+    box.apply(box.rec("m", directories={box.path("out"): nosarch.engine.Directory(source_directory=box.path("tree"))}))
 
     assert not os.path.islink(box.path("out/linkfile"))
     assert box.read("out/linkfile") == "a\n"
@@ -320,20 +332,22 @@ def test_binary_files_in_a_directory_need_bin_files_once_the_module_has_variable
     box.write("src/wall/1.jpg", image)
     source: str = box.path("src/wall")
 
-    box.apply(box.rec("m", directories={box.path("plain"): engine.Directory(source_directory=source)}))
+    box.apply(box.rec("m", directories={box.path("plain"): nosarch.engine.Directory(source_directory=source)}))
     assert (box.root / "plain/1.jpg").read_bytes() == image
 
-    with pytest.raises(engine.fs.InstallError, match="Unicode decoding failed"):
+    with pytest.raises(nosarch.engine.fs.InstallError, match="Unicode decoding failed"):
         box.apply(
             box.rec(
-                "m", directories={box.path("text"): engine.Directory(source_directory=source)}, variables={"%V%": "v"}
+                "m",
+                directories={box.path("text"): nosarch.engine.Directory(source_directory=source)},
+                variables={"%V%": "v"},
             )
         )
 
     box.apply(
         box.rec(
             "m",
-            directories={box.path("binary"): engine.Directory(source_directory=source, bin_files=True)},
+            directories={box.path("binary"): nosarch.engine.Directory(source_directory=source, bin_files=True)},
             variables={"%V%": "v"},
         )
     )
@@ -384,14 +398,14 @@ def test_link_targets_are_compared_as_strings(box: harness.Box) -> None:
 def test_a_directory_at_the_link_path_fails_the_run(box: harness.Box) -> None:
     (box.root / "p/dir").mkdir(parents=True)
 
-    with pytest.raises(engine.fs.InstallError, match="Failed to install symlink"):
+    with pytest.raises(nosarch.engine.fs.InstallError, match="Failed to install symlink"):
         box.apply(box.rec("m", symlinks={box.path("p/dir"): "/new"}))
 
 
 def test_an_undeclared_link_is_removed_but_not_its_target(box: harness.Box) -> None:
     real: str = box.path("p/real")
-    box.apply(box.rec("m", files={real: engine.File(content="x\n")}, symlinks={box.path("p/link"): real}))
-    box.apply(box.rec("m", files={real: engine.File(content="x\n")}))
+    box.apply(box.rec("m", files={real: nosarch.engine.File(content="x\n")}, symlinks={box.path("p/link"): real}))
+    box.apply(box.rec("m", files={real: nosarch.engine.File(content="x\n")}))
 
     assert not box.exists("p/link")
     assert box.read("p/real") == "x\n"
@@ -401,8 +415,8 @@ def test_an_undeclared_link_is_removed_but_not_its_target(box: harness.Box) -> N
 def test_a_file_whose_target_is_a_directory_fails_the_run(box: harness.Box) -> None:
     (box.root / "p/d").mkdir(parents=True)
 
-    with pytest.raises(engine.fs.InstallError, match="Failed to install file"):
-        box.apply(box.rec("m", files={box.path("p/d"): engine.File(content="x\n")}))
+    with pytest.raises(nosarch.engine.fs.InstallError, match="Failed to install file"):
+        box.apply(box.rec("m", files={box.path("p/d"): nosarch.engine.File(content="x\n")}))
 
     assert box.hooks == ["before_update:m"]
 
@@ -412,14 +426,14 @@ def test_invalid_utf8_in_a_text_file_with_variables_fails_the_run(box: harness.B
     module: harness.Rec = box.rec(
         "m",
         files={
-            box.path("first.conf"): engine.File(content="first\n"),
-            box.path("bad.conf"): engine.File(source_file=bad),
-            box.path("last.conf"): engine.File(content="last\n"),
+            box.path("first.conf"): nosarch.engine.File(content="first\n"),
+            box.path("bad.conf"): nosarch.engine.File(source_file=bad),
+            box.path("last.conf"): nosarch.engine.File(content="last\n"),
         },
         variables={"%Z%": "z"},
     )
 
-    with pytest.raises(engine.fs.InstallError, match="Unicode decoding failed"):
+    with pytest.raises(nosarch.engine.fs.InstallError, match="Unicode decoding failed"):
         box.apply(module)
 
     assert box.read("first.conf") == "first\n"
@@ -429,18 +443,24 @@ def test_invalid_utf8_in_a_text_file_with_variables_fails_the_run(box: harness.B
 
 def test_a_missing_source_stops_the_step_and_removes_nothing(box: harness.Box) -> None:
     box.apply(
-        box.rec("m", files={box.path("p/a"): engine.File(content="a1\n"), box.path("p/b"): engine.File(content="b\n")})
+        box.rec(
+            "m",
+            files={
+                box.path("p/a"): nosarch.engine.File(content="a1\n"),
+                box.path("p/b"): nosarch.engine.File(content="b\n"),
+            },
+        )
     )
 
     failing: harness.Rec = box.rec(
         "m",
         files={
-            box.path("p/a"): engine.File(content="a2\n"),
-            box.path("p/c"): engine.File(source_file=box.path("missing")),
-            box.path("p/d"): engine.File(content="d\n"),
+            box.path("p/a"): nosarch.engine.File(content="a2\n"),
+            box.path("p/c"): nosarch.engine.File(source_file=box.path("missing")),
+            box.path("p/d"): nosarch.engine.File(content="d\n"),
         },
     )
-    with pytest.raises(engine.fs.InstallError, match="Source file doesn't exist"):
+    with pytest.raises(nosarch.engine.fs.InstallError, match="Source file doesn't exist"):
         box.apply(failing)
 
     assert box.read("p/a") == "a2\n"
@@ -452,9 +472,10 @@ def test_a_missing_source_stops_the_step_and_removes_nothing(box: harness.Box) -
 def test_two_modules_cannot_declare_one_path(box: harness.Box) -> None:
     same: str = box.path("same")
 
-    with pytest.raises(engine.steps.files.DuplicateTargetError, match="declared by both a and b"):
+    with pytest.raises(nosarch.engine.steps.files.DuplicateTargetError, match="declared by both a and b"):
         box.apply(
-            box.rec("a", files={same: engine.File(content="x")}), box.rec("b", files={same: engine.File(content="y")})
+            box.rec("a", files={same: nosarch.engine.File(content="x")}),
+            box.rec("b", files={same: nosarch.engine.File(content="y")}),
         )
 
 
@@ -462,9 +483,9 @@ def test_two_modules_cannot_declare_one_path(box: harness.Box) -> None:
 def test_an_undeclared_file_is_removed_and_its_module_hears_about_it(box: harness.Box) -> None:
     a: str = box.path("p/a")
     b: str = box.path("p/b")
-    box.apply(box.rec("m", files={a: engine.File(content="a\n"), b: engine.File(content="b\n")}))
+    box.apply(box.rec("m", files={a: nosarch.engine.File(content="a\n"), b: nosarch.engine.File(content="b\n")}))
 
-    module: harness.Rec = box.rec("m", files={a: engine.File(content="a\n")})
+    module: harness.Rec = box.rec("m", files={a: nosarch.engine.File(content="a\n")})
     box.apply(module)
 
     assert not box.exists("p/b")
@@ -475,8 +496,8 @@ def test_an_undeclared_file_is_removed_and_its_module_hears_about_it(box: harnes
 
 def test_a_file_that_moves_between_modules_is_not_removed(box: harness.Box) -> None:
     moved: str = box.path("p/moved")
-    box.apply(box.rec("x", files={moved: engine.File(content="m\n")}), box.rec("y"))
-    box.apply(box.rec("x"), box.rec("y", files={moved: engine.File(content="m\n")}))
+    box.apply(box.rec("x", files={moved: nosarch.engine.File(content="m\n")}), box.rec("y"))
+    box.apply(box.rec("x"), box.rec("y", files={moved: nosarch.engine.File(content="m\n")}))
 
     assert box.read("p/moved") == "m\n"
     assert box.state().files == {"y": [moved]}  # pyright: ignore[reportOptionalMemberAccess]
@@ -487,10 +508,10 @@ def test_removing_a_file_that_is_already_gone_is_not_a_failure(
 ) -> None:
     a: str = box.path("p/a")
     b: str = box.path("p/b")
-    box.apply(box.rec("m", files={a: engine.File(content="a\n"), b: engine.File(content="b\n")}))
+    box.apply(box.rec("m", files={a: nosarch.engine.File(content="a\n"), b: nosarch.engine.File(content="b\n")}))
     os.remove(b)
 
-    box.apply(box.rec("m", files={a: engine.File(content="a\n")}))
+    box.apply(box.rec("m", files={a: nosarch.engine.File(content="a\n")}))
 
     assert "Could not remove" not in capsys.readouterr().err
     assert box.state().files == {"m": [a]}  # pyright: ignore[reportOptionalMemberAccess]
@@ -500,7 +521,7 @@ def test_a_directory_where_a_managed_file_was_is_left_alone(
     box: harness.Box, capsys: pytest.CaptureFixture[str]
 ) -> None:
     target: str = box.path("p/a")
-    box.apply(box.rec("m", files={target: engine.File(content="a\n")}))
+    box.apply(box.rec("m", files={target: nosarch.engine.File(content="a\n")}))
     os.remove(target)
     os.mkdir(target)
     box.write("p/a/mine.txt", "mine\n")
@@ -517,9 +538,11 @@ def test_a_run_that_skips_the_files_step_removes_nothing(box: harness.Box) -> No
     a: str = box.path("p/a")
     b: str = box.path("p/b")
     steps: tuple[str, str] = ("files", "systemd")
-    box.apply(box.rec("m", files={a: engine.File(content="a\n"), b: engine.File(content="b\n")}), steps=steps)
+    box.apply(
+        box.rec("m", files={a: nosarch.engine.File(content="a\n"), b: nosarch.engine.File(content="b\n")}), steps=steps
+    )
 
-    box.apply(box.rec("m", files={a: engine.File(content="a\n")}), steps=steps, only=["systemd"])
+    box.apply(box.rec("m", files={a: nosarch.engine.File(content="a\n")}), steps=steps, only=["systemd"])
 
     assert box.exists("p/b")
     assert box.state().files == {"m": [a, b]}  # pyright: ignore[reportOptionalMemberAccess]
@@ -535,12 +558,12 @@ def test_a_dry_run_changes_nothing(box: harness.Box, capsys: pytest.CaptureFixtu
         box.rec(
             "m",
             files={
-                box.path("p/new"): engine.File(content="new\n"),
-                box.path("p/changed"): engine.File(content="new\n"),
-                box.path("p/same"): engine.File(content="same\n"),
+                box.path("p/new"): nosarch.engine.File(content="new\n"),
+                box.path("p/changed"): nosarch.engine.File(content="new\n"),
+                box.path("p/same"): nosarch.engine.File(content="same\n"),
             },
             symlinks={box.path("p/link"): "/x"},
-            directories={box.path("p/dir"): engine.Directory(source_directory=box.path("tree"))},
+            directories={box.path("p/dir"): nosarch.engine.Directory(source_directory=box.path("tree"))},
         ),
         dry_run=True,
     )
@@ -562,9 +585,9 @@ def test_a_dry_run_lists_what_a_real_run_would_change(box: harness.Box, capsys: 
     box.apply(
         box.rec(
             "m",
-            files={box.path("p/mode"): engine.File(content="x\n")},
+            files={box.path("p/mode"): nosarch.engine.File(content="x\n")},
             symlinks={box.path("p/wrong"): "/new"},
-            directories={box.path("p/dir"): engine.Directory(source_directory=box.path("tree"))},
+            directories={box.path("p/dir"): nosarch.engine.Directory(source_directory=box.path("tree"))},
         ),
         dry_run=True,
     )
@@ -578,7 +601,7 @@ def test_a_dry_run_lists_what_a_real_run_would_change(box: harness.Box, capsys: 
 
 def test_a_dry_run_reads_a_missing_source(box: harness.Box) -> None:
     # Reading the source shows a missing one before a real run.
-    module: harness.Rec = box.rec("m", files={box.path("p/a"): engine.File(source_file=box.path("missing"))})
+    module: harness.Rec = box.rec("m", files={box.path("p/a"): nosarch.engine.File(source_file=box.path("missing"))})
 
-    with pytest.raises(engine.fs.InstallError, match="Source file doesn't exist"):
+    with pytest.raises(nosarch.engine.fs.InstallError, match="Source file doesn't exist"):
         box.apply(module, dry_run=True)

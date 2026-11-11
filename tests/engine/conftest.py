@@ -7,10 +7,11 @@ import shutil
 from collections.abc import Iterator
 from pathlib import Path
 
-import engine.command
-import engine.state
 import harness
 import pytest
+
+import nosarch.engine.command
+import nosarch.engine.state
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -26,8 +27,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 def box(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[harness.Box]:
     log: list[str] = []
     commands: harness.Commands = harness.Commands(log)
-    monkeypatch.setattr(engine.command, "run", commands)
-    monkeypatch.setattr(engine.state, "STATE_FILE", str(tmp_path / "var" / "state.json"))
+    monkeypatch.setattr(nosarch.engine.command, "run", commands)
+    monkeypatch.setattr(nosarch.engine.state, "STATE_FILE", str(tmp_path / "var" / "state.json"))
 
     root: Path = tmp_path / "machine"
     root.mkdir()

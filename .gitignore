@@ -4,7 +4,9 @@
 !.zed/
 !.editorconfig
 !.pre-commit-config.yaml
-!.ruff.toml
 
 __pycache__
+*.egg-info/
+build/
+dist/
 mise.local.toml

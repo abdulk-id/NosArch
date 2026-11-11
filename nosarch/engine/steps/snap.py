@@ -1,21 +1,21 @@
 import shutil
 
-import engine.command
-import engine.module
-import engine.output
-import engine.setup
+import nosarch.engine.command
+import nosarch.engine.module
+import nosarch.engine.output
+import nosarch.engine.setup
 
 _BASE_SNAP_NAMES: tuple[str, ...] = ("bare", "snapd")
 _BASE_SNAP_PREFIXES: tuple[str, ...] = ("core", "kernel-")
 
 _ENV: dict[str, str] = {"LC_ALL": "C"}
 
-snaps = engine.module.declares("snap")
-classic_snaps = engine.module.declares("snap_classic")
+snaps = nosarch.engine.module.declares("snap")
+classic_snaps = nosarch.engine.module.declares("snap_classic")
 
 
 def _installed() -> dict[str, str]:
-    output: str = engine.command.run(["snap", "list"], env=_ENV, capture=True)
+    output: str = nosarch.engine.command.run(["snap", "list"], env=_ENV, capture=True)
     installed: dict[str, str] = {}
     for line in output.strip().splitlines()[1:]:
         fields: list[str] = line.split()
@@ -24,8 +24,8 @@ def _installed() -> dict[str, str]:
     return installed
 
 
-def run(ctx: engine.setup.Context) -> None:
-    engine.output.print_summary("Checking snaps.")
+def run(ctx: nosarch.engine.setup.Context) -> None:
+    nosarch.engine.output.print_summary("Checking snaps.")
 
     confined: dict[str, str] = ctx.declared("snap")
     classic: dict[str, str] = ctx.declared("snap_classic")
@@ -42,16 +42,16 @@ def run(ctx: engine.setup.Context) -> None:
             raise RuntimeError(f"Snap '{name}' has an invalid channel '{channel}'.")
 
     if shutil.which("snap") is None:
-        engine.output.print_warning("snapd is not installed yet, so snaps cannot be checked.")
+        nosarch.engine.output.print_warning("snapd is not installed yet, so snaps cannot be checked.")
         if not ctx.dry_run:
             raise RuntimeError("The snap command is missing.")
         return
 
-    if not engine.command.succeeds(["systemctl", "is-active", "--quiet", "snapd.socket"]):
+    if not nosarch.engine.command.succeeds(["systemctl", "is-active", "--quiet", "snapd.socket"]):
         if ctx.dry_run:
-            engine.output.print_warning("snapd is not running, so snaps cannot be checked.")
+            nosarch.engine.output.print_warning("snapd is not running, so snaps cannot be checked.")
             return
-        engine.command.run(["systemctl", "start", "snapd.socket", "snapd.apparmor.service"], check=False)
+        nosarch.engine.command.run(["systemctl", "start", "snapd.socket", "snapd.apparmor.service"], check=False)
 
     installed: dict[str, str] = _installed()
     to_install: dict[str, tuple[bool, str]] = {name: entry for name, entry in declared.items() if name not in installed}
@@ -64,18 +64,18 @@ def run(ctx: engine.setup.Context) -> None:
         and not name.startswith(_BASE_SNAP_PREFIXES)
     }
 
-    engine.output.print_list("Removing snaps:" if not ctx.dry_run else "Snaps to remove:", to_remove)
-    engine.output.print_list("Installing snaps:" if not ctx.dry_run else "Snaps to install:", set(to_install))
+    nosarch.engine.output.print_list("Removing snaps:" if not ctx.dry_run else "Snaps to remove:", to_remove)
+    nosarch.engine.output.print_list("Installing snaps:" if not ctx.dry_run else "Snaps to install:", set(to_install))
 
     if ctx.dry_run:
         return
 
     if to_remove:
-        engine.command.run(["snap", "remove", *sorted(to_remove)], env=_ENV)
+        nosarch.engine.command.run(["snap", "remove", *sorted(to_remove)], env=_ENV)
 
     if to_install:
-        engine.command.run(["snap", "wait", "system", "seed.loaded"], env=_ENV)
+        nosarch.engine.command.run(["snap", "wait", "system", "seed.loaded"], env=_ENV)
         for name, (is_classic, channel) in sorted(to_install.items()):
-            engine.command.run(
+            nosarch.engine.command.run(
                 ["snap", "install", *(["--classic"] if is_classic else []), f"--channel={channel}", name], env=_ENV
             )

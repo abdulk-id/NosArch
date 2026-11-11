@@ -15,9 +15,8 @@ NosArch Works can be enabled by setting `advanced.enable_nosarch_works` to `true
 ## Testing
 
 - Shell scripts: `shellcheck`.
-- Definition code: `nosarch/apply.py --dry-run` (or `mise run dry-run-quick`). It needs no root, so an agent can run it.
-  Before NosArch has a state file of its own, run `nosarch/apply.py --import-decman` once (it asks for sudo), or the
-  dry run sees every module as new.
+- Definition code: `python -m nosarch --dry-run` from the repository root (or `mise run dryrun`). It needs no root, so
+  an agent can run it. With no state file yet, a dry run treats every module as newly enabled.
 - Engine: `mise run test-engine` (pytest, `tests/engine/`) runs real, non-dry runs against a scratch directory,
   without root and without running any command. `mise run test-engine-root` runs the few tests that chown or switch
   user, in a user namespace that fakes root. Both need `python-pytest`, which NosArch Works installs.

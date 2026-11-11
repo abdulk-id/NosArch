@@ -10,16 +10,16 @@
 - Prefer module-qualified local imports so call sites show where names come from:
 
     ```python
-    import utils.chassis_type
+    import nosarch.utils.hardware.chassis_type
 
-    if utils.chassis_type.is_laptop():
+    if nosarch.utils.hardware.chassis_type.is_laptop():
         ...
     ```
 
 - Use strict typing for NosArch code. Annotate function parameters, return values, and variables.
     - External integration code, such as Nautilus extensions, is exempt when host API types are unavailable.
-- Import the engine as `import engine` and use its namespaces explicitly, such as `engine.Module`. Declaration
-  decorators come from the steps: `from engine.steps import pacman`.
+- Import the engine as `import nosarch.engine` and use its namespaces explicitly, such as `nosarch.engine.Module`.
+  Declaration decorators come from the steps: `from nosarch.engine.steps import pacman`.
 - Place declaration decorators such as `@pacman.packages` directly above the method they register.
 - Extend `Setup` collections with `|=` or `+=`. Do not reassign them.
 

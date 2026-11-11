@@ -2,7 +2,7 @@
 The scratch machine the engine tests run on: a recorder for every command, a fake account database, and modules that log
 their hooks.
 
-Files go under a temporary directory and the state file lives there too. No command ever really runs: `engine.command.run`
+Files go under a temporary directory and the state file lives there too. No command ever really runs: `nosarch.engine.command.run`
 is replaced by `Commands`, so a step that would call `systemctl` or `useradd` only leaves its argument list behind. Tests
 of the command runner itself use `real_run`.
 """
@@ -18,15 +18,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, override
 
-import engine
-import engine.app
-import engine.changes
-import engine.command
-import engine.output
-import engine.state
 import pytest
-from engine.command import run as real_run
-from engine.steps import systemd
+
+import nosarch.engine
+import nosarch.engine.app
+import nosarch.engine.command
+import nosarch.engine.state
+from nosarch.engine.command import run as real_run
+from nosarch.engine.steps import systemd
 
 __all__ = ["Accounts", "Box", "Call", "Commands", "Rec", "real_run"]
 
@@ -41,7 +40,7 @@ class Call:
 
 
 class Commands:
-    """Stands in for `engine.command.run`: records every call, succeeds, and fails the ones a test says to fail."""
+    """Stands in for `nosarch.engine.command.run`: records every call, succeeds, and fails the ones a test says to fail."""
 
     def __init__(self, log: list[str]) -> None:
         self.calls: list[Call] = []
@@ -80,7 +79,7 @@ class Commands:
         for prefix, code in self._failures:
             if cmd[: len(prefix)] == prefix:
                 if check:
-                    raise engine.command.CommandFailedError(cmd, code, "" if capture else None)
+                    raise nosarch.engine.command.CommandFailedError(cmd, code, "" if capture else None)
                 return ""
 
         for prefix, effect in self._effects:
@@ -177,7 +176,7 @@ class Accounts:
         name: str = cmd[-1]
         group: str | None = self._option(cmd, "--gid")
         if group is not None and group not in self.groups:
-            raise engine.command.CommandFailedError(cmd, 6, None)
+            raise nosarch.engine.command.CommandFailedError(cmd, 6, None)
         if "--user-group" in cmd or group is None:
             self.add_group(name, self._next_id("--system" in cmd))
             group = name
@@ -220,7 +219,7 @@ class Accounts:
 
 
 # --- Modules ----------------------------------------------------------------------------------------------------------
-class Rec(engine.Module):
+class Rec(nosarch.engine.Module):
     """
     A module that writes every hook that runs to the shared log, as `before_update:name`.
 
@@ -233,9 +232,9 @@ class Rec(engine.Module):
         name: str,
         log: list[str],
         *,
-        files: dict[str, engine.File] | None = None,
-        directories: dict[str, engine.Directory] | None = None,
-        symlinks: dict[str, str | engine.Symlink] | None = None,
+        files: dict[str, nosarch.engine.File] | None = None,
+        directories: dict[str, nosarch.engine.Directory] | None = None,
+        symlinks: dict[str, str | nosarch.engine.Symlink] | None = None,
         variables: dict[str, str] | None = None,
         units: set[str] | None = None,
         user_units: dict[str, set[str]] | None = None,
@@ -243,14 +242,14 @@ class Rec(engine.Module):
     ) -> None:
         super().__init__(name)
         self._log: list[str] = log
-        self._files: dict[str, engine.File] = files or {}
-        self._directories: dict[str, engine.Directory] = directories or {}
-        self._symlinks: dict[str, str | engine.Symlink] = symlinks or {}
+        self._files: dict[str, nosarch.engine.File] = files or {}
+        self._directories: dict[str, nosarch.engine.Directory] = directories or {}
+        self._symlinks: dict[str, str | nosarch.engine.Symlink] = symlinks or {}
         self._variables: dict[str, str] = variables or {}
         self._units: set[str] = units or set()
         self._user_units: dict[str, set[str]] = user_units or {}
         self._actions: dict[str, Callable[[], None]] = actions or {}
-        self.changes: list[engine.Changes] = []
+        self.changes: list[nosarch.engine.Changes] = []
 
     def _hook(self, event: str) -> None:
         self._log.append(f"{event}:{self.name}")
@@ -266,7 +265,7 @@ class Rec(engine.Module):
         self._hook("on_enable")
 
     @override
-    def on_change(self, changes: engine.Changes) -> None:
+    def on_change(self, changes: nosarch.engine.Changes) -> None:
         self.changes.append(changes)
         self._hook("on_change")
 
@@ -279,15 +278,15 @@ class Rec(engine.Module):
         self._hook("on_disable")
 
     @override
-    def files(self) -> dict[str, engine.File]:
+    def files(self) -> dict[str, nosarch.engine.File]:
         return dict(self._files)
 
     @override
-    def directories(self) -> dict[str, engine.Directory]:
+    def directories(self) -> dict[str, nosarch.engine.Directory]:
         return dict(self._directories)
 
     @override
-    def symlinks(self) -> dict[str, str | engine.Symlink]:
+    def symlinks(self) -> dict[str, str | nosarch.engine.Symlink]:
         return dict(self._symlinks)
 
     @override
@@ -345,17 +344,17 @@ class Box:
     def exists(self, relative: str) -> bool:
         return os.path.lexists(self.root / relative)
 
-    def state(self) -> engine.state.State | None:
-        return engine.state.load()
+    def state(self) -> nosarch.engine.state.State | None:
+        return nosarch.engine.state.load()
 
     def rec(self, name: str, **declarations: Any) -> Rec:
         return Rec(name, self.log, **declarations)
 
     def apply(
         self,
-        *modules: engine.Module,
-        disabled: Iterable[engine.Module] = (),
-        users: Iterable[engine.User] = (),
+        *modules: nosarch.engine.Module,
+        disabled: Iterable[nosarch.engine.Module] = (),
+        users: Iterable[nosarch.engine.User] = (),
         steps: Iterable[str] = ("files",),
         dry_run: bool = False,
         only: Iterable[str] = (),
@@ -363,21 +362,21 @@ class Box:
         no_hooks: bool = False,
     ) -> None:
         """
-        One run, as `nosarch/apply.py` does it. An error the engine raises reaches the test.
+        One run, as `python -m nosarch` does it. An error the engine raises reaches the test.
 
         `self.log` and `self.commands` start empty, so they describe this run only.
         """
         self.log.clear()
         self.commands.reset()
 
-        setup: engine.Setup = engine.Setup(steps=list(steps))
+        setup: nosarch.engine.Setup = nosarch.engine.Setup(steps=list(steps))
         for module in modules:
             setup.add(module)
         for module in disabled:
             setup.add(module, enabled=False)
         setup.users += list(users)
 
-        engine.app.run(
+        nosarch.engine.app.run(
             setup,
             argparse.Namespace(
                 dry_run=dry_run, only=list(only), skip=list(skip), no_hooks=no_hooks, aur_upgrade_devel=False

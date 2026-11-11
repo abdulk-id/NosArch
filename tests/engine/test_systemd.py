@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import engine
-import engine.command
 import harness
 import pytest
-from engine.steps import systemd
+
+import nosarch.engine
+import nosarch.engine.command
+from nosarch.engine.steps import systemd
 
 STEPS: tuple[str] = ("systemd",)
 RELOAD: list[str] = ["systemctl", "daemon-reload"]
@@ -48,7 +49,7 @@ def test_a_failing_enable_fails_the_run_and_records_nothing(
 ) -> None:
     box.commands.fail("systemctl", "enable")
 
-    with pytest.raises(engine.command.CommandFailedError):
+    with pytest.raises(nosarch.engine.command.CommandFailedError):
         box.apply(box.rec("m", units={"good.service", "bad.service"}), steps=STEPS)
 
     assert box.hooks == ["before_update:m"]

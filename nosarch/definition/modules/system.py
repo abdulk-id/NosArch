@@ -2,24 +2,24 @@ import os
 import sys
 from typing import override
 
-import engine
-import utils.apply
-import utils.dotfile.luks_uuid
-import utils.dotfile.wireless_regdom
-import utils.hardware.chassis_type
-import utils.hardware.cpu_vendor
-import utils.hardware.firmware_vendors
-import utils.hardware.thunderbolt
-import utils.paths
-import utils.snapshots
-import utils.swapfile
-from definition.user_config import UserConfigReader
-from engine import File
-from engine.output import print_info
-from engine.steps import aur, pacman, systemd
+import nosarch.engine
+import nosarch.utils.apply
+import nosarch.utils.dotfile.luks_uuid
+import nosarch.utils.dotfile.wireless_regdom
+import nosarch.utils.hardware.chassis_type
+import nosarch.utils.hardware.cpu_vendor
+import nosarch.utils.hardware.firmware_vendors
+import nosarch.utils.hardware.thunderbolt
+import nosarch.utils.paths
+import nosarch.utils.snapshots
+import nosarch.utils.swapfile
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine import File
+from nosarch.engine.output import print_info
+from nosarch.engine.steps import aur, pacman, systemd
 
 
-class SystemModule(engine.Module):
+class SystemModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="system")
 
@@ -27,15 +27,15 @@ class SystemModule(engine.Module):
         self._username: str = self._user_config.user.username
         self._swapfile_enabled: bool = self._user_config.advanced.enable_swapfile
 
-        self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
-        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/system-root", self._username
+        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("system-root")
+        self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
+            "system-root", self._username
         )
 
     @override
     def file_variables(self) -> dict[str, str]:
         return {
-            "%LUKS_UUID%": utils.dotfile.luks_uuid.get_luks_uuid(),
+            "%LUKS_UUID%": nosarch.utils.dotfile.luks_uuid.get_luks_uuid(),
             "%RESUME_PARAMS%": self._resume_params(),
             "%USER%": self._username,
             "%FULLNAME%": self._user_config.user.fullname,
@@ -83,7 +83,7 @@ class SystemModule(engine.Module):
         if self._swapfile_enabled:
             files.update(self._dotfiles.files("/etc/systemd/system/swap-swapfile.swap"))
 
-        wireless_regdom: str | None = utils.dotfile.wireless_regdom.get_wireless_regdom_contents()
+        wireless_regdom: str | None = nosarch.utils.dotfile.wireless_regdom.get_wireless_regdom_contents()
         if wireless_regdom:
             files.update(
                 {
@@ -177,59 +177,59 @@ class SystemModule(engine.Module):
         self._release_display_manager_alias()
 
         # Before the pacman step, whose package backup hook snapshots into it.
-        utils.snapshots.create_subvolume()
+        nosarch.utils.snapshots.create_subvolume()
 
         # Before the files step, which reads the swapfile's offset for the kernel command line.
         if self._swapfile_enabled:
-            utils.swapfile.create()
+            nosarch.utils.swapfile.create()
 
     @override
-    def on_change(self, changes: engine.Changes) -> None:
+    def on_change(self, changes: nosarch.engine.Changes) -> None:
         if changes.files_changed_in_dirs("/etc/systemd/system", "/usr/lib/systemd"):
-            utils.apply.reload_systemd()
+            nosarch.utils.apply.reload_systemd()
 
         if changes.files_changed_in_dirs("/etc/NetworkManager"):
-            utils.apply.reload_network_manager()
+            nosarch.utils.apply.reload_network_manager()
 
         if changes.files_changed_in_dirs("/etc/sysctl.d"):
-            utils.apply.apply_sysctl()
+            nosarch.utils.apply.apply_sysctl()
 
         if changes.files_changed_in_dirs("/etc/systemd/journald.conf.d"):
-            utils.apply.restart_journald()
+            nosarch.utils.apply.restart_journald()
 
         if changes.files_changed_in_dirs(
             "/etc/systemd/system.conf.d", "/etc/systemd/user.conf.d"
         ) or changes.files_changed("/etc/systemd/system.conf"):
-            utils.apply.reexec_systemd()
+            nosarch.utils.apply.reexec_systemd()
 
         if changes.files_changed_in_dirs("/etc/tmpfiles.d"):
-            utils.apply.clean_tmpfiles()
+            nosarch.utils.apply.clean_tmpfiles()
 
         if changes.files_changed_in_dirs("/etc/udev/rules.d"):
-            utils.apply.reload_udev()
+            nosarch.utils.apply.reload_udev()
 
         if changes.files_changed_in_dirs("/etc/ufw"):
-            utils.apply.restart_ufw()
+            nosarch.utils.apply.restart_ufw()
 
         if changes.files_changed_in_dirs(
             "/etc/modprobe.d", "/etc/mkinitcpio.conf.d", "/etc/plymouth", "/usr/share/plymouth/themes"
         ) or changes.files_changed("/etc/mkinitcpio.conf", "/etc/default/limine"):
-            utils.apply.rebuild_initramfs()
+            nosarch.utils.apply.rebuild_initramfs()
 
         if changes.files_changed("/etc/systemd/zram-generator.conf", "/etc/modules-load.d/zram.conf"):
             # Applying these live means swapoff on an active zram device holding
             # compressed pages, which can OOM the machine under memory pressure.
-            utils.apply.request_reboot("ZRAM configuration")
+            nosarch.utils.apply.request_reboot("ZRAM configuration")
 
         if changes.files_changed_in_dirs("/etc/systemd/logind.conf.d"):
             # systemd-logind has no ExecReload, and restarting it disturbs active sessions.
-            utils.apply.request_reboot("logind configuration")
+            nosarch.utils.apply.request_reboot("logind configuration")
 
         if changes.files_changed_in_dirs("/etc/sddm.conf.d", "/usr/share/sddm") or changes.files_changed(
             "/etc/pam.d/sddm"
         ):
             # SDDM reads this when the greeter starts. Restarting the display manager here ends the session.
-            utils.apply.request_reboot("SDDM configuration")
+            nosarch.utils.apply.request_reboot("SDDM configuration")
 
     @override
     def after_update(self) -> None:
@@ -280,19 +280,19 @@ class SystemModule(engine.Module):
             system_set.add("linux-lts")
             system_set.add("linux-lts-headers")
 
-        system_set |= utils.hardware.firmware_vendors.get_firmware_packages()
+        system_set |= nosarch.utils.hardware.firmware_vendors.get_firmware_packages()
 
-        if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
+        if nosarch.utils.hardware.chassis_type.is_laptop() or nosarch.utils.hardware.chassis_type.has_battery():
             system_set.add("power-profiles-daemon")
 
-        if utils.hardware.cpu_vendor.is_cpu_intel():
+        if nosarch.utils.hardware.cpu_vendor.is_cpu_intel():
             system_set.add("intel-ucode")
             system_set.add("thermald")
 
-            if utils.hardware.cpu_vendor.is_intel_hybrid():
+            if nosarch.utils.hardware.cpu_vendor.is_intel_hybrid():
                 system_set.add("intel-lpmd")
 
-        elif utils.hardware.cpu_vendor.is_cpu_amd():
+        elif nosarch.utils.hardware.cpu_vendor.is_cpu_amd():
             system_set.add("amd-ucode")
 
         security_set: set[str] = {"apparmor", "firewalld", "ufw"}
@@ -317,7 +317,7 @@ class SystemModule(engine.Module):
 
         utility_set: set[str] = {"curl", "fd", "fzf", "gum", "jq", "ripgrep", "which"}
 
-        if utils.hardware.thunderbolt.is_thunderbolt_present():
+        if nosarch.utils.hardware.thunderbolt.is_thunderbolt_present():
             connectivity_set.add("bolt")  # Thunderbolt device authorization
 
         merged_set: set[str] = system_set.union(security_set, connectivity_set, utility_set)
@@ -347,13 +347,13 @@ class SystemModule(engine.Module):
         if self._swapfile_enabled:
             systemd_set.add("swap-swapfile.swap")
 
-        if utils.hardware.chassis_type.is_laptop() or utils.hardware.chassis_type.has_battery():
+        if nosarch.utils.hardware.chassis_type.is_laptop() or nosarch.utils.hardware.chassis_type.has_battery():
             systemd_set.add("power-profiles-daemon.service")
 
-        if utils.hardware.cpu_vendor.is_cpu_intel():
+        if nosarch.utils.hardware.cpu_vendor.is_cpu_intel():
             systemd_set.add("thermald.service")
 
-            if utils.hardware.cpu_vendor.is_intel_hybrid():
+            if nosarch.utils.hardware.cpu_vendor.is_intel_hybrid():
                 systemd_set.add("intel_lpmd.service")
 
         return systemd_set
@@ -372,10 +372,10 @@ class SystemModule(engine.Module):
             return "resume=/dev/mapper/cryptroot resume_offset=<read at apply time>"
 
         # `before_update` creates the swapfile before the files step.
-        if not utils.swapfile.exists():
-            raise RuntimeError(f"{utils.swapfile.SWAPFILE_PATH} does not exist. Run without --no-hooks.")
+        if not nosarch.utils.swapfile.exists():
+            raise RuntimeError(f"{nosarch.utils.swapfile.SWAPFILE_PATH} does not exist. Run without --no-hooks.")
 
-        return f"resume=/dev/mapper/cryptroot resume_offset={utils.swapfile.get_resume_offset()}"
+        return f"resume=/dev/mapper/cryptroot resume_offset={nosarch.utils.swapfile.get_resume_offset()}"
 
     # `before_update` hook actions ---
     def _release_display_manager_alias(self) -> None:
@@ -391,7 +391,7 @@ class SystemModule(engine.Module):
         # before it disables old ones, and systemctl enable leaves an existing alias in place. Disabling the
         # current greeter removes the alias and leaves that greeter running.
         print_info(f"Disabling {target_unit} so SDDM can own display-manager.service.")
-        _ = engine.run(["systemctl", "disable", target_unit])
+        _ = nosarch.engine.run(["systemctl", "disable", target_unit])
 
     # `after_update` hook actions ---
     def _update_limine_conf_settings(self) -> None:

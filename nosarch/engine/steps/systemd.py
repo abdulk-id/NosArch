@@ -1,23 +1,23 @@
-import engine.command
-import engine.module
-import engine.output
-import engine.setup
+import nosarch.engine.command
+import nosarch.engine.module
+import nosarch.engine.output
+import nosarch.engine.setup
 
-units = engine.module.declares("systemd")
-user_units = engine.module.declares("systemd_user")
+units = nosarch.engine.module.declares("systemd")
+user_units = nosarch.engine.module.declares("systemd_user")
 
 
-def run(ctx: engine.setup.Context) -> None:
-    engine.output.print_summary("Checking systemd units.")
+def run(ctx: nosarch.engine.setup.Context) -> None:
+    nosarch.engine.output.print_summary("Checking systemd units.")
 
     try:
         _apply(ctx)
-    except engine.command.CommandFailedError:
-        engine.output.print_error("Running a systemd command failed.")
+    except nosarch.engine.command.CommandFailedError:
+        nosarch.engine.output.print_error("Running a systemd command failed.")
         raise
 
 
-def _apply(ctx: engine.setup.Context) -> None:
+def _apply(ctx: nosarch.engine.setup.Context) -> None:
     dry: bool = ctx.dry_run
     declared: set[str] = ctx.declared("systemd")
     enabled: set[str] = set(ctx.state.systemd_units)
@@ -31,23 +31,23 @@ def _apply(ctx: engine.setup.Context) -> None:
 
     to_enable: set[str] = declared - enabled
     to_disable: set[str] = enabled - declared
-    engine.output.print_list("Enabling systemd units:", to_enable)
+    nosarch.engine.output.print_list("Enabling systemd units:", to_enable)
     if to_enable and not dry:
-        engine.command.run(["systemctl", "enable", *sorted(to_enable)])
-    engine.output.print_list("Disabling systemd units:", to_disable)
+        nosarch.engine.command.run(["systemctl", "enable", *sorted(to_enable)])
+    nosarch.engine.output.print_list("Disabling systemd units:", to_disable)
     if to_disable and not dry:
-        engine.command.run(["systemctl", "disable", *sorted(to_disable)], check=False)
+        nosarch.engine.command.run(["systemctl", "disable", *sorted(to_disable)], check=False)
     if not dry:
         ctx.state.systemd_units = sorted(declared)
 
     for verb, planned in user_changes:
         label: str = "Enabling" if verb == "enable" else "Disabling"
         for user in users:
-            engine.output.print_list(f"{label} systemd units for {user}:", planned[user])
+            nosarch.engine.output.print_list(f"{label} systemd units for {user}:", planned[user])
             if dry:
                 continue
             if planned[user]:
-                engine.command.run(
+                nosarch.engine.command.run(
                     ["systemctl", "--user", "-M", f"{user}@", verb, *sorted(planned[user])], check=verb == "enable"
                 )
             current: set[str] = set(enabled_user.get(user, []))
@@ -57,6 +57,6 @@ def _apply(ctx: engine.setup.Context) -> None:
     if dry:
         return
 
-    engine.command.run(["systemctl", "daemon-reload"])
+    nosarch.engine.command.run(["systemctl", "daemon-reload"])
     for user in users:
-        engine.command.run(["systemctl", "--user", "-M", f"{user}@", "daemon-reload"], check=False)
+        nosarch.engine.command.run(["systemctl", "--user", "-M", f"{user}@", "daemon-reload"], check=False)

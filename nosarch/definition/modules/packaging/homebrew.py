@@ -4,11 +4,11 @@ import shutil
 from pathlib import Path
 from typing import override
 
-import engine
-import engine.output
-import utils.paths
-from engine import File
-from engine.steps import pacman
+import nosarch.engine
+import nosarch.engine.output
+import nosarch.utils.paths
+from nosarch.engine import File
+from nosarch.engine.steps import pacman
 
 # Standard Homebrew-on-Linux prefix. Everything the git-clone install creates
 # lives here, so teardown is a single directory removal.
@@ -16,7 +16,7 @@ _BREW_PREFIX: str = "/home/linuxbrew/.linuxbrew"
 _BREW_BIN: str = f"{_BREW_PREFIX}/bin/brew"
 
 
-class HomebrewModule(engine.Module):
+class HomebrewModule(nosarch.engine.Module):
     """
     Bootstraps Homebrew itself so the `homebrew` step has a `brew` to drive.
     """
@@ -29,7 +29,7 @@ class HomebrewModule(engine.Module):
     def files(self) -> dict[str, File]:
         # nosarch-package sources this when it exists and skips Homebrew when it does not, which is how the CLI
         # follows this module being enabled or disabled.
-        files: dict[str, File] = utils.paths.Dotfiles("../dotfiles/system-root").files(
+        files: dict[str, File] = nosarch.utils.paths.Dotfiles("system-root").files(
             "/usr/local/bin/util/package/homebrew.sh"
         )
 
@@ -60,10 +60,10 @@ class HomebrewModule(engine.Module):
 
         # Root phase: create the prefix and hand it to the user.
         # (brew refuses to run as root, and owning the prefix up front means the clone needs no privileges.)
-        _ = engine.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {self._username}:{self._username} /home/linuxbrew")
+        _ = nosarch.engine.sh(f"mkdir -p {_BREW_PREFIX} && chown -R {self._username}:{self._username} /home/linuxbrew")
 
         # User phase: clone brew, link the launcher, prime the formula data.
-        _ = engine.sh(
+        _ = nosarch.engine.sh(
             "set -eu\n"
             + f'prefix="{_BREW_PREFIX}"\n'
             + 'if [ ! -d "$prefix/Homebrew" ]; then\n'
@@ -91,12 +91,14 @@ class HomebrewModule(engine.Module):
         if not present:
             return
 
-        engine.output.print_warning("Homebrew is disabled, but its data is still on disk.")
-        engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
-        engine.output.print_warning("Deleting them also deletes every formula brew installed. This cannot be undone.")
+        nosarch.engine.output.print_warning("Homebrew is disabled, but its data is still on disk.")
+        nosarch.engine.output.print_list("These paths can be deleted:", [str(p) for p in present], one_per_line=True)
+        nosarch.engine.output.print_warning(
+            "Deleting them also deletes every formula brew installed. This cannot be undone."
+        )
 
         # Without a terminal nothing is asked, so the data stays.
-        if not engine.output.prompt_confirm("Delete all Homebrew data?", default=False):
+        if not nosarch.engine.output.prompt_confirm("Delete all Homebrew data?", default=False):
             return
 
         # A cask can install files outside the prefix, so deleting the prefix leaves them behind and brew then
@@ -108,17 +110,17 @@ class HomebrewModule(engine.Module):
         if Path(_BREW_BIN).is_file():
             environment: dict[str, str] = {"HOMEBREW_NO_ENV_HINTS": "1"}
             try:
-                listed: str = engine.run(
+                listed: str = nosarch.engine.run(
                     [_BREW_BIN, "list", "--cask", "-1"], user=self._username, env=environment, capture=True
                 )
-            except engine.CommandFailedError:
+            except nosarch.engine.CommandFailedError:
                 listed = ""
             # A hint or an error line is not a cask, and uninstalling it would be a guess.
             cask_name = re.compile(r"^[A-Za-z0-9][A-Za-z0-9+_.@-]*$")
             casks: list[str] = [name.strip() for name in listed.splitlines() if cask_name.fullmatch(name.strip())]
 
             if casks:
-                _ = engine.run(
+                _ = nosarch.engine.run(
                     [_BREW_BIN, "uninstall", "--cask", *casks], user=self._username, env=environment, check=False
                 )
 
@@ -128,4 +130,4 @@ class HomebrewModule(engine.Module):
             elif path.is_dir():
                 shutil.rmtree(path, ignore_errors=True)
 
-        engine.output.print_info("Deleted Homebrew data.")
+        nosarch.engine.output.print_info("Deleted Homebrew data.")

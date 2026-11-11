@@ -1,12 +1,12 @@
 # Files
 
-NosArch is responsible for deploying dotfiles to the system. The dotfiles all live under `/dotfiles`, with each
+NosArch is responsible for deploying dotfiles to the system. The dotfiles all live under `nosarch/dotfiles/`, with each
 [module](modules.md) keeping a separate mirrored-root. For example: files managed by the desktop module are stored in
-`/dotfiles/desktop-root/...`, and dev module's files in `/dotfiles/dev-setup-root/...`.
+`nosarch/dotfiles/desktop-root/...`, and dev module's files in `nosarch/dotfiles/dev-setup-root/...`.
 
 Hidden files and directories are stored with a `dot_` prefix (For example: `dot_bashrc`, `dot_config/hypr/`)
 
-`dotfiles/unused-config/` holds currently unused config stored for if needed later. For example: NosArch is still
+`nosarch/dotfiles/unused-config/` holds currently unused config stored for if needed later. For example: NosArch is still
 exploring options for launchers. Vicinae was tried before and its config lives there. When the launcher has been
 finalised, unused launchers' config will be removed completely.
 
@@ -20,8 +20,8 @@ This is more verbose, and this is deliberate:
 - **A module is a manifest**: Reading a module tells you every path that module deploys to. With directories you would
   have to read the repo tree instead, and the two can drift.
 - **Nothing deploys by accident:** A `Directory()` ships whatever is in the source tree, so an editor backup, a `.orig`
-  from a merge, or a half-finished file lands on the system the moment it is saved. An undeclared file in `dotfiles/`
-  is inert.
+  from a merge, or a half-finished file lands on the system the moment it is saved. An undeclared file in
+  `nosarch/dotfiles/` is inert.
 - **Settings are per file, not per tree:** `Directory` applies one `owner`, `permissions` and `bin_files` to all files
   it walks. That cannot express a directory holding both templated text and binaries.
     - Example: The plymouth theme (system module). `bin_file=True` disables variable substitution so a single directory
@@ -32,13 +32,14 @@ and they don't have fixed names.
 
 ## Declaring
 
-Use the helpers in `utils/paths.py` rather than constructing `File` by hand. They derive the source path from the
-target path, which keeps the two in step and removes common typos.
+Use the helpers in `nosarch/utils/paths.py` rather than constructing `File` by hand. They derive the source path from
+the target path, which keeps the two in step and removes common typos. A root such as `system-root` is a directory
+under `nosarch/dotfiles/`, resolved from the package location rather than the process working directory.
 
 ```python
-self._dotfiles: utils.paths.Dotfiles = utils.paths.Dotfiles("../dotfiles/system-root")
-self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-    "../dotfiles/system-root", _username
+self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("system-root")
+self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
+    "system-root", _username
 )
 ```
 

@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import os
 
-import engine
 import harness
 import pytest
+
+import nosarch.engine
 
 pytestmark = pytest.mark.needs_root
 
@@ -33,8 +34,8 @@ def test_parent_directories_are_owned_like_the_file(box: harness.Box) -> None:
         box.rec(
             "m",
             files={
-                box.path("home/x/y/z.conf"): engine.File(content="z\n", owner="alice"),
-                box.path("etc/p/q/r.conf"): engine.File(content="r\n"),
+                box.path("home/x/y/z.conf"): nosarch.engine.File(content="z\n", owner="alice"),
+                box.path("etc/p/q/r.conf"): nosarch.engine.File(content="r\n"),
             },
         )
     )
@@ -46,7 +47,7 @@ def test_parent_directories_are_owned_like_the_file(box: harness.Box) -> None:
 
 def test_owner_drift_is_healed_and_counts_as_a_change(box: harness.Box) -> None:
     def module() -> harness.Rec:
-        return box.rec("m", files={box.path("a.conf"): engine.File(content="x\n", owner="alice")})
+        return box.rec("m", files={box.path("a.conf"): nosarch.engine.File(content="x\n", owner="alice")})
 
     box.apply(module())
     os.chown(box.path("a.conf"), 0, 0)
@@ -64,8 +65,8 @@ def test_a_file_with_no_owner_keeps_the_owner_of_the_file_it_replaces(box: harne
         box.rec(
             "m",
             files={
-                box.path("old.conf"): engine.File(content="new\n"),
-                box.path("new.conf"): engine.File(content="new\n"),
+                box.path("old.conf"): nosarch.engine.File(content="new\n"),
+                box.path("new.conf"): nosarch.engine.File(content="new\n"),
             },
         )
     )
@@ -77,7 +78,9 @@ def test_a_file_with_no_owner_keeps_the_owner_of_the_file_it_replaces(box: harne
 
 
 def test_an_explicit_group_applies_to_the_file_and_the_directories_made_for_it(box: harness.Box) -> None:
-    box.apply(box.rec("m", files={box.path("g/a.conf"): engine.File(content="x\n", owner="alice", group="wheel")}))
+    box.apply(
+        box.rec("m", files={box.path("g/a.conf"): nosarch.engine.File(content="x\n", owner="alice", group="wheel")})
+    )
 
     assert _owner(box, "g/a.conf") == (ALICE, WHEEL)
     assert _owner(box, "g") == (ALICE, WHEEL)
@@ -91,7 +94,9 @@ def test_a_directory_deploys_every_file_with_its_owner_and_mode(box: harness.Box
         box.rec(
             "m",
             directories={
-                box.path("out"): engine.Directory(source_directory=box.path("tree"), owner="alice", permissions=0o600)
+                box.path("out"): nosarch.engine.Directory(
+                    source_directory=box.path("tree"), owner="alice", permissions=0o600
+                )
             },
         )
     )
@@ -105,7 +110,10 @@ def test_a_symlink_is_owned_itself_and_so_are_its_parents(box: harness.Box) -> N
     box.apply(
         box.rec(
             "m",
-            symlinks={box.path("home/.x/y/link"): engine.Symlink("/etc/target", owner="alice"), box.path("snap"): "/s"},
+            symlinks={
+                box.path("home/.x/y/link"): nosarch.engine.Symlink("/etc/target", owner="alice"),
+                box.path("snap"): "/s",
+            },
         )
     )
 
@@ -115,9 +123,9 @@ def test_a_symlink_is_owned_itself_and_so_are_its_parents(box: harness.Box) -> N
 
 
 def test_a_file_owned_by_a_user_created_in_the_same_run(box: harness.Box) -> None:
-    module: harness.Rec = box.rec("m", files={box.path("bob.conf"): engine.File(content="x\n", owner="bob")})
+    module: harness.Rec = box.rec("m", files={box.path("bob.conf"): nosarch.engine.File(content="x\n", owner="bob")})
 
-    box.apply(module, users=[engine.User("bob")], steps=("users", "files"))
+    box.apply(module, users=[nosarch.engine.User("bob")], steps=("users", "files"))
 
     assert _owner(box, "bob.conf")[0] > 0
     assert box.read("bob.conf") == "x\n"

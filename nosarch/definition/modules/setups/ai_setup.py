@@ -1,15 +1,15 @@
 from typing import override
 
-import engine
-import utils.apply
-import utils.custom_packages
-import utils.paths
-from definition.user_config import UserConfigReader
-from engine import File
-from engine.steps import aur, pacman
+import nosarch.engine
+import nosarch.utils.apply
+import nosarch.utils.custom_packages
+import nosarch.utils.paths
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine import File
+from nosarch.engine.steps import aur, pacman
 
 
-class AISetupModule(engine.Module):
+class AISetupModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="ai_setup")
 
@@ -19,8 +19,8 @@ class AISetupModule(engine.Module):
         self._apps: list[str] = self._user_config.setups.ai.apps
         self._control_planes: list[str] = self._user_config.setups.ai.control_planes
 
-        self._userhome_dotfiles: utils.paths.UserhomeDotfiles = utils.paths.UserhomeDotfiles(
-            "../dotfiles/ai-setup-root", self._username
+        self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
+            "ai-setup-root", self._username
         )
 
     @override
@@ -41,9 +41,9 @@ class AISetupModule(engine.Module):
         return files
 
     @override
-    def on_change(self, changes: engine.Changes) -> None:
+    def on_change(self, changes: nosarch.engine.Changes) -> None:
         if changes.files_changed_in_dirs(f"/home/{self._username}/.config/hypr"):
-            utils.apply.reload_hyprland()
+            nosarch.utils.apply.reload_hyprland()
 
     @pacman.packages
     def pkgs(self) -> set[str]:

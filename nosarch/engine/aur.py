@@ -9,10 +9,10 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 
-import engine.command
-import engine.output
-import engine.setup
-import engine.state
+import nosarch.engine.command
+import nosarch.engine.output
+import nosarch.engine.setup
+import nosarch.engine.state
 
 _RPC_URL: str = "https://aur.archlinux.org/rpc/v5"
 _GIT_URL: str = "https://aur.archlinux.org/{base}.git"
@@ -144,14 +144,14 @@ def parse_srcinfo(srcinfo: str, pkgname: str, custom_dir: str) -> PackageInfo:
 
 
 def custom_info(pkgname: str, directory: str, build_user: str) -> PackageInfo:
-    user: str | None = build_user if engine.command.is_root() else None
+    user: str | None = build_user if nosarch.engine.command.is_root() else None
 
     scratch: str = tempfile.mkdtemp(prefix="nosarch-srcinfo-")
     try:
         if user is not None:
             shutil.chown(scratch, user=user)
         locations: dict[str, str] = {key: scratch for key in ("BUILDDIR", "PKGDEST", "SRCDEST", "LOGDEST")}
-        srcinfo: str = engine.command.run(
+        srcinfo: str = nosarch.engine.command.run(
             ["makepkg", "--printsrcinfo"], user=user, cwd=directory, env=locations, capture=True
         )
     finally:
@@ -251,7 +251,7 @@ class Resolver:
         choice: str = (
             providers[0]
             if len(providers) == 1
-            else engine.output.prompt_choice(f"Several AUR packages provide {name}:", providers)
+            else nosarch.engine.output.prompt_choice(f"Several AUR packages provide {name}:", providers)
         )
         self._chosen[name] = choice
         return choice
@@ -339,9 +339,9 @@ def _package_files(directory: str) -> dict[str, tuple[str, str]]:
 
 
 class Builder:
-    def __init__(self, settings: engine.setup.AurSettings, state: engine.state.State) -> None:
-        self._settings: engine.setup.AurSettings = settings
-        self._state: engine.state.State = state
+    def __init__(self, settings: nosarch.engine.setup.AurSettings, state: nosarch.engine.state.State) -> None:
+        self._settings: nosarch.engine.setup.AurSettings = settings
+        self._state: nosarch.engine.state.State = state
         self._chroot_ready: bool = False
         self.built: dict[str, str] = {}
 
@@ -371,28 +371,28 @@ class Builder:
             shutil.copytree(info.custom_dir, directory)
             return
 
-        engine.command.run(["git", "clone", "--quiet", _GIT_URL.format(base=info.base), directory])
+        nosarch.engine.command.run(["git", "clone", "--quiet", _GIT_URL.format(base=info.base), directory])
         self._review(info.base, directory)
 
     def _review(self, base: str, directory: str) -> None:
-        head: str = engine.command.run(["git", "-C", directory, "rev-parse", "HEAD"], capture=True).strip()
+        head: str = nosarch.engine.command.run(["git", "-C", directory, "rev-parse", "HEAD"], capture=True).strip()
         reviewed: str | None = self._state.aur_reviewed.get(base)
 
         if reviewed == head:
             return
 
-        if engine.output.prompt_confirm(f"Review the PKGBUILD of {base}?", default=True):
-            history: str = engine.command.run(["git", "-C", directory, "log", "--format=%H"], capture=True)
+        if nosarch.engine.output.prompt_confirm(f"Review the PKGBUILD of {base}?", default=True):
+            history: str = nosarch.engine.command.run(["git", "-C", directory, "log", "--format=%H"], capture=True)
             if reviewed is not None and reviewed in history.split():
-                engine.command.run(["git", "-C", directory, "diff", reviewed, head], check=False)
+                nosarch.engine.command.run(["git", "-C", directory, "diff", reviewed, head], check=False)
             else:
                 files: list[str] = sorted(
                     entry.path for entry in os.scandir(directory) if entry.is_file() and not entry.name.startswith(".")
                 )
                 pager: str = "less" if shutil.which("less") else "cat"
-                engine.command.run([pager, *files], check=False)
+                nosarch.engine.command.run([pager, *files], check=False)
 
-        if not engine.output.prompt_confirm(f"Build {base}?", default=True):
+        if not nosarch.engine.output.prompt_confirm(f"Build {base}?", default=True):
             raise AurError(f"Building {base} was declined.")
 
         self._state.aur_reviewed[base] = head
@@ -401,7 +401,7 @@ class Builder:
         if self._chroot_ready:
             return
 
-        engine.output.print_info("Creating a clean chroot to build in.")
+        nosarch.engine.output.print_info("Creating a clean chroot to build in.")
         os.makedirs(self._chroot_dir, mode=0o755, exist_ok=True)
 
         empty_hooks: str = os.path.join(self._settings.build_dir, "empty-hooks")
@@ -420,7 +420,7 @@ class Builder:
             chroot_conf.writelines(lines)
 
         environment: dict[str, str] = {key: value for key, value in os.environ.items() if key != "GNUPGHOME"}
-        engine.command.run(
+        nosarch.engine.command.run(
             ["mkarchroot", "-C", conf, os.path.join(self._chroot_dir, "root"), "base-devel"],
             env=environment,
             pass_environment=False,
@@ -431,9 +431,9 @@ class Builder:
         base: str = infos[0].base
         directory: str = os.path.join(self._settings.build_dir, base)
         self._fetch(infos[0], directory)
-        engine.command.run(["chown", "--recursive", self._settings.build_user, directory])
+        nosarch.engine.command.run(["chown", "--recursive", self._settings.build_user, directory])
 
-        engine.output.print_summary(f"Building {base}.")
+        nosarch.engine.output.print_summary(f"Building {base}.")
         environment: dict[str, str] = {"PKGDEST": directory}
 
         if self._settings.clean_chroot:
@@ -441,9 +441,9 @@ class Builder:
             cmd: list[str] = ["makechrootpkg", "-c", "-r", self._chroot_dir, "-U", self._settings.build_user]
             for file in needed_files:
                 cmd += ["-I", file]
-            engine.command.run(cmd, cwd=directory, env=environment)
+            nosarch.engine.command.run(cmd, cwd=directory, env=environment)
         else:
-            engine.command.run(
+            nosarch.engine.command.run(
                 ["makepkg", "--noconfirm", "--cleanbuild"],
                 user=self._settings.build_user,
                 cwd=directory,

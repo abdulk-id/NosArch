@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import override
 
-from definition.user_config import UserConfigReader
+from nosarch.definition.user_config import UserConfigReader
 
 
 class DevLang(ABC):

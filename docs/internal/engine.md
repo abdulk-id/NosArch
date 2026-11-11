@@ -77,15 +77,3 @@ Definition code written for decman reads the same, but these behave differently,
 `engine.command.run` with a recorder, so no test runs `systemctl`, `useradd` or `pacman`. That only works while steps
 call `engine.command.run` at call time. A step that calls `subprocess` directly, or binds `run` at import, would run
 the real command inside a test.
-
-## Switching from decman
-
-`nosarch/apply.py --import-decman` turns decman's store into the engine's state. A real run does it by itself when
-there is no state yet, but a dry run cannot read decman's root-only store, so import first.
-
-Without the import, every module looks newly enabled and every hook fires, files decman deployed but nothing declares
-any more are never removed, and units decman enabled are never disabled. decman kept one list of files for all modules,
-so files that no module declares any more are removed without any module's hook hearing about it.
-
-The first full run removes the `decman` package, since nothing declares it. `/var/lib/decman` and
-`/var/cache/decman` are left behind and can be deleted.

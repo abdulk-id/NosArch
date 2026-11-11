@@ -1,6 +1,6 @@
 import os
 
-import engine.output
+import nosarch.engine.output
 
 _SESSION_COMMAND: str = "/usr/local/bin/nosarch/nosarch-session"
 
@@ -22,8 +22,8 @@ def offer(prompt: bool) -> None:
     if not _logouts and not _reboots:
         return
 
-    engine.output.print_list("These changes will take effect after logging out:", _logouts, one_per_line=True)
-    engine.output.print_list("These changes will take effect after a reboot:", _reboots, one_per_line=True)
+    nosarch.engine.output.print_list("These changes will take effect after logging out:", _logouts, one_per_line=True)
+    nosarch.engine.output.print_list("These changes will take effect after a reboot:", _reboots, one_per_line=True)
 
     if not prompt:
         return
@@ -31,7 +31,7 @@ def offer(prompt: bool) -> None:
     action: str = "restart" if _reboots else "logout"
     question: str = "Restart now?" if _reboots else "Log out now?"
 
-    if not engine.output.prompt_confirm(question, default=False):
+    if not nosarch.engine.output.prompt_confirm(question, default=False):
         return
 
     os.execv(_SESSION_COMMAND, [_SESSION_COMMAND, action])

@@ -4,7 +4,7 @@ import tempfile
 from dataclasses import dataclass, field
 from typing import Any
 
-import engine.changes
+import nosarch.engine.changes
 
 STATE_FILE: str = "/var/lib/nosarch/state.json"
 STATE_VERSION: int = 1
@@ -21,8 +21,8 @@ class State:
     created_users: list[str] = field(default_factory=list)
     aur_reviewed: dict[str, str] = field(default_factory=dict)
 
-    def pending_changes(self, module: str) -> engine.changes.Changes:
-        return engine.changes.Changes.from_json(self.pending.get(module, {}))
+    def pending_changes(self, module: str) -> nosarch.engine.changes.Changes:
+        return nosarch.engine.changes.Changes.from_json(self.pending.get(module, {}))
 
     def to_json(self) -> dict[str, Any]:
         return {

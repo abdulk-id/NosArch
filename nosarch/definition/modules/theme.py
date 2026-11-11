@@ -1,19 +1,24 @@
 import os
 from typing import override
 
-import engine
+import nosarch.engine
+import nosarch.utils.paths
 
 # Change this import to change the active theme.
-from definition.themes.nosarch_blue_dark.nosarch_blue_dark import THEME
-from definition.user_config import UserConfigReader
-from engine import Directory, Symlink
+from nosarch.definition.themes.nosarch_blue_dark.nosarch_blue_dark import THEME
+from nosarch.definition.user_config import UserConfigReader
+from nosarch.engine import Directory, Symlink
 
 
 def get_current_theme() -> dict[str, str]:
     return THEME
 
 
-class ThemingModule(engine.Module):
+def _wallpaper_dir() -> str:
+    return nosarch.utils.paths.in_package("definition", "themes", THEME["%FILENAME%"], "wallpapers")
+
+
+class ThemingModule(nosarch.engine.Module):
     def __init__(self, user_config_reader: UserConfigReader) -> None:
         super().__init__(name="theming")
         self._user_config: UserConfigReader = user_config_reader
@@ -23,7 +28,7 @@ class ThemingModule(engine.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{self._username}/.local/share/nosarch/current-theme/wallpapers": Directory(
-                source_directory=f"./definition/themes/{THEME['%FILENAME%']}/wallpapers", owner=f"{self._username}"
+                source_directory=_wallpaper_dir(), owner=f"{self._username}"
             )
         }
 
@@ -42,10 +47,6 @@ class ThemingModule(engine.Module):
         }
 
     def _choose_first_wallpaper(self) -> str:
-        wallpapers: list[str] = [
-            entry.name
-            for entry in os.scandir(f"./definition/themes/{THEME['%FILENAME%']}/wallpapers/")
-            if entry.is_file()
-        ]
+        wallpapers: list[str] = [entry.name for entry in os.scandir(_wallpaper_dir()) if entry.is_file()]
 
         return wallpapers[0]

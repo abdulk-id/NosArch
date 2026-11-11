@@ -4,25 +4,25 @@ import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 
-import engine.command
-import engine.fs
-import engine.output
-import engine.setup
+import nosarch.engine.command
+import nosarch.engine.fs
+import nosarch.engine.output
+import nosarch.engine.setup
 
 
 @dataclass
 class _Entry:
     module: str
-    file: engine.fs.File | None = None
+    file: nosarch.engine.fs.File | None = None
     variables: dict[str, str] | None = None
-    symlink: engine.fs.Symlink | None = None
+    symlink: nosarch.engine.fs.Symlink | None = None
 
 
 class DuplicateTargetError(Exception):
     pass
 
 
-def _gather(ctx: engine.setup.Context) -> dict[str, _Entry]:
+def _gather(ctx: nosarch.engine.setup.Context) -> dict[str, _Entry]:
     entries: dict[str, _Entry] = {}
 
     def add(target: str, entry: _Entry) -> None:
@@ -43,7 +43,10 @@ def _gather(ctx: engine.setup.Context) -> dict[str, _Entry]:
         for target, link in module.symlinks().items():
             add(
                 target,
-                _Entry(module.name, symlink=link if isinstance(link, engine.fs.Symlink) else engine.fs.Symlink(link)),
+                _Entry(
+                    module.name,
+                    symlink=link if isinstance(link, nosarch.engine.fs.Symlink) else nosarch.engine.fs.Symlink(link),
+                ),
             )
 
     return entries
@@ -72,7 +75,7 @@ def _file_differences(target: str, content: bytes, mode: int, uid: int | None, g
     return differences
 
 
-def _link_differences(target: str, link: engine.fs.Symlink) -> list[str]:
+def _link_differences(target: str, link: nosarch.engine.fs.Symlink) -> list[str]:
     if not os.path.islink(target):
         return ["new"] if not os.path.lexists(target) else ["replaces a non-link"]
     current: str = os.readlink(target)
@@ -118,7 +121,7 @@ def _write_file(target: str, content: bytes, mode: int, uid: int | None, gid: in
         raise
 
 
-def _write_link(target: str, link: engine.fs.Symlink) -> None:
+def _write_link(target: str, link: nosarch.engine.fs.Symlink) -> None:
     uid, gid = link.ids()
     _make_parents(os.path.dirname(target), uid, gid)
 
@@ -130,20 +133,20 @@ def _write_link(target: str, link: engine.fs.Symlink) -> None:
         os.lchown(target, uid if uid is not None else -1, gid if gid is not None else -1)
 
 
-def _render(file: engine.fs.File, target: str, variables: dict[str, str]) -> bytes:
+def _render(file: nosarch.engine.fs.File, target: str, variables: dict[str, str]) -> bytes:
     prefix: str = f"Failed to install file from {file.describe()} to {target}: "
     try:
         return file.render(variables)
     except PermissionError:
         raise
     except FileNotFoundError as error:
-        raise engine.fs.InstallError(f"{prefix}Source file doesn't exist.") from error
+        raise nosarch.engine.fs.InstallError(f"{prefix}Source file doesn't exist.") from error
     except UnicodeDecodeError as error:
-        raise engine.fs.InstallError(f"{prefix}Unicode decoding failed.") from error
+        raise nosarch.engine.fs.InstallError(f"{prefix}Unicode decoding failed.") from error
     except UnicodeEncodeError as error:
-        raise engine.fs.InstallError(f"{prefix}Unicode encoding failed.") from error
+        raise nosarch.engine.fs.InstallError(f"{prefix}Unicode encoding failed.") from error
     except OSError as error:
-        raise engine.fs.InstallError(f"{prefix}{error.strerror or error}.") from error
+        raise nosarch.engine.fs.InstallError(f"{prefix}{error.strerror or error}.") from error
 
 
 def _guard(prefix: str, action: Callable[[], None]) -> None:
@@ -152,11 +155,11 @@ def _guard(prefix: str, action: Callable[[], None]) -> None:
     except PermissionError:
         raise
     except OSError as error:
-        raise engine.fs.InstallError(f"{prefix}{error.strerror or error}.") from error
+        raise nosarch.engine.fs.InstallError(f"{prefix}{error.strerror or error}.") from error
 
 
-def run(ctx: engine.setup.Context) -> None:
-    engine.output.print_summary("Checking files.")
+def run(ctx: nosarch.engine.setup.Context) -> None:
+    nosarch.engine.output.print_summary("Checking files.")
 
     entries: dict[str, _Entry] = _gather(ctx)
     updated: list[str] = []
@@ -165,7 +168,7 @@ def run(ctx: engine.setup.Context) -> None:
     for target, entry in entries.items():
         try:
             if entry.symlink is not None:
-                link: engine.fs.Symlink = entry.symlink
+                link: nosarch.engine.fs.Symlink = entry.symlink
                 differences: list[str] = _link_differences(target, link)
                 if differences and not ctx.dry_run:
                     _guard(
@@ -173,7 +176,7 @@ def run(ctx: engine.setup.Context) -> None:
                     )
             else:
                 assert entry.file is not None and entry.variables is not None
-                file: engine.fs.File = entry.file
+                file: nosarch.engine.fs.File = entry.file
                 content: bytes = _render(file, target, entry.variables)
                 uid, gid = file.ids()
                 differences = _file_differences(target, content, file.permissions, uid, gid)
@@ -187,7 +190,7 @@ def run(ctx: engine.setup.Context) -> None:
                 raise
             unreadable.append(target)
             continue
-        except engine.command.AccountNotFoundError:
+        except nosarch.engine.command.AccountNotFoundError:
             if not ctx.dry_run:
                 raise
             differences = ["owner does not exist yet"]
@@ -211,11 +214,11 @@ def run(ctx: engine.setup.Context) -> None:
             try:
                 os.remove(path)
             except OSError as error:
-                engine.output.print_warning(f"Could not remove '{path}': {error.strerror or error}.")
+                nosarch.engine.output.print_warning(f"Could not remove '{path}': {error.strerror or error}.")
 
-    engine.output.print_list("Updated files:", updated, one_per_line=True)
-    engine.output.print_list("Removed files:", removed, one_per_line=True)
-    engine.output.print_list("Files that need root to compare:", unreadable, one_per_line=True)
+    nosarch.engine.output.print_list("Updated files:", updated, one_per_line=True)
+    nosarch.engine.output.print_list("Removed files:", removed, one_per_line=True)
+    nosarch.engine.output.print_list("Files that need root to compare:", unreadable, one_per_line=True)
 
     if not ctx.dry_run:
         ctx.state.files = {}

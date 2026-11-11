@@ -13,7 +13,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-import engine.output
+import nosarch.engine.output
 
 # The PKGBUILDs, one directory per package.
 REPO_URL: str = "https://github.com/abdulk-id/NosArch-Packages.git"
@@ -188,7 +188,7 @@ def _update() -> None:
 
         # Not fatal: the cached PKGBUILDs are still a usable set, so a run without network still works. It just does
         # not pick up a version bump, and the user is told which revision they are building.
-        engine.output.print_warning(
+        nosarch.engine.output.print_warning(
             f"Could not check custom packages for updates: {error}. Using cached revision {cached}."
         )
         return
@@ -196,7 +196,7 @@ def _update() -> None:
     if cached == remote:
         return
 
-    engine.output.print_info(f"Fetching custom packages at {remote[:12]}")
+    nosarch.engine.output.print_info(f"Fetching custom packages at {remote[:12]}")
 
     try:
         _install(remote)
@@ -204,7 +204,9 @@ def _update() -> None:
         if cached is None:
             raise SystemExit(f"Could not fetch custom packages from {REPO_URL}: {error}")
 
-        engine.output.print_warning(f"Could not update custom packages: {error}. Using cached revision {cached}.")
+        nosarch.engine.output.print_warning(
+            f"Could not update custom packages: {error}. Using cached revision {cached}."
+        )
 
 
 def ensure_packages() -> str:

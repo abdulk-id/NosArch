@@ -16,7 +16,6 @@ import nosarch.engine.state
 import nosarch.engine.steps
 import nosarch.engine.steps.files
 import nosarch.engine.steps.users
-import nosarch.repo
 
 
 def _arguments() -> argparse.Namespace:
@@ -35,9 +34,9 @@ def _arguments() -> argparse.Namespace:
 
 def _rerun_as_root() -> None:
     nosarch.engine.output.print_info("Applying needs root, re-running with sudo.")
-    # sudo clears PYTHONPATH. `python -m nosarch` finds the package from the working directory.
-    os.chdir(nosarch.repo.root())
-    os.execvp("sudo", ["sudo", sys.executable, "-B", "-m", "nosarch", *sys.argv[1:]])
+    # sudo clears PYTHONPATH. The file puts its parent on the path, so the restart does not depend on it.
+    main_file: str = os.path.join(os.path.dirname(os.path.abspath(nosarch.__file__)), "__main__.py")
+    os.execvp("sudo", ["sudo", sys.executable, "-B", main_file, *sys.argv[1:]])
 
 
 def _selected_steps(setup: nosarch.engine.setup.Setup, args: argparse.Namespace) -> list[str]:

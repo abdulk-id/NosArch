@@ -11,7 +11,6 @@ import pytest
 import nosarch.engine
 import nosarch.engine.app
 import nosarch.engine.command
-import nosarch.engine.fs
 
 
 class _Reexec(Exception):
@@ -28,7 +27,7 @@ def as_user(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _main(monkeypatch: pytest.MonkeyPatch, setup: Callable[[], nosarch.engine.Setup], *arguments: str) -> None:
-    monkeypatch.setattr(sys, "argv", ["apply.py", *arguments])
+    monkeypatch.setattr(sys, "argv", ["nosarch", *arguments])
     nosarch.engine.app.main(setup)
 
 

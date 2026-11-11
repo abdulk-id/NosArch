@@ -16,12 +16,11 @@ dotfiles, packages, and systemd units each one deploys. On a run, the engine ins
 what no module declares anymore. Custom packages are regular pacman packages built from PKGBUILDs in
 [NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages) so the engine manages them the same way.
 
-A dry run (`python -m nosarch --dry-run`) needs no root. A real run asks for it with sudo. `nosarch/apply.py` is the
-same entry.
+A dry run (`python -m nosarch --dry-run`) needs no root. A real run asks for it with sudo.
 
 ### Project structure
 
-- Entrypoint: `python -m nosarch` (`nosarch/__main__.py`). `nosarch/apply.py` runs that same module.
+- Entrypoint: `python -m nosarch` (`nosarch/__main__.py`).
 - The engine: `nosarch/engine/`, with one step per kind of declaration in `nosarch/engine/steps/`.
 - Definition code: `nosarch/definition/`. `source.py` builds a run from the modules in `modules/`.
 - Themes: `nosarch/definition/themes/`.

@@ -35,9 +35,9 @@ def _arguments() -> argparse.Namespace:
 
 def _rerun_as_root() -> None:
     nosarch.engine.output.print_info("Applying needs root, re-running with sudo.")
-    # The shim puts the checkout on the path, so sudo does not depend on the working directory or PYTHONPATH.
-    script: str = os.path.join(nosarch.repo.root(), "nosarch", "apply.py")
-    os.execvp("sudo", ["sudo", sys.executable, "-B", script, *sys.argv[1:]])
+    # sudo clears PYTHONPATH. `python -m nosarch` finds the package from the working directory.
+    os.chdir(nosarch.repo.root())
+    os.execvp("sudo", ["sudo", sys.executable, "-B", "-m", "nosarch", *sys.argv[1:]])
 
 
 def _selected_steps(setup: nosarch.engine.setup.Setup, args: argparse.Namespace) -> list[str]:

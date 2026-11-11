@@ -22,9 +22,7 @@ import pytest
 
 import nosarch.engine
 import nosarch.engine.app
-import nosarch.engine.changes
 import nosarch.engine.command
-import nosarch.engine.output
 import nosarch.engine.state
 from nosarch.engine.command import run as real_run
 from nosarch.engine.steps import systemd

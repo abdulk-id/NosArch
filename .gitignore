@@ -1,5 +1,10 @@
-__pycache__
-.worktrees/
-mise.local.toml
+!.gitignore
 
-.drafts/
+/.*
+!.zed/
+!.editorconfig
+!.pre-commit-config.yaml
+!.ruff.toml
+
+__pycache__
+mise.local.toml

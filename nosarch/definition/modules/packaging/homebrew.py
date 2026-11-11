@@ -29,7 +29,7 @@ class HomebrewModule(nosarch.engine.Module):
     def files(self) -> dict[str, File]:
         # nosarch-package sources this when it exists and skips Homebrew when it does not, which is how the CLI
         # follows this module being enabled or disabled.
-        files: dict[str, File] = nosarch.utils.paths.Dotfiles("dotfiles/system-root").files(
+        files: dict[str, File] = nosarch.utils.paths.Dotfiles("system-root").files(
             "/usr/local/bin/util/package/homebrew.sh"
         )
 

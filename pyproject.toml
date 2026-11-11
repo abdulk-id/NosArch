@@ -49,7 +49,7 @@ ban-relative-imports = "parents"
 
 [tool.ruff.lint.per-file-ignores]
 # PyGObject needs `gi.require_version()` to run before `gi.repository` is imported.
-"dotfiles/desktop-root/home/username/dot_local/share/nautilus-python/extensions/*.py" = ["E402"]
+"nosarch/dotfiles/desktop-root/home/username/dot_local/share/nautilus-python/extensions/*.py" = ["E402"]
 
 [tool.ruff.format]
 indent-style = "space"

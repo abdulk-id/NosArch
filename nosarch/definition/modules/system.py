@@ -27,9 +27,9 @@ class SystemModule(nosarch.engine.Module):
         self._username: str = self._user_config.user.username
         self._swapfile_enabled: bool = self._user_config.advanced.enable_swapfile
 
-        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("dotfiles/system-root")
+        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("system-root")
         self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
-            "dotfiles/system-root", self._username
+            "system-root", self._username
         )
 
     @override

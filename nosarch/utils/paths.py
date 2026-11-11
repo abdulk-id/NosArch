@@ -1,18 +1,17 @@
 import os
 
-import nosarch.repo
 from nosarch.engine import File
 
 
-def in_checkout(*parts: str) -> str:
-    """A path in the checkout, independent of the process working directory."""
-    return os.path.join(nosarch.repo.root(), *parts)
+def in_package(*parts: str) -> str:
+    """A path inside the `nosarch` package, independent of the process working directory."""
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), *parts)
 
 
 def _source_root(source_root: str) -> str:
     if os.path.isabs(source_root):
         return source_root
-    return in_checkout(source_root)
+    return in_package("dotfiles", source_root)
 
 
 def _dot_source_path(rel_path: str) -> str:
@@ -22,7 +21,7 @@ def _dot_source_path(rel_path: str) -> str:
 
 class Dotfiles:
     def __init__(self, source_root: str) -> None:
-        # A relative root is inside the checkout, for example `dotfiles/system-root`.
+        # A relative root is a mirrored tree under `nosarch/dotfiles/`, for example `system-root`.
         self._source_root: str = _source_root(source_root)
 
     def files(

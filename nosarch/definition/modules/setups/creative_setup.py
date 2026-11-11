@@ -16,7 +16,7 @@ class CreativeSetupModule(nosarch.engine.Module):
         self._username: str = self._user_config.user.username
 
         self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
-            "dotfiles/creative-setup-root", self._username
+            "creative-setup-root", self._username
         )
 
     @override

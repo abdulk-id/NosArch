@@ -5,21 +5,21 @@ Definition code lives in `nosarch/definition/`. Modules are under `nosarch/defin
 
 ## The modules
 
-| Module        | Class                 | State name       | Enabled by                   | Sources                        |
-| ------------- | --------------------- | ---------------- | ---------------------------- | ------------------------------ |
-| System        | `SystemModule`        | `system`         | always                       | `dotfiles/system-root`         |
-| Desktop       | `DesktopModule`       | `desktop`        | always                       | `dotfiles/desktop-root`        |
-| Theming       | `ThemingModule`       | `theming`        | always                       | `nosarch/definition/themes/`   |
-| Basic setup   | `BasicSetupModule`    | `basic_setup`    | `setups.basic.enabled`       | `dotfiles/basic-setup-root`    |
-| AI            | `AISetupModule`       | `ai_setup`       | `setups.ai.enabled`          | `dotfiles/ai-setup-root`       |
-| Creative      | `CreativeSetupModule` | `creative_setup` | `setups.creative.enabled`    | `dotfiles/creative-setup-root` |
-| Dev           | `DevSetupModule`      | `dev_setup`      | `setups.dev.enabled`         | `dotfiles/dev-setup-root`      |
-| Gaming        | `GamingSetupModule`   | `gaming_setup`   | `setups.gaming.enabled`      | `dotfiles/gaming-setup-root`   |
-| Homebrew      | `HomebrewModule`      | `homebrew`       | `packaging.homebrew.enabled` | `dotfiles/system-root`         |
-| Flatpak       | `FlatpakModule`       | `flatpak`        | `packaging.flatpak.enabled`  | `dotfiles/system-root`         |
-| Snap          | `SnapModule`          | `snap`           | `packaging.snap.enabled`     | `dotfiles/system-root`         |
-| User packages | `UserDefinedModule`   | `user_defined`   | always                       | none                           |
-| Apply         | `ApplyModule`         | `apply`          | always, registered last      | none                           |
+| Module        | Class                 | State name       | Enabled by                   | Sources                                |
+| ------------- | --------------------- | ---------------- | ---------------------------- | -------------------------------------- |
+| System        | `SystemModule`        | `system`         | always                       | `nosarch/dotfiles/system-root`         |
+| Desktop       | `DesktopModule`       | `desktop`        | always                       | `nosarch/dotfiles/desktop-root`        |
+| Theming       | `ThemingModule`       | `theming`        | always                       | `nosarch/definition/themes/`           |
+| Basic setup   | `BasicSetupModule`    | `basic_setup`    | `setups.basic.enabled`       | `nosarch/dotfiles/basic-setup-root`    |
+| AI            | `AISetupModule`       | `ai_setup`       | `setups.ai.enabled`          | `nosarch/dotfiles/ai-setup-root`       |
+| Creative      | `CreativeSetupModule` | `creative_setup` | `setups.creative.enabled`    | `nosarch/dotfiles/creative-setup-root` |
+| Dev           | `DevSetupModule`      | `dev_setup`      | `setups.dev.enabled`         | `nosarch/dotfiles/dev-setup-root`      |
+| Gaming        | `GamingSetupModule`   | `gaming_setup`   | `setups.gaming.enabled`      | `nosarch/dotfiles/gaming-setup-root`   |
+| Homebrew      | `HomebrewModule`      | `homebrew`       | `packaging.homebrew.enabled` | `nosarch/dotfiles/system-root`         |
+| Flatpak       | `FlatpakModule`       | `flatpak`        | `packaging.flatpak.enabled`  | `nosarch/dotfiles/system-root`         |
+| Snap          | `SnapModule`          | `snap`           | `packaging.snap.enabled`     | `nosarch/dotfiles/system-root`         |
+| User packages | `UserDefinedModule`   | `user_defined`   | always                       | none                                   |
+| Apply         | `ApplyModule`         | `apply`          | always, registered last      | none                                   |
 
 The four setup modules live in `nosarch/definition/modules/setups/`, the three packaging modules in
 `nosarch/definition/modules/packaging/`, and the rest are one file each in `nosarch/definition/modules/`.

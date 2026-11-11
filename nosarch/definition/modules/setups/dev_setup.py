@@ -17,9 +17,9 @@ class DevSetupModule(nosarch.engine.Module):
         self._username: str = self._user_config.user.username
         self._editors: list[str] = self._user_config.setups.dev.editors
 
-        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("dotfiles/dev-setup-root")
+        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("dev-setup-root")
         self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
-            "dotfiles/dev-setup-root", self._username
+            "dev-setup-root", self._username
         )
 
     @override
@@ -98,7 +98,7 @@ class DevSetupModule(nosarch.engine.Module):
             files.update(
                 {
                     f"/home/{self._username}/.config/nvim/.neoconf.json": File(
-                        source_file=nosarch.utils.paths.in_checkout(
+                        source_file=nosarch.utils.paths.in_package(
                             "dotfiles/dev-setup-root/home/username/dot_config/nvim/.neoconf.json"
                         ),
                         owner=f"{self._username}",

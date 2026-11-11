@@ -1,12 +1,11 @@
-"""Where this checkout lives on disk.
+"""The checkout that contains this package.
 
-The clone is the program. Dotfiles sit next to the package, and a run finds them from this file
-rather than from the process working directory.
+A real run changes to this directory before restarting with sudo, so `python -m nosarch` can import the package.
 """
 
 import os
 
 
 def root() -> str:
-    """The directory that contains the `nosarch` package and `dotfiles/`."""
+    """The directory that contains the `nosarch` package."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

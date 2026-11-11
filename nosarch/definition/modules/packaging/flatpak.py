@@ -31,7 +31,7 @@ class FlatpakModule(nosarch.engine.Module):
     def files(self) -> dict[str, File]:
         # nosarch-package sources the library when it exists and skips Flatpak when it does not, which is how the CLI
         # follows this module being enabled or disabled. The hook adds Flathub on the run that installs flatpak.
-        return nosarch.utils.paths.Dotfiles("dotfiles/system-root").files(
+        return nosarch.utils.paths.Dotfiles("system-root").files(
             "/usr/local/bin/util/package/flatpak.sh", "/etc/pacman.d/hooks/10-flatpak-flathub.hook"
         )
 

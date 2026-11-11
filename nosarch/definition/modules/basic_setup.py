@@ -16,7 +16,7 @@ class BasicSetupModule(nosarch.engine.Module):
         self._vms_enabled: bool = self._user_config.setups.basic.enable_virtualization
 
         self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
-            "dotfiles/basic-setup-root", self._username
+            "basic-setup-root", self._username
         )
 
     @override

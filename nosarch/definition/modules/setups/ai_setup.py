@@ -20,7 +20,7 @@ class AISetupModule(nosarch.engine.Module):
         self._control_planes: list[str] = self._user_config.setups.ai.control_planes
 
         self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
-            "dotfiles/ai-setup-root", self._username
+            "ai-setup-root", self._username
         )
 
     @override

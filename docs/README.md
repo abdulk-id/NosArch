@@ -26,7 +26,7 @@ A dry run (`python -m nosarch --dry-run`) needs no root. A real run asks for it 
 - Themes: `nosarch/definition/themes/`.
 - Config classes: `nosarch/definition/user_config.py`.
 - Helpers used by the definition code: `nosarch/utils/`.
-- Dotfiles: `dotfiles/`, with a separate mirrored root per module.
+- Dotfiles: `nosarch/dotfiles/`, with a separate mirrored root per module.
 - JSON schema for the NosArch config: `config.schema.json`, generated from the classes in
   `nosarch/definition/user_config.py` by `utils/config_schema_generator.py`.
 - Tests: `tests/`.

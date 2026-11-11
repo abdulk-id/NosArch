@@ -28,7 +28,7 @@ class SnapModule(nosarch.engine.Module):
     def files(self) -> dict[str, File]:
         # nosarch-package sources this when it exists and skips Snap when it does not, which is how the CLI follows
         # this module being enabled or disabled.
-        return nosarch.utils.paths.Dotfiles("dotfiles/system-root").files("/usr/local/bin/util/package/snap.sh")
+        return nosarch.utils.paths.Dotfiles("system-root").files("/usr/local/bin/util/package/snap.sh")
 
     @override
     def symlinks(self) -> dict[str, str | Symlink]:

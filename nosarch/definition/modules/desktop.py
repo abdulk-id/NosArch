@@ -21,9 +21,9 @@ class DesktopModule(nosarch.engine.Module):
         self._user_config: UserConfigReader = user_config_reader
         self._username: str = self._user_config.user.username
 
-        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("dotfiles/desktop-root")
+        self._dotfiles: nosarch.utils.paths.Dotfiles = nosarch.utils.paths.Dotfiles("desktop-root")
         self._userhome_dotfiles: nosarch.utils.paths.UserhomeDotfiles = nosarch.utils.paths.UserhomeDotfiles(
-            "dotfiles/desktop-root", self._username
+            "desktop-root", self._username
         )
 
     @override

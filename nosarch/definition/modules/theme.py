@@ -28,7 +28,7 @@ class ThemingModule(nosarch.engine.Module):
     def directories(self) -> dict[str, Directory]:
         return {
             f"/home/{self._username}/.local/share/nosarch/current-theme/wallpapers": Directory(
-                source_directory=_wallpaper_dir(), owner=f"{self._username}"
+                source_directory=_wallpaper_dir(), bin_files=True, owner=f"{self._username}"
             )
         }
 

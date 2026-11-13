@@ -1,10 +1,8 @@
 # NosArch
 
-NosArch is an Arch Linux dotfile and system configuration repo, deployed by its own engine.
+NosArch is an Arch Linux dotfile and system configuration repo, applied by its own engine.
 
-> **The documentation in `docs/` is outdated.** It has not been revised since the engine replaced decman, so parts of it
-> describe things that no longer exist, such as decman, its parity tests and `--import-decman`. Trust the code over the
-> docs until they have been reviewed.
+See [docs/](docs/README.md) for the project overview, internal design notes, and maintainer procedures.
 
 ## Usage
 
@@ -15,11 +13,12 @@ NosArch is an Arch Linux dotfile and system configuration repo, deployed by its 
     git clone https://github.com/abdulk-id/NosArch ~/NosArch
     ```
 
-3. Configure NosArch in `~/.nosarch_config.json`. Use [`config.schema.json`](config.schema.json) for validating the config JSON.
-4. Apply the configuration:
+3. Configure NosArch in `~/.nosarch_config.json`. Use [`config.schema.json`](config.schema.json) for validating the
+   config JSON.
+4. From `~/NosArch`, apply the configuration:
 
     ```sh
-    python -m nosarch  # needs sudo
+    python -m nosarch  # re-runs itself with sudo
     ```
 
     To see what changes would be made without applying them:

@@ -44,7 +44,10 @@ class Module:
         """Runs once, after the steps, the first time the module is enabled."""
 
     def on_change(self, changes: nosarch.engine.changes.Changes) -> None:
-        """Runs after the steps when something this module declares changed."""
+        """Runs once after the steps, when anything this module declares changed.
+
+        The call is not once per file, so check `changes` for the path this hook cares about.
+        """
 
     def after_update(self) -> None:
         """Runs for every enabled module after the other hooks."""

@@ -19,6 +19,7 @@ def run(ctx: nosarch.engine.setup.Context) -> None:
 
 def _apply(ctx: nosarch.engine.setup.Context) -> None:
     dry: bool = ctx.dry_run
+    # Disable only units this engine enabled. A unit enabled by hand, or by a package preset, is not in this state.
     declared: set[str] = ctx.declared("systemd")
     enabled: set[str] = set(ctx.state.systemd_units)
     declared_user: dict[str, set[str]] = ctx.declared("systemd_user")
@@ -57,6 +58,8 @@ def _apply(ctx: nosarch.engine.setup.Context) -> None:
     if dry:
         return
 
+    # Rereads unit files. A running service keeps its old process until on_change restarts it.
     nosarch.engine.command.run(["systemctl", "daemon-reload"])
     for user in users:
+        # The user manager is absent on a TTY and during a fresh install.
         nosarch.engine.command.run(["systemctl", "--user", "-M", f"{user}@", "daemon-reload"], check=False)

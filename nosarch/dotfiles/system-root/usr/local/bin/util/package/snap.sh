@@ -1,6 +1,6 @@
 # Managed by NosArch
 #
-# Snap for nosarch-package. See docs/internal/snap.md.
+# Snap for nosarch-package. See docs/internal/packages.md.
 #
 # No snap_update: snapd.timer refreshes on its own schedule, so updating from here would duplicate that work.
 

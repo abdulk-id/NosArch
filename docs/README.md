@@ -1,52 +1,12 @@
 # NosArch Docs
 
-## Using NosArch
+- [`user/`](user/manual-install.md): installing NosArch.
+- `internal/`: decisions, their reasons, and traps the source does not show. Rules for adding to it are in
+  [AGENTS.md](../AGENTS.md#documentation).
+- [`operations/`](operations/development.md): maintainer setup and testing.
 
-User manual is being worked on.
+Work on NosArch from a machine running NosArch, so changes can be tested live.
 
-## Working on NosArch
-
-It is recommended to work on NosArch from a machine running NosArch so changes can be tested live easily.
-
-### How it works
-
-`python -m nosarch`, from the repository root, runs NosArch's own deployment engine (`nosarch/engine/`).
-`nosarch/definition/source.py` builds its `Setup`: the modules in `nosarch/definition/modules/`, which declare which
-dotfiles, packages, and systemd units each one deploys. On a run, the engine installs what modules declare and removes
-what no module declares anymore. Custom packages are regular pacman packages built from PKGBUILDs in
-[NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages) so the engine manages them the same way.
-
-A dry run (`python -m nosarch --dry-run`) needs no root. A real run asks for it with sudo.
-
-### Project structure
-
-- Entrypoint: `python -m nosarch` (`nosarch/__main__.py`).
-- The engine: `nosarch/engine/`, with one step per kind of declaration in `nosarch/engine/steps/`.
-- Definition code: `nosarch/definition/`. `source.py` builds a run from the modules in `modules/`.
-- Themes: `nosarch/definition/themes/`.
-- Config classes: `nosarch/definition/user_config.py`.
-- Helpers used by the definition code: `nosarch/utils/`.
-- Dotfiles: `nosarch/dotfiles/`, with a separate mirrored root per module.
-- JSON schema for the NosArch config: `config.schema.json`, generated from the classes in
-  `nosarch/definition/user_config.py` by `utils/config_schema_generator.py`.
-- Tests: `tests/`.
-
-### Internal docs
-
-`docs/internal/` records code decisions, their reasons, and implementation traps that are hard to discover from the
-source. Most code changes do not need an internal documentation update. The rules for when to add or change one are
-in [AGENTS.md](../AGENTS.md#documentation).
-
-- [Glossary](internal/glossary.md) — shared vocabulary (target system, definition code, deploying).
-- [Engine](internal/engine.md) — why NosArch has its own, and the decisions behind how it runs.
-- [Modules](internal/modules.md) — the module table and what registers what.
-- [Files](internal/files.md) — how dotfiles are declared, tracked, and how changes are applied.
-- [Packages](internal/packages.md) — declaring and tracking package changes.
-- [Custom packages](internal/custom-packages.md) — where the PKGBUILDs live, and how a module declares one.
-- [AppImages](internal/appimages.md) — how nosarch-package installs and removes AppImages.
-
-### Operations
-
-Maintainer procedures: setup, testing, releases, debugging.
-
-- [Development](operations/development.md) — NosArch Works, testing.
+`python -m nosarch` runs the engine. `nosarch/definition/source.py` builds its `Setup` from the modules in
+`nosarch/definition/modules/`. Custom packages are built from PKGBUILDs in
+[NosArch-Packages](https://github.com/abdulk-id/NosArch-Packages).

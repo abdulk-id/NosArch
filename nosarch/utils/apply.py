@@ -46,6 +46,7 @@ def _restart_user_service(unit: str) -> list[str]:
 # produces one notice for the whole list, rather than one notice per module.
 _SESSION: tuple[tuple[str, str, list[str]], ...] = (
     ("hyprland", "Reloading Hyprland config", ["hyprctl", "reload", "config-only"]),
+    # `pkill` exits non-zero when waybar is not running, and this command is only that signal.
     ("waybar", "Reloading waybar", ["pkill", "--signal", "SIGUSR2", "waybar"]),
     ("swaync_config", "Reloading swaync config", ["swaync-client", "--reload-config"]),
     ("swaync_style", "Reloading swaync style", ["swaync-client", "--reload-css"]),
@@ -225,9 +226,12 @@ def _run_root(name: str, username: str | None) -> None:
         _run(["systemctl", "restart", "systemd-journald"])
     elif name == "tmpfiles":
         nosarch.engine.output.print_info("Cleaning tmp files.")
+        # `--clean`, not `--remove`. `--remove` deletes every r/R path on the system.
         _run(["systemd-tmpfiles", "--create", "--clean"])
     elif name == "udev":
         nosarch.engine.output.print_info("Reloading udev.")
+        # `--reload` loads rules and does not run them. The trigger stays on power_supply:
+        # a bare `udevadm trigger` replays every device and can rebind drivers.
         _run(["udevadm", "control", "--reload"])
         _run(["udevadm", "trigger", "--subsystem-match=power_supply", "--action=change"])
     elif name == "ufw":
@@ -253,6 +257,8 @@ def _run_session(commands: list[tuple[str, list[str]]]) -> None:
         for description, command in commands:
             nosarch.engine.output.print_info(description)
             try:
+                # False when the session has no WAYLAND_DISPLAY. The line above is the notice.
+                # The next-login list is only when there is no graphical session.
                 _ = nosarch.utils.session.run_in_session(command)
             except Exception as error:
                 nosarch.engine.output.print_warning(str(error))
@@ -278,6 +284,8 @@ def flush() -> None:
 
     _run_session([(description, command) for name, description, command in _SESSION if name in pending])
 
+    # After the live applies, and only once. limine-mkinitcpio takes about half a minute,
+    # twice that when the LTS kernel is enabled.
     if "initramfs" in pending:
         nosarch.engine.output.print_info("Rebuilding initramfs and updating Limine boot entries.")
         _run(["limine-mkinitcpio"])

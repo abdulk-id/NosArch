@@ -337,12 +337,12 @@ _install_appimage() (
     name=$(_appimage_resolve_name "$desktop_source" "$source_file")
     id=$(_appimage_slug "$name")
 
+    # An empty slug is `appimage`, so those names share one install. Re-installing reuses the id, so a newer
+    # file of the same name replaces the binary. An upstream rename gets a new id and leaves the old install.
     if [ -z "$id" ]; then
         id="appimage"
     fi
 
-    # Re-installing an app reuses its id, so the new binary replaces the old one. An upstream that renames the app
-    # between releases gets a new id, and its predecessor is then a separate entry to remove.
     appimage_path="$APPIMAGE_STORE/$id.AppImage"
 
     mkdir -p -- "$APPIMAGE_STORE" "$APPIMAGE_APPLICATIONS" "$APPIMAGE_BIN"
@@ -357,6 +357,8 @@ _install_appimage() (
     fi
 
     icon_path=$(_appimage_install_icon "$icon_source" "$id")
+    # An adapted entry always names nosarch-appimage-<id>, even when no icon file was installed.
+    # The generated entry omits Icon in that case.
     desktop_file=$(_appimage_write_desktop_file \
         "$id" "$name" "$appimage_path" "$icon_path" "$desktop_source")
 

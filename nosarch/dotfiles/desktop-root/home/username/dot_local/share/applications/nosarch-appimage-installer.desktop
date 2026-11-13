@@ -1,4 +1,6 @@
 # Managed by NosArch
+# Exec is absolute, with no shell. A file manager does not set the working directory a relative
+# path would need, and a sh -c wrapper would have to escape the characters this spec reserves.
 
 [Desktop Entry]
 Type=Application

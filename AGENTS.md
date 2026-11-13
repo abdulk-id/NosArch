@@ -1,36 +1,41 @@
 # NosArch
 
-NosArch is an Arch Linux dotfile and system configuration repo, deployed by its own engine. See `docs/README.md` for the
-project overview and structure, `docs/operations/` for maintainer procedures, and `docs/internal/` for design
-decisions and traps.
+NosArch is an Arch Linux dotfile and system configuration repo. `docs/README.md` is the project overview.
 
 ## Documentation
 
-See `docs/README.md` for the project overview and structure.
+Read before changing:
 
-- `docs/internal/` is for decisions and their reasons, constraints that span components, and traps that are hard to
-  discover from the source. Before adding a paragraph, ask what a maintainer would get wrong without it. If reading
-  the code answers the question, leave it out.
-- `docs/operations/` holds maintainer setup, release, and debugging procedures.
+- `docs/internal/engine.md`: engine steps, dry-run behaviour, state, or anything that differs from decman.
+- `docs/internal/hooks.md`: `on_change`, `on_enable`, `on_disable`, hook order, module names, or apply requests.
+- `docs/internal/dotfiles.md`: how a file is declared and rendered.
+- `docs/internal/packages.md`: pacman, AUR, Flatpak, Snap, Homebrew, or custom packages.
+- `docs/internal/appimages.md`: AppImage install.
+- `docs/internal/glossary.md`: the meaning of a term used in the docs.
 
-Most code changes do not need an internal documentation change.
+`docs/operations/` holds maintainer setup, release, and debugging procedures.
 
-- When the documentation and existing code conflict, follow the code's conventions, and in your final reply, list all
-  the inconsistencies you found.
-- When a documented decision or constraint changes, rewrite or remove the affected text only.
+Most code changes need no internal documentation change. Before adding to `docs/internal/`, ask what a maintainer would
+get wrong without it; reading the code answers most questions.
+
+- An internal page holds a reason that crosses files, or a trap the source does not show. A reason inside one function
+  is a short comment beside it.
+- Types and code record fields, control flow, and the lists of modules, paths, and commands. Link the source.
+- When a documented decision changes, rewrite or remove the affected text. A new internal page needs a distinct,
+  durable reason to exist.
+- When the documentation and the code conflict, follow the code's conventions.
 
 ## Testing
 
-- Test definition code with `python -m nosarch --dry-run` from the repository root (or `mise run dryrun`). It needs no
-  root, so run it yourself. A real apply needs root, so ask the user to run `python -m nosarch` when a change has to be
-  applied.
-- Run `mise run test-all` after changing the engine (`nosarch/engine/`).
+- Definition code: `mise dryrun`.
+- A real apply needs root; ask the user to run `mise apply`.
+- Engine changes (`nosarch/engine/`): `mise run test-all`.
+- More in `docs/operations/development.md`.
 
 ## Formatting
 
-- Run `mise format` before committing Python changes, or `mise lint` to only report.
+Run `mise format` before committing Python changes. `mise lint` only reports.
 
 ## Searching
 
-- Ignore `.drafts/` and `.worktrees/` when searching the repo. They contain stale copies of docs and code, not the
-  current state.
+Search the repo without `.worktrees/`, which holds worktrees checked out to other branches.

@@ -31,6 +31,8 @@ def _gather(ctx: nosarch.engine.setup.Context) -> dict[str, _Entry]:
         entries[target] = entry
 
     for module in ctx.setup.modules:
+        # One set for every file in the module. An empty set copies bytes; any variable decodes
+        # every text file that did not set bin_file.
         variables: dict[str, str] = module.file_variables()
 
         for target, file in module.files().items():

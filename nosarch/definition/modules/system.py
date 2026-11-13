@@ -153,16 +153,13 @@ class SystemModule(nosarch.engine.Module):
                 permissions=0o755,  # Make executable
             )
         )
-
-        # Sourced by nosarch-package rather than run, so they are not executable. AppImage and cleanup live here
-        # rather than in a packaging module because they are not gated on a packaging switch: an AppImage needs no
-        # package manager, and cleanup has to survive a method's module being disabled.
         files.update(
             self._dotfiles.files(
                 "/usr/local/bin/util/package/appimage.sh",
                 "/usr/local/bin/util/package/cleanup.sh",
                 "/usr/local/bin/util/package/common.sh",
             )
+            # Sourced by nosarch-package rather than run, so they are not executable.
         )
 
         # ~/ files
@@ -245,6 +242,7 @@ class SystemModule(nosarch.engine.Module):
             "btrfs-progs",
             "clang",
             "cryptsetup",
+            "desktop-file-utils",  # to verify desktop files of nosarch-installed appimages
             "dosfstools",
             "efibootmgr",
             "exfatprogs",

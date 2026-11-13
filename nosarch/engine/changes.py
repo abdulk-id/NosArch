@@ -30,7 +30,10 @@ class Changes:
         return not self.changed_files.isdisjoint(paths)
 
     def files_changed_in_dirs(self, *target_dirs: str) -> bool:
-        """Whether a changed path is inside one of target_dirs, compared by path components."""
+        """Whether a changed path is inside one of target_dirs, compared by path components.
+
+        `/etc/systemd/system` does not match `/etc/systemd/system.conf.d/`.
+        """
 
         for target_dir in target_dirs:
             target: str = os.path.abspath(target_dir)

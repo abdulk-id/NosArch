@@ -33,5 +33,23 @@ In Disk > File system, ensure that there are six btrfs subvolumes configured:
 
 ## Installing NosArch on top of Arch Linux
 
-After Arch Linux has been installed, reboot and log in as the user you set up, then follow the Usage steps in the
-[README](../../README.md#usage).
+After Arch Linux has been installed, reboot and log in as the user you set up. Install `curl` if the machine does
+not have it, then install the latest release:
+
+```sh
+curl -fsSL https://github.com/abdulk-id/NosArch/releases/latest/download/install.sh | sh
+```
+
+This installs the `nosarch` package. It does not apply NosArch. Write `~/.nosarch_config.json` (see
+[`config.schema.json`](../../config.schema.json)), then apply:
+
+```sh
+nosarch-apply --dry-run  # only shows what would be applied
+nosarch-apply            # applies NosArch setup
+```
+
+Installing or upgrading the package never applies it. After an upgrade, run `nosarch-apply` again.
+
+NosArch is alpha. Every version is `0.x`, and an upgrade can need changes to `~/.nosarch_config.json` or to what
+NosArch manages. To install a dev build or one exact version instead, see
+[releasing](../operations/release.md#installing).

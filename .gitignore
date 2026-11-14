@@ -3,10 +3,14 @@
 /.*
 !.zed/
 !.editorconfig
+!.github/
 !.pre-commit-config.yaml
 
 __pycache__
 *.egg-info/
 build/
 dist/
+/packaging/arch/pkg/
+/packaging/arch/src/
+*.pkg.tar.*
 mise.local.toml

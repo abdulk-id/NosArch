@@ -1,0 +1,73 @@
+name: Release
+
+# Runs utils/release.py, the script `mise release` runs, so a release is made the same way from either place.
+# docs/operations/release.md explains it.
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "stable: a version. dev: a build of master for testing."
+        type: choice
+        options: [stable, dev]
+        default: dev
+      version:
+        description: "stable only: the version, such as 0.1.0"
+        type: string
+        required: false
+      next:
+        description: "dev only: the stable version it leads to. Empty means the next minor version."
+        type: string
+        required: false
+
+# One release at a time.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # The script releases what is on master, and stops if the run is not at master's head.
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    # makepkg only runs on Arch, and refuses to run as root.
+    container: archlinux:base-devel
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KIND: ${{ inputs.kind }}
+      VERSION: ${{ inputs.version }}
+      NEXT: ${{ inputs.next }}
+    steps:
+      # Before checkout: without git, checkout downloads a tarball with no history or tags, and the script
+      # numbers a dev build from the tags.
+      - name: Install tools
+        run: pacman --sync --refresh --sysupgrade --noconfirm git github-cli python python-pytest
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # The repository is public, so the script fetches without credentials. The builder could not read them.
+          persist-credentials: false
+
+      - name: Create the build user
+        run: |
+          useradd --create-home builder
+          chown --recursive builder .
+          su builder --command 'git config --global --add safe.directory "*"'
+
+      - name: Release
+        # --preserve-environment keeps GH_TOKEN and the inputs for the builder. HOME is its own.
+        run: |
+          # The single quotes are deliberate: the builder's shell expands the variables, not this one.
+          # shellcheck disable=SC2016
+          su builder --preserve-environment --command '
+            export HOME=/home/builder
+            cd "$GITHUB_WORKSPACE"
+            if [ "$KIND" = stable ]; then
+              python3 -B utils/release.py "$VERSION"
+            else
+              python3 -B utils/release.py dev ${NEXT:+--next "$NEXT"}
+            fi
+          '

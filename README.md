@@ -4,7 +4,14 @@ NosArch is an Arch Linux dotfile and system configuration repo, applied by its o
 
 See [docs/](docs/README.md) for the project overview, internal design notes, and maintainer procedures.
 
+## Installing
+
+On Arch Linux, [manual-install.md](docs/user/manual-install.md) installs NosArch from the latest release. NosArch is
+alpha: every version is `0.x`, and an upgrade can break a machine.
+
 ## Usage
+
+This is for working on NosArch from a checkout.
 
 1. Install `git` and `python`.
 2. Clone this repository:

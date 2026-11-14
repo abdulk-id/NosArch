@@ -47,3 +47,14 @@ run = "python3 -B -m nosarch"
 [tasks.dryrun]
 description = "Show everything a run would change"
 run = "python3 -B -m nosarch --dry-run"
+
+# Packaging ---
+[tasks.pkg-arch]
+description = "Build the nosarch pacman package from this checkout"
+dir = "packaging/arch"
+run = "makepkg --force --noconfirm --cleanbuild"
+
+[tasks.release]
+description = "Build master and publish a release: mise release 0.1.0, or mise release dev. --dry-run builds only."
+raw_args = true
+run = "python3 -B utils/release.py"

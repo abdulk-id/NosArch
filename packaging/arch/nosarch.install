@@ -1,0 +1,9 @@
+# Sourced by pacman. Installing the package does not apply the definition: apply calls pacman.
+
+post_install() {
+    echo 'Write ~/.nosarch_config.json if you have not, then run: nosarch-apply'
+}
+
+post_upgrade() {
+    echo 'The definition is not applied by an upgrade. Run: nosarch-apply'
+}

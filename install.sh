@@ -1,5 +1,6 @@
 #!/bin/sh
-# Installs the NosArch pacman package from a GitHub release. It does not apply NosArch: run `nosarch-apply` after.
+# Installs the NosArch pacman package from a GitHub release, and writes the smallest ~/.nosarch_config.json NosArch
+# accepts if there is none. It does not apply NosArch: run `nosarch-apply` after.
 #
 # The copy of this script attached to a release installs that release:
 #
@@ -31,7 +32,9 @@ show_help() {
     cat <<EOF
 Usage: install.sh [dev | TAG]
 
-Installs the NosArch pacman package. It does not apply NosArch.
+Installs the NosArch pacman package, and writes ~/.nosarch_config.json with your
+username and full name if you have no config yet. An existing config is kept.
+It does not apply NosArch.
 
 With no argument, installs the release this script came from, or the latest
 stable release when this copy is not attached to one.
@@ -43,6 +46,11 @@ EOF
 
 need() {
     command -v "$1" > /dev/null 2>&1 || fail "$2"
+}
+
+# Escapes a value for a JSON string.
+json_escape() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
 # Features
@@ -99,6 +107,45 @@ install_package() {
     fi
 }
 
+# The account that is installing NosArch: the user, or the user that ran this script with sudo. Nothing is written for
+# a plain root login, since root is not the account NosArch is set up for.
+config_user() {
+    if [ "$(id -u)" -ne 0 ]; then
+        id -un
+    else
+        printf '%s' "${SUDO_USER:-}"
+    fi
+}
+
+# The smallest config NosArch accepts. Everything else has a default. The full name is the account's, which archinstall
+# leaves empty, so the username stands in for it.
+write_config() {
+    user="$(config_user)"
+    if [ -z "$user" ] || [ "$user" = "root" ]; then
+        printf '\nNo config written: log in as the user NosArch is for, or run this with sudo from that user.\n' >&2
+        return 0
+    fi
+
+    if [ "$(id -u)" -ne 0 ]; then
+        home="$HOME"
+    else
+        home="$(getent passwd "$user" | cut --delimiter=: --fields=6)"
+    fi
+    config="${home}/.nosarch_config.json"
+    if [ -e "$config" ]; then
+        printf '\nKept your existing %s\n' "$config"
+        return 0
+    fi
+
+    fullname="$(getent passwd "$user" | cut --delimiter=: --fields=5 | cut --delimiter=, --fields=1)"
+    printf '{\n    "user": {\n        "username": "%s",\n        "fullname": "%s"\n    }\n}\n' \
+        "$(json_escape "$user")" "$(json_escape "${fullname:-$user}")" > "$config"
+    if [ "$(id -u)" -eq 0 ]; then
+        chown "$user" "$config"
+    fi
+    printf '\nWrote %s with your username and name. Add settings to it to choose what NosArch sets up.\n' "$config"
+}
+
 main() {
     case "${1:-}" in
         help | -h | --help)
@@ -124,8 +171,9 @@ main() {
 
     download "$tag" "$work_dir"
     install_package "${work_dir}/${package}"
+    write_config
 
-    printf '\nInstalled. Write ~/.nosarch_config.json, then run: nosarch-apply\n'
+    printf '\nInstalled. Run: nosarch-apply --dry-run to see what it would change, then nosarch-apply\n'
 }
 
 main "$@"

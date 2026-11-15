@@ -82,10 +82,11 @@ The copy of `install.sh` on `master` has no tag, so it installs the latest stabl
 an hour per address. The parsing is a few lines of `awk` over the API's output, which assumes the JSON is indented the
 way GitHub sends it.
 
-The installer also writes the smallest `~/.nosarch_config.json` NosArch accepts, the `user.username` and
-`user.fullname` fields, if there is none. The username is the account that runs it, or the one that ran it with `sudo`.
-The full name is that account's, or the username when it has none, as archinstall leaves it empty. An existing config
-is never overwritten. A plain root login writes nothing. Everything else in the config has a default.
+The installer also writes the smallest `~/.nosarch_config.json` NosArch accepts, `{"user": {"username": ...}}`, if
+there is none. The username is the account that runs it, or the one that ran it with `sudo`. An existing config is never
+overwritten. A plain root login writes nothing. Everything else in the config has a default, including `user.fullname`
+and `user.git_email`, which only fill in Git's `user.name` and `user.email`. Keep the schema's required fields and
+`tests/test_config_schema.py` in step with what the installer writes.
 
 Running it again installs the same version again, which is how a throwaway VM is reset.
 

@@ -14,7 +14,8 @@
                 },
                 "fullname": {
                     "type": "string",
-                    "description": "User's full name"
+                    "description": "User's full name, used as Git's user name",
+                    "default": ""
                 },
                 "git_email": {
                     "type": "string",
@@ -22,7 +23,7 @@
                     "default": ""
                 }
             },
-            "required": ["username", "fullname"]
+            "required": ["username"]
         },
         "setups": {
             "type": "object",

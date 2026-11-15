@@ -33,7 +33,7 @@ show_help() {
 Usage: install.sh [dev | TAG]
 
 Installs the NosArch pacman package, and writes ~/.nosarch_config.json with your
-username and full name if you have no config yet. An existing config is kept.
+username if you have no config yet. An existing config is kept.
 It does not apply NosArch.
 
 With no argument, installs the release this script came from, or the latest
@@ -46,11 +46,6 @@ EOF
 
 need() {
     command -v "$1" > /dev/null 2>&1 || fail "$2"
-}
-
-# Escapes a value for a JSON string.
-json_escape() {
-    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
 # Features
@@ -117,8 +112,8 @@ config_user() {
     fi
 }
 
-# The smallest config NosArch accepts. Everything else has a default. The full name is the account's, which archinstall
-# leaves empty, so the username stands in for it.
+# The smallest config NosArch accepts: the username. Everything else has a default. A username is letters, digits, `_`
+# and `-`, so it needs no JSON escaping.
 write_config() {
     user="$(config_user)"
     if [ -z "$user" ] || [ "$user" = "root" ]; then
@@ -137,13 +132,11 @@ write_config() {
         return 0
     fi
 
-    fullname="$(getent passwd "$user" | cut --delimiter=: --fields=5 | cut --delimiter=, --fields=1)"
-    printf '{\n    "user": {\n        "username": "%s",\n        "fullname": "%s"\n    }\n}\n' \
-        "$(json_escape "$user")" "$(json_escape "${fullname:-$user}")" > "$config"
+    printf '{\n    "user": {\n        "username": "%s"\n    }\n}\n' "$user" > "$config"
     if [ "$(id -u)" -eq 0 ]; then
         chown "$user" "$config"
     fi
-    printf '\nWrote %s with your username and name. Add settings to it to choose what NosArch sets up.\n' "$config"
+    printf '\nWrote %s with your username. Add settings to it to choose what NosArch sets up.\n' "$config"
 }
 
 main() {

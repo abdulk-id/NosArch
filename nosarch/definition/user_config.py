@@ -131,7 +131,7 @@ _LANGUAGES: tuple[str, ...] = (
 @dataclass
 class User:
     username: str = text("User name")
-    fullname: str = text("User's full name")
+    fullname: str = text("User's full name, used as Git's user name", default="")
     git_email: str = text("User's Git email", default="")
 
 

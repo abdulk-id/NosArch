@@ -40,8 +40,8 @@ not have it, then install the latest release:
 curl -fsSL https://github.com/abdulk-id/NosArch/releases/latest/download/install.sh | sh
 ```
 
-This installs the `nosarch` package and writes `~/.nosarch_config.json` with your username and full name, the only
-settings NosArch requires. An existing config is kept. It does not apply NosArch. To choose what NosArch sets up, add
+This installs the `nosarch` package and writes `~/.nosarch_config.json` with your username, the only setting NosArch
+requires. An existing config is kept. It does not apply NosArch. To choose what NosArch sets up, add
 settings to the config first (see [`config.schema.json`](../../config.schema.json)), then apply:
 
 ```sh

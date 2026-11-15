@@ -19,7 +19,7 @@ NosArch can be installed manually using the arch linux ISO and archinstall.
 | Authentication > Root password | Set yours                                                                        |
 | Authentication > User account  | Add a user > Superuser: Yes > Confirm and exit                                   |
 | Applications > Audio           | pipewire                                                                         |
-| Network configuration          | Use NetworkManager                                                               |
+| Network configuration          | Use Network Manager (default backend)                                            |
 | Timezone                       | Set yours                                                                        |
 
 In Disk > File system, ensure that there are six btrfs subvolumes configured:

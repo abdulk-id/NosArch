@@ -95,10 +95,21 @@ class UserConfigReaderTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 _ = UserConfigReader.load(config_path)
 
-    def test_missing_required_value_raises(self) -> None:
+    def test_the_username_alone_is_a_complete_config(self) -> None:
+        """The install script writes this, so it must stay valid."""
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "config.json"
             config_path.write_text(json.dumps({"user": {"username": "ada"}}), encoding="utf-8")
+            config = UserConfigReader.load(config_path)
+
+            self.assertEqual(config.user.username, "ada")
+            self.assertEqual(config.user.fullname, "")
+            self.assertEqual(config.user.git_email, "")
+
+    def test_missing_required_value_raises(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(json.dumps({"user": {"fullname": "Ada"}}), encoding="utf-8")
             with self.assertRaises(ValueError):
                 _ = UserConfigReader.load(config_path)
 

@@ -18,3 +18,4 @@ Set `advanced.enable_nosarch_works` to `true` in `~/.nosarch_config.json` to ins
 - Config schema: settings are defined on the classes in `nosarch/definition/user_config.py`. After changing one, run
   `mise config-schema` to refresh `config.schema.json`; `mise test-config` fails when the file is stale.
 - Everything: `mise test-all`.
+- The pacman package: `mise pkg-arch`, then inspect it as in [releasing](release.md#the-package).

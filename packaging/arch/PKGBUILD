@@ -1,0 +1,43 @@
+# Maintainer: abdulk-id
+#
+# Packages the working tree this file sits in. See docs/operations/release.md.
+
+pkgname=nosarch
+# utils/release.py sets NOSARCH_VERSION to the release's version. A build outside a release is 0.0.0.rN.gSHA.
+# This is assigned here and not computed by a pkgver() function, which makepkg would write back into this file.
+pkgver=${NOSARCH_VERSION:-0.0.0.r$(git -C "$startdir" rev-list --count HEAD).g$(git -C "$startdir" rev-parse --short HEAD)}
+pkgrel=1
+pkgdesc='Arch Linux system configuration, applied by its own engine'
+arch=(any)
+url='https://github.com/abdulk-id/NosArch'
+license=(MIT)
+depends=('python>=3.12' sudo)
+install=nosarch.install
+# The tree is the repository, so there is nothing to download.
+source=()
+sha256sums=()
+
+_repo() {
+    (cd "$startdir/../.." && pwd)
+}
+
+package() {
+    local repo dest
+    repo=$(_repo)
+    dest="$pkgdir/usr/lib/nosarch"
+
+    # Not a Python wheel in site-packages. That directory is named for the Python minor version,
+    # and a release asset is never rebuilt when Arch moves to the next one, so the package would
+    # stop importing after an upgrade. The engine has no dependencies, so the tree runs from here.
+    #
+    # Tracked and untracked-but-not-ignored files: a local build includes new files that are not
+    # committed yet, and neither build includes caches.
+    install -d -- "$dest"
+    git -C "$repo" ls-files --cached --others --exclude-standard -z -- nosarch \
+        | tar --directory "$repo" --null --files-from - --create --file - \
+        | tar --directory "$dest" --extract --file - --no-same-owner
+    chmod --recursive u=rwX,go=rX -- "$dest"
+
+    install -Dm755 "$startdir/nosarch-apply" "$pkgdir/usr/bin/nosarch-apply"
+    install -Dm644 "$repo/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -4,6 +4,7 @@
 - `internal/`: decisions, their reasons, and traps the source does not show. Rules for adding to it are in
   [AGENTS.md](../AGENTS.md#documentation).
 - [`operations/`](operations/development.md): maintainer setup and testing.
+  [Releasing](operations/release.md) covers the pacman package, the GitHub releases, and the installer.
 
 Work on NosArch from a machine running NosArch, so changes can be tested live.
 

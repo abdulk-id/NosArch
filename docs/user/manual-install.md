@@ -37,7 +37,7 @@ After Arch Linux has been installed, reboot and log in as the user you set up. I
 not have it, then install the latest release:
 
 ```sh
-curl -fsSL https://github.com/abdulk-id/NosArch/releases/latest/download/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh
 ```
 
 This installs the `nosarch` package and writes `~/.nosarch_config.json` with your username, the only setting NosArch

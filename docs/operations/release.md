@@ -1,8 +1,7 @@
 # Releasing
 
-A release is a GitHub release with three files: `nosarch-source.pkg.tar.zst` (the pacman package), `SHA256SUMS`, and
-`install.sh`. [`install.sh`](../../install.sh) downloads the package and runs `pacman -U` on it. It does not apply
-NosArch.
+A release is a GitHub release with two files: `nosarch-source.pkg.tar.zst` (the pacman package) and `SHA256SUMS`.
+[`install.sh`](../../install.sh) downloads the package and runs `pacman -U` on it. It does not apply NosArch.
 
 A release is made only when you decide to. Nothing is published on a push or on a schedule.
 
@@ -10,10 +9,10 @@ A release is made only when you decide to. Nothing is published on a push or on 
 
 Both ways run the same script, [`utils/release.py`](../../utils/release.py), so they make the same release.
 
-| Release | Command                     | Is `releases/latest` |
-| :------ | :-------------------------- | :------------------- |
-| Stable  | `mise release 0.1.0`        | yes                  |
-| Dev     | `mise release dev`          | never                |
+| Release | Command              | Is `releases/latest` |
+| :------ | :------------------- | :------------------- |
+| Stable  | `mise release 0.1.0` | yes                  |
+| Dev     | `mise release dev`   | never                |
 
 **On your machine.** It needs Arch (`makepkg`), `gh auth login`, `python` and `python-pytest`. Use this when GitHub
 Actions is down.
@@ -27,25 +26,18 @@ The script:
    what is on `master`.
 2. Works out the tag and the package version (below), and stops if the tag already exists.
 3. Runs the tests, builds the package with `makepkg`, and writes the checksum.
-4. Stamps the release's tag into its copy of `install.sh`.
-5. Publishes the release as a draft, uploads the three files, and then publishes it.
+4. Publishes the release as a draft, uploads the two files, and then publishes it.
 
-`mise release --dry-run dev` does everything except step 5, and a failed check in step 1 only warns. Use it to try the
+`mise release --dry-run dev` does everything except step 4, and a failed check in step 1 only warns. Use it to try the
 script on a branch. It keeps the build and prints where.
 
-If the script stops during step 5, a draft release is left behind. Run it again, and it replaces the draft.
+If the script stops during step 4, a draft release is left behind. Run it again, and it replaces the draft.
 
 ## Versions
 
-A stable version is `X.Y.Z`, tagged `vX.Y.Z`. NosArch is alpha, so every version is `0.Y.Z`. Under
-[SemVer](https://semver.org), a `0.Y.Z` version may change at any time, and the zero is what says so. A release says it
-is alpha in its title and notes. Remove that in `utils/release.py` at `1.0.0`.
+A stable version is `X.Y.Z`, tagged `vX.Y.Z`.
 
-- Bump the minor for anything that can break a machine: a changed config schema, a removed module, or a changed file
-  layout. Bump the patch for a fix.
-- Move to `1.0.0` when an upgrade can be trusted on a machine that matters. The config schema is stable then, and
-  upgrades have been tried on a VM.
-- A stable version must be newer than the latest one.
+NosArch is currently alpha, so every version is `0.Y.Z`.
 
 A dev build is named for the stable version it leads to, then the date and the day's count:
 `v0.2.0-dev-20261114-1`. The date is `yyyymmdd`, so names sort in order. The count is how many dev builds for that
@@ -67,20 +59,24 @@ it, and release again, or release the next patch.
 
 ```sh
 # the latest stable version
-curl -fsSL https://github.com/abdulk-id/NosArch/releases/latest/download/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh
 # the newest dev build
-curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh -s -- dev
+curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh -s -- --dev
 # one release
-curl -fsSL https://github.com/abdulk-id/NosArch/releases/download/v0.2.0-dev-20261114-1/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh -s -- v0.2.0-dev-20261114-1
 ```
 
-The script attached to a release installs that release. Its tag is written into it when the release is made. It cannot
-end up installing a different one because a newer release appeared between downloading the script and the package.
+With no argument the script installs the latest stable release. `--dev` installs the newest dev build (`dev` means the
+same). A tag installs that release. Editing `install.sh` changes the installer for every release, including ones
+already published. The package it downloads is still the package from that release.
 
-The copy of `install.sh` on `master` has no tag, so it installs the latest stable version, or what its argument names:
-`dev` or a tag. `dev` asks the GitHub API for the newest prerelease. That is one anonymous request, and GitHub allows 60
-an hour per address. The parsing is a few lines of `awk` over the API's output, which assumes the JSON is indented the
-way GitHub sends it.
+It finds the latest stable release by following `releases/latest`. GitHub redirects that to the release's page, and to
+the release list when there is no stable release. That is a page request, so it does not use the API limit. `--dev`
+asks the GitHub API for the newest prerelease. That is one anonymous request, and GitHub allows 60 an hour per address.
+The parsing is a few lines of `awk` over the API's output, which assumes the JSON is indented the way GitHub sends it.
+
+The package and `SHA256SUMS` are then downloaded from that release. Both files come from the tag it resolved, so they
+stay a pair if another release is published during the download.
 
 The installer also writes the smallest `~/.nosarch_config.json` NosArch accepts, `{"user": {"username": ...}}`, if
 there is none. The username is the account that runs it, or the one that ran it with `sudo`. An existing config is never

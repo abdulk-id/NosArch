@@ -2,26 +2,18 @@
 # Installs the NosArch pacman package from a GitHub release, and writes the smallest ~/.nosarch_config.json NosArch
 # accepts if there is none. It does not apply NosArch: run `nosarch-apply` after.
 #
-# The copy of this script attached to a release installs that release:
+# This is the only installer. It lives on master and installs the latest stable release, the newest dev build with
+# --dev, or one tag:
 #
-#   curl -fsSL https://github.com/abdulk-id/NosArch/releases/latest/download/install.sh | sh
-#   curl -fsSL https://github.com/abdulk-id/NosArch/releases/download/v0.1.0/install.sh | sh
-#
-# This copy, from master, installs the latest stable release, or whatever its argument names. `dev` is the newest
-# dev build, which GitHub never offers as the latest release. A tag is one exact release:
-#
-#   curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh -s -- dev
-#   curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh -s -- v0.2.0-dev-20261114-1
+#   curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh -s -- --dev
+#   curl -fsSL https://raw.githubusercontent.com/abdulk-id/NosArch/master/install.sh | sh -s -- v0.1.0
 set -eu
 
 # Utilities
 
 repo="abdulk-id/NosArch"
 package="nosarch-source.pkg.tar.zst"
-# utils/release.py replaces this whole line with the release's tag in the copy it attaches. In a checkout it stays
-# "unreleased". A copy that names its own release cannot install a different one because a newer release appeared
-# between downloading the script and the package.
-baked_tag="unreleased"
 
 fail() {
     printf 'nosarch install: %s\n' "$1" >&2
@@ -30,17 +22,16 @@ fail() {
 
 show_help() {
     cat <<EOF
-Usage: install.sh [dev | TAG]
+Usage: install.sh [--dev | TAG]
 
 Installs the NosArch pacman package, and writes ~/.nosarch_config.json with your
 username if you have no config yet. An existing config is kept.
 It does not apply NosArch.
 
-With no argument, installs the release this script came from, or the latest
-stable release when this copy is not attached to one.
+With no argument, installs the latest stable release.
 
-  dev   the newest dev build
-  TAG   one exact release, such as v0.1.0
+  --dev   the newest dev build, a GitHub prerelease. dev means the same
+  TAG     one exact release, such as v0.1.0
 EOF
 }
 
@@ -60,15 +51,37 @@ newest_dev_tag() {
         awk '/^    "tag_name":/ { tag = $2; gsub(/[",]/, "", tag) } /^    "prerelease": true/ { print tag; exit }'
 }
 
-# Prints the tag to install, or nothing for the latest release.
+# GitHub sends /releases/latest to /releases/tag/<tag> for the newest release that is not a prerelease, and to the
+# release list when there is none. Resolving that tag, then downloading from it, keeps the package and SHA256SUMS
+# on the same release when another one is published during the download. This is a page request, not an API call.
+latest_stable_tag() {
+    url="$(curl --fail --silent --show-error --location --output /dev/null \
+        --write-out '%{url_effective}' "https://github.com/${repo}/releases/latest")" ||
+        fail "could not find the latest release."
+    url="${url%%\?*}"
+    url="${url%/}"
+    prefix="https://github.com/${repo}/releases/tag/"
+    case "$url" in
+        "$prefix"*)
+            tag="${url#"$prefix"}"
+            ;;
+        *)
+            tag=""
+            ;;
+    esac
+    [ -n "$tag" ] || fail "there is no stable release yet. Pass --dev for the newest dev build."
+    printf '%s' "$tag"
+}
+
+# Prints the tag to install.
 choose_tag() {
-    tag="${1:-}"
-    if [ -z "$tag" ] && [ "$baked_tag" != "unreleased" ]; then
-        tag="$baked_tag"
-    fi
-    if [ "$tag" = "dev" ]; then
+    mode=$1
+    tag=$2
+    if [ "$mode" = "dev" ]; then
         tag="$(newest_dev_tag)"
         [ -n "$tag" ] || fail "there is no dev build yet."
+    elif [ "$mode" = "latest" ]; then
+        tag="$(latest_stable_tag)"
     fi
     printf '%s' "$tag"
 }
@@ -76,13 +89,9 @@ choose_tag() {
 download() {
     tag=$1
     work_dir=$2
-    if [ -n "$tag" ]; then
-        base_url="https://github.com/${repo}/releases/download/${tag}"
-    else
-        base_url="https://github.com/${repo}/releases/latest/download"
-    fi
+    base_url="https://github.com/${repo}/releases/download/${tag}"
 
-    printf 'Downloading %s\n' "${tag:-the latest release}" >&2
+    printf 'Downloading %s\n' "$tag" >&2
     curl --fail --silent --show-error --location --output "${work_dir}/${package}" "${base_url}/${package}" ||
         fail "could not download ${base_url}/${package}"
     curl --fail --silent --show-error --location --output "${work_dir}/SHA256SUMS" "${base_url}/SHA256SUMS" ||
@@ -139,23 +148,52 @@ write_config() {
     printf '\nWrote %s with your username. Add settings to it to choose what NosArch sets up.\n' "$config"
 }
 
+# Sets mode to latest, dev, or tag, and tag when mode is tag. dev means the same as --dev.
+parse_request() {
+    mode="latest"
+    tag=""
+    for argument in "$@"; do
+        case "$argument" in
+            --dev | dev)
+                if [ "$mode" != "latest" ]; then
+                    fail "pass either --dev or one tag."
+                fi
+                mode="dev"
+                ;;
+            -*)
+                show_help >&2
+                exit 1
+                ;;
+            *)
+                if [ "$mode" != "latest" ] || [ -n "$tag" ]; then
+                    fail "pass either --dev or one tag."
+                fi
+                mode="tag"
+                tag=$argument
+                ;;
+        esac
+    done
+}
+
 main() {
     case "${1:-}" in
         help | -h | --help)
+            if [ "$#" -ne 1 ]; then
+                show_help >&2
+                exit 1
+            fi
             show_help
             exit 0
             ;;
     esac
-    if [ "$#" -gt 1 ]; then
-        show_help >&2
-        exit 1
-    fi
+
+    parse_request "$@"
 
     need pacman "NosArch installs on Arch Linux. pacman was not found."
     need curl "curl is required. Install it with: sudo pacman -S curl"
     [ "$(id -u)" -eq 0 ] || need sudo "sudo is required to run pacman."
 
-    tag="$(choose_tag "${1:-}")"
+    tag="$(choose_tag "$mode" "$tag")"
 
     work_dir="$(mktemp --directory)"
     trap 'rm --recursive --force -- "$work_dir"' EXIT

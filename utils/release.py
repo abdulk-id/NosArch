@@ -208,7 +208,8 @@ def build_package(plan: Plan, work: Path) -> Path:
     return packages[0]
 
 
-def stage_assets(plan: Plan, package: Path, work: Path) -> list[Path]:
+def stage_assets(package: Path, work: Path) -> list[Path]:
+    """The package and its checksum. install.sh is not a release file: one copy, on master, installs every release."""
     assets: Path = work / "assets"
     assets.mkdir()
     shutil.copy(package, assets / PACKAGE)
@@ -216,21 +217,16 @@ def stage_assets(plan: Plan, package: Path, work: Path) -> list[Path]:
     digest: str = hashlib.sha256((assets / PACKAGE).read_bytes()).hexdigest()
     (assets / "SHA256SUMS").write_text(f"{digest}  {PACKAGE}\n")
 
-    # The copy attached to the release installs that release, so the tag goes into it.
-    script: str = (ROOT / "install.sh").read_text()
-    stamped: str
-    count: int
-    stamped, count = re.subn(r"^baked_tag=.*$", lambda _: f'baked_tag="{plan.tag}"', script, flags=re.MULTILINE)
-    if count != 1:
-        raise ReleaseError("install.sh has no single baked_tag line to set.")
-    (assets / "install.sh").write_text(stamped)
-    (assets / "install.sh").chmod(0o755)
-
     return sorted(assets.iterdir())
 
 
+def install_command(tag: str) -> str:
+    """The installer on master, told to install this release."""
+    return f"curl -fsSL https://raw.githubusercontent.com/{REPO}/master/install.sh | sh -s -- {tag}"
+
+
 def release_notes(plan: Plan, sha: str) -> str:
-    install_command: str = f"curl -fsSL https://github.com/{REPO}/releases/download/{plan.tag}/install.sh | sh"
+    command: str = install_command(plan.tag)
     intro: str = ""
     if plan.kind == "dev":
         intro = f"A dev build leading to {plan.leads_to}, made from {sha}. For testing, not for a machine you depend on.\n\n"
@@ -239,7 +235,7 @@ def release_notes(plan: Plan, sha: str) -> str:
             "NosArch is alpha. An upgrade can need changes to `~/.nosarch_config.json` "
             "or to what the definition manages.\n\n"
         )
-    return f"{intro}```sh\n{install_command}\n```\n"
+    return f"{intro}```sh\n{command}\n```\n"
 
 
 def publish(plan: Plan, sha: str, assets: list[Path], notes: Path) -> None:
@@ -310,7 +306,7 @@ def release(arguments: Arguments) -> None:
     work: Path = Path(tempfile.mkdtemp())
     try:
         package: Path = build_package(plan, work)
-        assets: list[Path] = stage_assets(plan, package, work)
+        assets: list[Path] = stage_assets(package, work)
         notes: Path = work / "notes.md"
         notes.write_text(release_notes(plan, sha))
 
@@ -323,7 +319,7 @@ def release(arguments: Arguments) -> None:
 
         publish(plan, sha, assets, notes)
         print(f"\nPublished https://github.com/{REPO}/releases/tag/{plan.tag}")
-        print(f"Install it with:\n  curl -fsSL https://github.com/{REPO}/releases/download/{plan.tag}/install.sh | sh")
+        print(f"Install it with:\n  {install_command(plan.tag)}")
     finally:
         if not arguments.dry_run:
             shutil.rmtree(work, ignore_errors=True)

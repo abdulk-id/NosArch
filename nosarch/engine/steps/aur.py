@@ -145,7 +145,7 @@ def _build_and_install(
     final: list[str] = [files[name] for name in sorted(to_install) if name not in installed_for_build]
     if final:
         nosarch.engine.output.print_summary("Installing foreign packages.")
-        nosarch.engine.command.run(["pacman", "-U", "--asdeps", *final])
+        nosarch.engine.command.run(["pacman", "-U", "--asdeps", "--noconfirm", *final])
     if explicit:
         nosarch.engine.command.run(["pacman", "-D", "--asexplicit", *sorted(explicit)], capture=True)
 
@@ -220,7 +220,7 @@ def run(ctx: nosarch.engine.setup.Context) -> None:
         return
 
     if remove:
-        nosarch.engine.command.run(["pacman", "-Rs", *sorted(remove)])
+        nosarch.engine.command.run(["pacman", "-Rs", "--noconfirm", *sorted(remove)])
     if demote:
         nosarch.engine.command.run(["pacman", "-D", "--asdeps", *sorted(demote)], capture=True)
     if to_mark:

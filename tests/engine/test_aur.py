@@ -1,4 +1,4 @@
-"""The foreign package step keeps the package the installer put on the system."""
+"""The foreign package step: the installer package stays, and pacman does not prompt."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def test_the_installer_package_is_kept_and_another_foreign_package_is_removed(
 
     box.apply(box.rec("m"), steps=STEPS)
 
-    assert box.argv == [["pacman", "-Rs", "spotify"]]
+    assert box.argv == [["pacman", "-Rs", "--noconfirm", "spotify"]]
 
 
 def test_a_dependency_of_the_installer_package_is_demoted_instead_of_removed(

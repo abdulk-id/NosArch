@@ -28,7 +28,7 @@ def run(ctx: nosarch.engine.setup.Context) -> None:
         "Removing pacman packages:" if not ctx.dry_run else "Pacman packages to remove:", remove
     )
     if remove and not ctx.dry_run:
-        nosarch.engine.command.run(["pacman", "-Rs", *sorted(remove)])
+        nosarch.engine.command.run(["pacman", "-Rs", "--noconfirm", *sorted(remove)])
 
     nosarch.engine.output.print_list("Marking packages nothing declares as dependencies:", demote)
     if demote and not ctx.dry_run:
@@ -38,11 +38,11 @@ def run(ctx: nosarch.engine.setup.Context) -> None:
         nosarch.engine.output.print_info("Would upgrade the system with `pacman -Syu`.")
     else:
         nosarch.engine.output.print_summary("Upgrading packages.")
-        nosarch.engine.command.run(["pacman", "-Syu"])
+        nosarch.engine.command.run(["pacman", "-Syu", "--noconfirm"])
 
     nosarch.engine.output.print_list(
         "Installing pacman packages:" if not ctx.dry_run else "Pacman packages to install:", to_install
     )
     if to_install and not ctx.dry_run:
-        nosarch.engine.command.run(["pacman", "-S", "--needed", *sorted(to_install)])
+        nosarch.engine.command.run(["pacman", "-S", "--needed", "--noconfirm", *sorted(to_install)])
         nosarch.engine.command.run(["pacman", "-D", "--asexplicit", *sorted(to_install)], capture=True)

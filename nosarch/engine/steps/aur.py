@@ -8,6 +8,11 @@ import nosarch.engine.setup
 packages = nosarch.engine.module.declares("aur")
 custom_packages = nosarch.engine.module.declares("custom")
 
+# install.sh installs this with `pacman -U`. It is foreign, and the declaration does not list it:
+# apply does not build or upgrade it. Leaving it out of this set makes the step remove it, which
+# deletes the program that is running.
+_INSTALLER_PACKAGES: frozenset[str] = frozenset({"nosarch"})
+
 
 def _custom_infos(ctx: nosarch.engine.setup.Context, names: set[str]) -> dict[str, nosarch.engine.aur.PackageInfo]:
     settings: nosarch.engine.setup.AurSettings = ctx.setup.aur
@@ -184,20 +189,21 @@ def run(ctx: nosarch.engine.setup.Context) -> None:
     explicit_foreign: set[str] = {name for name, pkg in foreign.items() if pkg.explicit}
     explicit_native: set[str] = {name for name, pkg in installed.items() if pkg.explicit and pkg.native}
     orphans: set[str] = nosarch.engine.pacman_db.orphans(installed, native=False)
+    protected: set[str] = settings.ignored | _INSTALLER_PACKAGES
 
     remove, demote = nosarch.engine.pacman_db.split_removals(
         installed,
-        (explicit_foreign | orphans) - declared - settings.ignored,
-        keep=declared | explicit_native | (settings.ignored & explicit_foreign),
+        (explicit_foreign | orphans) - declared - protected,
+        keep=declared | explicit_native | (protected & set(foreign)),
     )
     demote -= orphans
 
-    to_install: set[str] = declared - set(foreign) - settings.ignored
-    to_mark: set[str] = {name for name in declared & set(foreign) if not foreign[name].explicit} - settings.ignored
+    to_install: set[str] = declared - set(foreign) - protected
+    to_mark: set[str] = {name for name in declared & set(foreign) if not foreign[name].explicit} - protected
 
     rpc: nosarch.engine.aur.Rpc = nosarch.engine.aur.Rpc()
-    custom: dict[str, nosarch.engine.aur.PackageInfo] = _custom_infos(ctx, declared_custom - settings.ignored)
-    upgrades: set[str] = _upgrades(ctx, rpc, custom, installed, set(foreign) - remove - settings.ignored)
+    custom: dict[str, nosarch.engine.aur.PackageInfo] = _custom_infos(ctx, declared_custom - protected)
+    upgrades: set[str] = _upgrades(ctx, rpc, custom, installed, set(foreign) - remove - protected)
 
     dry: bool = ctx.dry_run
     nosarch.engine.output.print_list("Removing foreign packages:" if not dry else "Foreign packages to remove:", remove)

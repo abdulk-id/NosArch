@@ -28,6 +28,7 @@ class AurSettings:
     ignored: set[str] = field(default_factory=set)
     custom_pkgbuild_dir: Callable[[str, bool], str | None] | None = None
     upgrade_devel: bool = False
+    confirm_builds: bool = True
 
 
 @dataclass

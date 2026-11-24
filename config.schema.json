@@ -338,6 +338,11 @@
                     "type": "boolean",
                     "description": "Create a Btrfs swapfile and configure the kernel to hibernate to it",
                     "default": false
+                },
+                "confirm_aur_builds": {
+                    "type": "boolean",
+                    "description": "Ask before reviewing and building AUR packages. Turn this off for an unattended install",
+                    "default": true
                 }
             }
         }

@@ -28,6 +28,11 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--skip", nargs="+", default=[], metavar="STEP", help="skip these steps")
     parser.add_argument("--no-hooks", action="store_true", help="run no module hooks")
     parser.add_argument("--aur-upgrade-devel", action="store_true", help="rebuild VCS packages such as -git ones")
+    parser.add_argument(
+        "--aur-noconfirm",
+        action="store_true",
+        help="build AUR packages without asking to review the PKGBUILD or to proceed",
+    )
     parser.add_argument("--debug", action="store_true", help="print every command that runs")
     return parser.parse_args()
 
@@ -90,6 +95,8 @@ def run(setup: nosarch.engine.setup.Setup, args: argparse.Namespace) -> None:
     dry: bool = args.dry_run
     hooks: bool = not args.no_hooks and not dry
     setup.aur.upgrade_devel = args.aur_upgrade_devel
+    if args.aur_noconfirm:
+        setup.aur.confirm_builds = False
 
     state: nosarch.engine.state.State = nosarch.engine.state.load() or nosarch.engine.state.State()
     ctx: nosarch.engine.setup.Context = nosarch.engine.setup.Context(setup=setup, state=state, dry_run=dry)

@@ -1,0 +1,2 @@
+-- Managed by NosArch
+-- Empty file because permissions.lua requires this directory. Setup modules add their own files beside this one.

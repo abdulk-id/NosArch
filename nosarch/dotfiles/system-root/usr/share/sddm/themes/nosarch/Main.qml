@@ -11,15 +11,33 @@ Rectangle {
     height: 480
     color: "#1a1b26"
 
-    property string currentUser: userModel.lastUser
+    // lastUser is empty until someone has logged in once. A password-only theme then submits a blank name.
+    property string currentUser: {
+        var last = userModel.lastUser || "";
+        if (last.length > 0)
+            return last;
+        if (userModel.rowCount() < 1)
+            return "";
+        // NameRole. SDDM's user model does not expose it by name; Qt.UserRole + 1 is 257.
+        var name = userModel.data(userModel.index(0, 0), 257);
+        return name ? name.toString() : "";
+    }
     property bool loginFailed: false
     property int sessionIndex: {
-        for (var i = 0; i < sessionModel.rowCount(); i++) {
-            var name = (sessionModel.data(sessionModel.index(i, 0), Qt.DisplayRole) || "").toString();
+        var rows = sessionModel.rowCount();
+        var fallback = -1;
+        for (var i = 0; i < rows; i++) {
+            var name = (sessionModel.data(sessionModel.index(i, 0), Qt.DisplayRole) || "").toString().toLowerCase();
             if (name.indexOf("uwsm") !== -1)
                 return i;
+            if (fallback < 0 && name.indexOf("hyprland") !== -1)
+                fallback = i;
         }
-        return sessionModel.lastIndex;
+        if (fallback >= 0)
+            return fallback;
+        if (sessionModel.lastIndex >= 0)
+            return sessionModel.lastIndex;
+        return 0;
     }
 
     Connections {

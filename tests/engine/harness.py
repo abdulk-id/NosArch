@@ -45,15 +45,20 @@ class Commands:
     def __init__(self, log: list[str]) -> None:
         self.calls: list[Call] = []
         self._log: list[str] = log
-        self._failures: list[tuple[list[str], int]] = []
+        self._failures: list[tuple[list[str], int, str | None]] = []
+        self._predicates: list[tuple[Callable[[list[str]], bool], int, str | None]] = []
         self._effects: list[tuple[list[str], Callable[[list[str]], None]]] = []
 
     def argv(self) -> list[list[str]]:
         return [call.argv for call in self.calls]
 
-    def fail(self, *prefix: str, code: int = 1) -> None:
+    def fail(self, *prefix: str, code: int = 1, stderr: str | None = None) -> None:
         """Makes every command that starts with `prefix` exit with `code`."""
-        self._failures.append((list(prefix), code))
+        self._failures.append((list(prefix), code, stderr))
+
+    def fail_if(self, predicate: Callable[[list[str]], bool], *, code: int = 1, stderr: str | None = None) -> None:
+        """Makes every command for which `predicate` is true exit with `code`."""
+        self._predicates.append((predicate, code, stderr))
 
     def on(self, *prefix: str, effect: Callable[[list[str]], None]) -> None:
         """Runs `effect` with the argument list whenever a command that starts with `prefix` succeeds."""
@@ -76,10 +81,16 @@ class Commands:
         self.calls.append(Call(list(cmd), user, check, capture))
         self._log.append("cmd " + " ".join(cmd))
 
-        for prefix, code in self._failures:
+        for prefix, code, stderr in self._failures:
             if cmd[: len(prefix)] == prefix:
                 if check:
-                    raise nosarch.engine.command.CommandFailedError(cmd, code, "" if capture else None)
+                    raise nosarch.engine.command.CommandFailedError(cmd, code, "" if capture else None, stderr)
+                return ""
+
+        for predicate, code, stderr in self._predicates:
+            if predicate(cmd):
+                if check:
+                    raise nosarch.engine.command.CommandFailedError(cmd, code, "" if capture else None, stderr)
                 return ""
 
         for prefix, effect in self._effects:
@@ -379,6 +390,11 @@ class Box:
         nosarch.engine.app.run(
             setup,
             argparse.Namespace(
-                dry_run=dry_run, only=list(only), skip=list(skip), no_hooks=no_hooks, aur_upgrade_devel=False
+                dry_run=dry_run,
+                only=list(only),
+                skip=list(skip),
+                no_hooks=no_hooks,
+                aur_upgrade_devel=False,
+                aur_noconfirm=False,
             ),
         )

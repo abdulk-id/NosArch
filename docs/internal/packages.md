@@ -13,7 +13,9 @@ With the chroot off, builds run on the host. A build's dependencies are installe
 once nothing needs them.
 
 AUR PKGBUILDs are offered for review before they run: the diff since the last reviewed commit, or every file the first
-time. Custom packages are not, since they come from NosArch's own repository.
+time. That prompt, and the one before the batch is built, stay on unless `advanced.confirm_aur_builds` is turned off.
+`nosarch-apply --aur-noconfirm` skips both for a single run and does not record the commits as reviewed. Custom
+packages are not offered for review, since they come from NosArch's own repository.
 
 ## Homebrew
 

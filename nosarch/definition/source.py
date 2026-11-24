@@ -26,6 +26,7 @@ def setup() -> nosarch.engine.Setup:
     # Packaging ===
     system.aur.build_user = "aurbuilduser"
     system.aur.clean_chroot = user_config.advanced.build_aur_in_clean_chroot
+    system.aur.confirm_builds = user_config.advanced.confirm_aur_builds
     system.aur.custom_pkgbuild_dir = nosarch.utils.custom_packages.package_dir
     system.aur.ignored |= {"xdg-terminal-exec"}
 

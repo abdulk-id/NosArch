@@ -375,6 +375,9 @@ class Builder:
         self._review(info.base, directory)
 
     def _review(self, base: str, directory: str) -> None:
+        if not self._settings.confirm_builds:
+            return
+
         head: str = nosarch.engine.command.run(["git", "-C", directory, "rev-parse", "HEAD"], capture=True).strip()
         reviewed: str | None = self._state.aur_reviewed.get(base)
 

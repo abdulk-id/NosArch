@@ -146,6 +146,7 @@ class SystemModule(nosarch.engine.Module):
             self._dotfiles.files(
                 "/usr/local/bin/nosarch/nosarch",
                 "/usr/local/bin/nosarch/nosarch-battery",
+                "/usr/local/bin/nosarch/nosarch-close-windows",
                 "/usr/local/bin/nosarch/nosarch-package",
                 "/usr/local/bin/nosarch/nosarch-session",
                 "/usr/local/bin/util/nosarch-lock-helper.sh",

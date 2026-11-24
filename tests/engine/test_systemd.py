@@ -44,6 +44,23 @@ def test_a_dropped_unit_is_disabled_and_forgotten_even_if_systemctl_fails(box: h
     assert box.state().systemd_units == ["a.service"]  # pyright: ignore[reportOptionalMemberAccess]
 
 
+def test_a_missing_unit_is_skipped_and_the_others_are_enabled(box: harness.Box) -> None:
+    def missing(cmd: list[str]) -> bool:
+        return "enable" in cmd and "missing.service" in cmd
+
+    box.commands.fail_if(missing, stderr="Failed to enable unit: Unit missing.service does not exist\n")
+
+    box.apply(box.rec("m", units={"missing.service", "present.service"}), steps=STEPS)
+
+    assert box.argv == [
+        ["systemctl", "enable", "missing.service", "present.service"],
+        ["systemctl", "enable", "missing.service"],
+        ["systemctl", "enable", "present.service"],
+        RELOAD,
+    ]
+    assert box.state().systemd_units == ["present.service"]  # pyright: ignore[reportOptionalMemberAccess]
+
+
 def test_a_failing_enable_fails_the_run_and_records_nothing(
     box: harness.Box, capsys: pytest.CaptureFixture[str]
 ) -> None:

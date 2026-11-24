@@ -1,0 +1,88 @@
+#!/bin/sh
+# Managed by NosArch
+# nosarch:summary=Close all open windows
+# Adapted from Omarchy's window-close helper:
+# https://github.com/basecamp/omarchy/blob/master/bin/omarchy-hyprland-window-close-all
+
+set -eu
+
+show_help() {
+    cat <<EOF
+Usage:
+    nosarch-close-windows [option]
+
+Options:
+    --wait      Wait for the owning processes to exit before returning
+    help        Show this help message
+EOF
+}
+
+## === Utilities ===
+_ensure_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but not found."
+        exit 1
+    fi
+}
+
+## === Features ===
+close_windows() {
+    wait_for_processes=$1
+
+    _ensure_command hyprctl
+    _ensure_command jq
+
+    clients=$(hyprctl clients -j 2>/dev/null) || return 0
+
+    waiter=
+    if [ "$wait_for_processes" = "true" ] && command -v pidwait >/dev/null 2>&1; then
+        # Capture the owning PIDs before the windows disappear. Closing a window
+        # alone does not mean the application has finished saving its state.
+        pids=$(printf '%s\n' "$clients" | jq --raw-output '[.[].pid | select(. > 0)] | unique | join(",")')
+        if [ -n "$pids" ]; then
+            pidwait --euid "$(id --user)" --pid "$pids" >/dev/null 2>&1 &
+            waiter=$!
+        fi
+    fi
+
+    # The caller may bound the wait with `timeout`; do not leave pidwait behind.
+    if [ -n "$waiter" ]; then
+        trap 'if [ -n "${waiter:-}" ]; then kill "$waiter" 2>/dev/null || true; fi' EXIT
+        trap 'exit 1' HUP INT TERM
+    fi
+
+    printf '%s\n' "$clients" | jq --raw-output '.[].address' | while read -r address; do
+        hyprctl dispatch "hl.dsp.window.close({ window = \"address:$address\" })" >/dev/null 2>&1 || true
+    done
+
+    # Leave a usable workspace behind; the launcher may have been on another one.
+    hyprctl dispatch 'o.workspaces.focus(1)' >/dev/null 2>&1 ||
+        hyprctl dispatch workspace 1 >/dev/null 2>&1 || true
+
+    if [ -n "$waiter" ]; then
+        # No matching process left means the applications have already exited.
+        wait "$waiter" 2>/dev/null || true
+    fi
+}
+
+## ===
+main() {
+    case "${1:-}" in
+        --wait)
+            close_windows true
+            ;;
+        "")
+            close_windows false
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

@@ -1,3 +1,5 @@
+import os
+import pwd
 from typing import override
 
 import nosarch.definition.modules.theme
@@ -28,7 +30,40 @@ class DesktopModule(nosarch.engine.Module):
 
     @override
     def file_variables(self) -> dict[str, str]:
-        return nosarch.definition.modules.theme.get_current_theme()
+        variables: dict[str, str] = dict(nosarch.definition.modules.theme.get_current_theme())
+        variables["%CURRENT_WALLPAPER%"] = nosarch.definition.modules.theme.wallpaper_path(self._username)
+        variables["%CURRENT_LOCKSCREEN_WALLPAPER%"] = nosarch.definition.modules.theme.wallpaper_path(
+            self._username, lockscreen=True
+        )
+        return variables
+
+    @override
+    def before_update(self) -> None:
+        # xdg-user-dirs-update treats a configured directory that is not there as one the user deleted,
+        # and rewrites that line to $HOME. The directories have to exist before the first login.
+        home: str = f"/home/{self._username}"
+        if not os.path.isdir(home):
+            return
+        try:
+            account: pwd.struct_passwd = pwd.getpwnam(self._username)
+        except KeyError:
+            return
+        for name in (
+            "Desktop",
+            "Downloads",
+            "Templates",
+            "Public",
+            "Documents",
+            "Music",
+            "Pictures",
+            "Videos",
+            "Projects",
+        ):
+            path: str = os.path.join(home, name)
+            if os.path.isdir(path):
+                continue
+            os.makedirs(path, mode=0o755)
+            os.chown(path, account.pw_uid, account.pw_gid)
 
     @override
     def files(self) -> dict[str, File]:
@@ -61,6 +96,7 @@ class DesktopModule(nosarch.engine.Module):
                 "/.config/hypr/input.lua",
                 "/.config/hypr/looknfeel.lua",
                 "/.config/hypr/permissions.lua",
+                "/.config/hypr/app-permissions/nosarch.lua",
                 "/.config/hypr/windows.lua",
                 "/.config/hypr/xdph.conf",
                 "/.config/swaync/config.json",
@@ -69,6 +105,7 @@ class DesktopModule(nosarch.engine.Module):
                 "/.config/swayosd/style.css",
                 "/.config/systemd/user/nosarch-eyesight-reminder.service",
                 "/.config/systemd/user/nosarch-eyesight-reminder.timer",
+                "/.config/systemd/user/elephant.service",
                 "/.config/systemd/user/swayosd.service",
                 "/.config/uwsm/env",
                 "/.config/uwsm/env-hyprland",
@@ -259,7 +296,6 @@ class DesktopModule(nosarch.engine.Module):
             "hyprpaper",
             "hyprpicker",
             "hyprpolkitagent",
-            "hyprshutdown",
             "hyprsunset",
             "inter-font",
             "noto-fonts",
@@ -351,6 +387,10 @@ class DesktopModule(nosarch.engine.Module):
             "nautilus",  # File manager
             "nautilus-python",  # Python bindings for Nautilus extension API; Needed for Custom Actions in Nautilus
             "papers",  # Document viewer
+            # seahorse depends on the virtual org.freedesktop.secrets. An unattended install picks the first
+            # provider, which is not gnome-keyring, so gnome-keyring-daemon.service would not exist.
+            # gnome-keyring also installs gcr-4, which owns gcr-ssh-agent.socket.
+            "gnome-keyring",
             "seahorse",  # Password and Keys GUI
         }
 

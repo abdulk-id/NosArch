@@ -34,6 +34,78 @@ _ensure_command() {
     fi
 }
 
+_notify() {
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send --urgency=low --transient --app-name="NosArch Power" "$1"
+    fi
+}
+
+# Internal command run by the detached instance. Confirmation already happened
+# in the caller, and the graphical session is known, so neither is repeated here.
+#
+# Adapted from Omarchy: https://github.com/basecamp/omarchy/blob/master/bin/omarchy-system
+_finish_session() {
+    case "${1:-}" in
+        logout)
+            message="Logging out..."
+            set -- uwsm stop
+            ;;
+        restart)
+            message="Restarting..."
+            set -- systemctl reboot --no-wall
+            ;;
+        shutdown)
+            message="Shutting down..."
+            set -- systemctl poweroff --no-wall
+            ;;
+        *)
+            echo "Unknown session action: ${1:-}" >&2
+            exit 1
+            ;;
+    esac
+
+    # Let the menu command return before windows start closing.
+    sleep 1
+    _notify "$message"
+
+    # Waiting for every client to stay gone never finishes: layer shells are
+    # user services that restart. Bound the wait and run the command regardless.
+    if command -v nosarch-close-windows >/dev/null 2>&1; then
+        timeout 2s nosarch-close-windows --wait >/dev/null 2>&1 || true
+    fi
+
+    "$@"
+}
+
+# The menu that starts this script is itself a window, so closing windows can
+# kill the caller. Finish the exit in a user unit that outlives it.
+_exit_session() {
+    action=$1
+    _ensure_command systemd-run
+
+    script_path=$0
+    case "$script_path" in
+        /*) ;;
+        *) script_path=$(command -v "$script_path" || echo "/usr/local/bin/nosarch/nosarch-session") ;;
+    esac
+
+    if ! systemd-run --user --collect --quiet --no-block \
+        --unit="nosarch-session-${action}-$$" \
+        --property=Type=exec \
+        --property=RuntimeMaxSec=30s \
+        --setenv="PATH=$PATH" \
+        --setenv="DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-}" \
+        --setenv="DISPLAY=${DISPLAY:-}" \
+        --setenv="HYPRLAND_INSTANCE_SIGNATURE=${HYPRLAND_INSTANCE_SIGNATURE:-}" \
+        --setenv="WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}" \
+        --setenv="XAUTHORITY=${XAUTHORITY:-}" \
+        --setenv="XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}" \
+        "$script_path" --finish "$action"; then
+        echo "Error: could not start $action in the background." >&2
+        return 1
+    fi
+}
+
 _check_display() {
     if [ "${XDG_SESSION_TYPE:-}" = "wayland" ] || [ "${XDG_SESSION_TYPE:-}" = "x11" ] || [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
         echo "true"
@@ -65,7 +137,7 @@ _SESSION_ENV_KEYS="DBUS_SESSION_BUS_ADDRESS|DISPLAY|HYPRLAND_INSTANCE_SIGNATURE|
 #
 # Root has no session of its own, so `systemctl --user` talks to root's manager,
 # hyprctl cannot find a compositor socket, and zenity has no display. Root
-# callers (nosarch/apply.py, udev rules) would otherwise skip hyprshutdown for text prompts.
+# callers (nosarch/apply.py, udev rules) would otherwise skip closing windows cleanly.
 _reexec_in_graphical_session() {
     session=$(_graphical_session)
 
@@ -184,7 +256,6 @@ session_after_unlock() {
 
 session_logout() {
     if [ "$(_check_display)" = "true" ]; then
-        _ensure_command "hyprshutdown"
         _ensure_command "zenity"
 
         if zenity --question \
@@ -195,7 +266,7 @@ session_logout() {
             --cancel-label="Cancel" \
             --default-cancel
         then
-            hyprshutdown --top-label 'Logging out...' --post-cmd 'uwsm stop'
+            _exit_session logout
         fi
     else
         printf "Are you sure you want to log out now? [y/N]: "
@@ -213,7 +284,6 @@ session_logout() {
 
 system_shutdown() {
     if [ "$(_check_display)" = "true" ]; then
-        _ensure_command "hyprshutdown"
         _ensure_command "zenity"
 
         if zenity --question \
@@ -224,7 +294,7 @@ system_shutdown() {
             --cancel-label="Cancel" \
             --default-cancel
         then
-            hyprshutdown --top-label 'Shutting down...' --post-cmd 'systemctl poweroff --no-wall'
+            _exit_session shutdown
         fi
     else
         printf "Are you sure you want to shutdown your computer now? [y/N]: "
@@ -242,7 +312,6 @@ system_shutdown() {
 
 system_restart() {
     if [ "$(_check_display)" = "true" ]; then
-        _ensure_command "hyprshutdown"
         _ensure_command "zenity"
 
         if zenity --question \
@@ -253,7 +322,7 @@ system_restart() {
             --cancel-label="Cancel" \
             --default-cancel
         then
-            hyprshutdown --top-label 'Restarting...' --post-cmd 'systemctl reboot --no-wall'
+            _exit_session restart
         fi
     else
         printf "Are you sure you want to restart your computer now? [y/N]: "
@@ -276,10 +345,10 @@ main() {
         return
     fi
 
-    # Every command except help acts on the graphical session, so hand the
-    # invocation over to it when there is no session here to act on.
+    # Every command except help and the detached finish step acts on the
+    # graphical session, so hand the invocation over when there is none here.
     case "${1:-}" in
-        help|-h|--help) ;;
+        help|-h|--help|--finish) ;;
         *)
             if [ "$(id -u)" -eq 0 ]; then
                 _reexec_in_graphical_session "$@"
@@ -323,6 +392,9 @@ main() {
             ;;
         shutdown)
             system_shutdown
+            ;;
+        --finish)
+            _finish_session "${2:-}"
             ;;
         help|-h|--help)
             show_help

@@ -3,16 +3,18 @@ import pwd
 import shlex
 import shutil
 import subprocess
+import sys
 
 import nosarch.engine.output
 
 
 class CommandFailedError(Exception):
-    def __init__(self, cmd: list[str], code: int, output: str | None) -> None:
+    def __init__(self, cmd: list[str], code: int, output: str | None, stderr: str | None = None) -> None:
         super().__init__(f"Command '{shlex.join(cmd)}' returned with a non-zero exit code {code}.")
         self.cmd: list[str] = cmd
         self.code: int = code
         self.output: str | None = output
+        self.stderr: str | None = stderr
 
 
 class AccountNotFoundError(LookupError):
@@ -75,6 +77,7 @@ def run(
             group=gid,
             extra_groups=groups,
             stdout=subprocess.PIPE if capture else None,
+            stderr=subprocess.PIPE if capture else None,
             text=True,
             errors="replace",
             check=False,
@@ -86,9 +89,16 @@ def run(
         nosarch.engine.output.print_warning(f"Could not run '{shlex.join(cmd)}': {error.strerror or error}")
         return ""
 
+    if capture and completed.stderr:
+        sys.stderr.write(completed.stderr)
+        if not completed.stderr.endswith("\n"):
+            sys.stderr.write("\n")
+
     if completed.returncode != 0:
         if check:
-            raise CommandFailedError(cmd, completed.returncode, completed.stdout if capture else None)
+            raise CommandFailedError(
+                cmd, completed.returncode, completed.stdout if capture else None, completed.stderr if capture else None
+            )
 
         nosarch.engine.output.print_warning(
             f"Command '{shlex.join(cmd)}' returned with an exit code {completed.returncode}."

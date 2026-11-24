@@ -29,10 +29,46 @@ end
 local non_latin_layouts =
 " af am ara bd bg by et ge gr il in iq ir kg kh kz la lk mk mm mn mv np rs ru sy th tj ua "
 
+-- archinstall writes KEYMAP, not XKBLAYOUT. A keymap that is not an xkb layout name
+-- leaves the greeter on us, so the password typed here is not the one the TTY accepts.
+local keymap_layouts = {
+    uk = "gb",
+    sv = "se",
+    ["br-abnt2"] = "br",
+    ["de-latin1"] = "de",
+    ["de-latin1-nodeadkeys"] = "de",
+    ["fr-latin1"] = "fr",
+    ["fr-latin9"] = "fr",
+    ["pt-latin1"] = "pt",
+    ["pt-latin9"] = "pt",
+    dvorak = "us",
+    colemak = "us",
+}
+
+local function layout_from_keymap(keymap)
+    if keymap_layouts[keymap] then
+        return keymap_layouts[keymap]
+    end
+    local base = keymap:match("^([%a]+)")
+    return keymap_layouts[base] or base or "us"
+end
+
 local vconsole = read_vconsole()
-local kb_layout = vconsole.XKBLAYOUT or "us"
+local kb_layout = vconsole.XKBLAYOUT
 local kb_variant = vconsole.XKBVARIANT or ""
 local kb_options = ""
+
+if not kb_layout or kb_layout == "" then
+    local keymap = vconsole.KEYMAP or "us"
+    kb_layout = layout_from_keymap(keymap)
+    if kb_variant == "" then
+        if keymap == "dvorak" or keymap == "colemak" then
+            kb_variant = keymap
+        elseif keymap:find("nodeadkeys", 1, true) then
+            kb_variant = "nodeadkeys"
+        end
+    end
+end
 
 -- A non-Latin layout gets us in front, reachable back with Left Alt + Right Alt.
 if non_latin_layouts:find(" " .. kb_layout:match("^[^,]*") .. " ", 1, true) then

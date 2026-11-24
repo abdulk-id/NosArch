@@ -1,0 +1,17 @@
+# Managed by NosArch
+
+[Unit]
+Description=Elephant
+Documentation=https://github.com/abenz1267/elephant
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/elephant
+Slice=session.slice
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

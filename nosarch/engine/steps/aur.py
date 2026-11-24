@@ -103,7 +103,7 @@ def _build_and_install(
 
     nosarch.engine.output.print_list("Foreign packages to build:", to_build)
     nosarch.engine.output.print_list("Foreign dependencies to install:", to_install - targets)
-    if to_build and not nosarch.engine.output.prompt_confirm("Proceed?", default=True):
+    if to_build and ctx.setup.aur.confirm_builds and not nosarch.engine.output.prompt_confirm("Proceed?", default=True):
         raise nosarch.engine.aur.AurError("Building was declined.")
 
     files: dict[str, str] = {}

@@ -243,6 +243,9 @@ class Advanced:
         default=True,
     )
     enable_swapfile: bool = flag("Create a Btrfs swapfile and configure the kernel to hibernate to it")
+    confirm_aur_builds: bool = flag(
+        "Ask before reviewing and building AUR packages. Turn this off for an unattended install", default=True
+    )
 
 
 @dataclass
